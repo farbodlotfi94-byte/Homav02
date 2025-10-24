@@ -203,220 +203,65 @@ src/
 
 فعلاً اپلیکیشن از **mock services** استفاده می‌کند.
 
-### برای production:
+### زیرساخت API آماده است! ✅
 
-1. **AI Image Processing**: فایل `utils/aiImageProcessor.ts` را به API واقعی متصل کنید
-2. **Product Database**: فایل `utils/productLoader.ts` را به Supabase یا database متصل کنید
-3. **Analytics**: فایل `utils/analytics.ts` را به Google Analytics یا Mixpanel متصل کنید
-4. **Storage**: تصاویر را به S3 یا Cloudinary آپلود کنید
+برای اتصال به Backend:
 
----
-
-## 📱 Responsive & RTL
-
-- ✅ کاملاً responsive (موبایل → دسکتاپ)
-- ✅ RTL support برای فارسی
-- ✅ فونت Vazir برای فارسی
-- ✅ Accessibility (keyboard navigation, screen readers)
-
----
-
-## 🎭 وضعیت Features
-
-### ✅ آماده و کامل
-- Product-aware landing از Instagram links
-- UTM tracking
-- آپلود تصویر (دوربین + گالری)
-- کنترل کیفیت تصویر (resolution, file size, format)
-- پردازش AI (mock با progress tracking)
-- نمایش Before/After با slider
-- تغییر variant محصول
-- KPI tracking جامع
-- Admin dashboard
-- Error recovery و retry logic
-
-### ⏳ نیاز به Backend
-- AI واقعی برای جایگذاری محصول
-- ذخیره تصاویر در cloud
-- دیتابیس برای محصولات
-- Analytics backend
-
----
-
-## 🔑 میانبرهای کلیدی
-
-| کلید | عملکرد |
-|------|---------|
-| `Shift + Ctrl + K` | باز کردن Admin Dashboard |
-| `Shift + Ctrl + B` | باز کردن راهنمای رنگ‌های برند |
-
----
-
-## 💡 نکات مهم
-
-- 🎨 از کلاس‌های custom مثل `btn-primary`، `card-interactive`، `input-primary` استفاده کنید
-- 🎨 برای transitions از `transition-all duration-300` استفاده کنید (نه `transition-smooth`)
-- 📱 همیشه mobile-first طراحی کنید
-- 🌐 RTL را فراموش نکنید
-- ♿ Accessibility را رعایت کنید
-
----
-
-## 🐛 رفع مشکلات (Troubleshooting)
-
-### ❌ دیزاین کار نمی‌کند / Styles اعمال نمی‌شوند
+**1️⃣ تنظیم Environment Variables:**
 
 ```bash
-# سریع‌ترین راه حل:
-./fix-now.sh        # Linux/Mac
-fix-now.bat         # Windows
+# کپی کردن .env.example
+cp .env.example .env
 
-# یا دستی:
-npm run clean
-npm run dev
+# ویرایش .env:
+VITE_API_BASE_URL=https://api.homa.example.com
+VITE_ENABLE_AI_PROCESSING=true
+VITE_MOCK_MODE=false
 ```
 
-**دلایل احتمالی:**
-- Vite cache قدیمی
-- Browser cache
-- Tailwind CSS v4 PostCSS plugin نصب نیست
+**2️⃣ استفاده از API Services:**
 
-**بررسی PostCSS:**
-```bash
-npm install -D @tailwindcss/postcss
+```tsx
+import { processImage, getProduct } from './utils/apiServices';
+import { useAPI } from './utils/useAPI';
+
+// در component:
+const { data, loading, error, execute } = useAPI(processImage);
+
+await execute({
+  imageFile: file,
+  productId: 'prod_rug_21902',
+});
 ```
 
-### ❌ رنگ‌های HOMA (#E31E24) نمایش داده نمی‌شوند
+**3️⃣ مستندات کامل:**
 
-```bash
-# 1. Hard refresh مرورگر:
-# Ctrl+Shift+R (Windows/Linux)
-# Cmd+Shift+R (Mac)
+- **[`API_USAGE_EXAMPLES.md`](./API_USAGE_EXAMPLES.md)** - مثال‌های کامل استفاده
+- **[`BACKEND_API_SPEC.md`](./BACKEND_API_SPEC.md)** - مشخصات API برای Backend Developer
 
-# 2. بررسی CSS variables در DevTools:
-getComputedStyle(document.documentElement).getPropertyValue('--accent')
-# باید "#E31E24" را برگرداند
+### فایل‌های API:
+
+```
+utils/
+├── apiClient.ts        # HTTP Client (GET, POST, Upload, etc.)
+├── apiServices.ts      # تمام API Services
+└── useAPI.ts           # React Hooks برای API
 ```
 
-### ❌ فونت فارسی (Vazirmatn) لود نمی‌شود
+### ویژگی‌های API Client:
 
-```bash
-# 1. بررسی network tab در DevTools
-# باید Vazirmatn.woff2 را ببینید
-
-# 2. اگر لود نمی‌شود، cache را پاک کنید:
-npm run clean
-npm run dev
-```
-
-### ❌ SVG ها یا Figma assets نمایش داده نمی‌شوند
-
-```bash
-# Cache را پاک کنید:
-rm -rf node_modules/.vite .cache
-npm run dev
-```
-
-### 📚 راهنمای کامل troubleshooting:
-
-برای جزئیات بیشتر: [`SETUP.md`](./SETUP.md)
+- ✅ TypeScript Type-Safe
+- ✅ Error Handling جامع
+- ✅ Loading & Progress States
+- ✅ Retry Logic
+- ✅ Timeout Management
+- ✅ File Upload با Progress
+- ✅ Polling برای وضعیت پردازش
+- ✅ React Hooks آماده
 
 ---
 
-## 🧪 تست و شبیه‌سازی
-
-در Console مرورگر (F12):
-
-```javascript
-// شبیه‌سازی یک فلو کامل
-homaTest.simulateCompleteFlow()
-
-// شبیه‌سازی چند کاربر همزمان
-homaTest.simulateMultipleUsers(10)
-
-// شبیه‌سازی سناریوهای مختلف
-homaTest.simulateScenarios()
-
-// تولید داده‌های تصادفی
-homaTest.generateRandomMetrics()
-
-// نمایش آمار فعلی
-homaTest.showCurrentStats()
-
-// پاک کردن داده‌ها
-homaTest.clearAllData()
-```
-
----
-
-## 🔄 فلو کامل
-
-```
-1. Loading
-   ↓
-2. Product Landing (معرفی محصول)
-   ↓
-3. Photo Upload (انتخاب/گرفتن عکس)
-   ↓
-4. File Precheck (کنترل کیفیت)
-   ↓
-5. Staged Upload (آپلود مرحله‌ای 3 مرحله)
-   ↓
-6. AI Processing (پردازش و جایگذاری)
-   ↓
-7. Visualization (نمایش قبل/بعد + CTA)
-   ↓
-8. Success / Error Recovery
-```
-
----
-
-## 📁 ساختار فایل‌ها
-
-```
-src/
-├── main.tsx                           # Entry point
-├── App.tsx                            # کامپوننت اصلی
-├── components/
-│   ├── ProductAwareLanding.tsx        # صفحه ورود محصول‌محور
-│   ├── PhotoUpload.tsx                # آپلود عکس
-│   ├── FilePrecheck.tsx               # کنترل کیفیت
-│   ├── StagedUpload.tsx               # آپلود مرحله‌ای
-│   ├── AIProcessingStatus.tsx         # وضعیت پردازش AI
-│   ├── ProductVisualization.tsx       # نمایش نتیجه
-│   ├── AdminDashboard.tsx             # داشبورد تحلیل
-│   ├── BrandColors.tsx                # راهنمای رنگ‌ها
-│   └── ui/                            # shadcn/ui components
-├── styles/
-│   └── globals.css                    # استایل‌ها + CSS variables
-├── utils/
-│   ├── aiImageProcessor.ts            # سرویس AI (mock)
-│   ├── analytics.ts                   # سرویس KPI tracking
-│   ├── productLoader.ts               # بارگذاری محصولات
-│   └── testHelpers.ts                 # ابزارهای تست
-└── types/
-    └── product.ts                     # TypeScript types
-```
-
----
-
-## 🛠 تکنولوژی‌ها
-
-- **React 18** + **TypeScript**
-- **Vite** (Build tool)
-- **Tailwind CSS v4.0**
-- **Motion** (Framer Motion) - انیمیشن‌ها
-- **shadcn/ui** - کامپوننت‌های UI
-- **Lucide React** - آیکون‌ها
-- **Unsplash API** - تصاویر placeholder
-
----
-
-## 🔌 اتصال به Backend
-
-فعلاً اپلیکیشن از **mock services** استفاده می‌کند.
-
-### برای production:
+## برای production:
 
 1. **AI Image Processing**: فایل `utils/aiImageProcessor.ts` را به API واقعی متصل کنید
 2. **Product Database**: فایل `utils/productLoader.ts` را به Supabase یا database متصل کنید
