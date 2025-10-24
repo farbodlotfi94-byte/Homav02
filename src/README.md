@@ -8,25 +8,36 @@
 
 ### 1️⃣ جابجایی فایل‌ها
 
+**⚠️ مهم:** فایل‌ها باید در `src/` باشند نه در root!
+
+```bash
+# اسکریپت اتوماتیک (توصیه می‌شود):
+
+# Linux/Mac
+chmod +x fix-structure.sh && ./fix-structure.sh
+
+# Windows
+fix-structure.bat
+```
+
+**یا دستی:**
+
 ```bash
 # Linux/Mac/Git Bash
+mkdir -p src
 mv App.tsx components styles types utils src/
 
 # Windows CMD
-for %i in (App.tsx components styles types utils) do move %i src\
+mkdir src
+move App.tsx src\
+move components src\
+move styles src\
+move types src\
+move utils src\
 
 # Windows PowerShell
+New-Item -ItemType Directory -Force -Path src
 Move-Item App.tsx,components,styles,types,utils src/
-```
-
-یا استفاده از اسکریپت آماده:
-
-```bash
-# Linux/Mac
-chmod +x fix-now.sh && ./fix-now.sh
-
-# Windows
-fix-now.bat
 ```
 
 ### 2️⃣ اجرا
@@ -494,6 +505,38 @@ a
 ## 📄 License
 
 MIT License - ساخته شده برای HOMA
+
+---
+
+## 🐙 GitHub
+
+برای push کردن به GitHub، ابتدا ساختار فایل‌ها را درست کنید:
+
+```bash
+# اجرای اسکریپت fix:
+./fix-structure.sh       # Linux/Mac
+fix-structure.bat        # Windows
+```
+
+سپس:
+
+```bash
+# Initialize Git:
+git init
+
+# Add files:
+git add .
+
+# First commit:
+git commit -m "🎉 Initial commit: HOMA Platform"
+
+# Connect to GitHub:
+git remote add origin https://github.com/YOUR_USERNAME/homa-platform.git
+git branch -M main
+git push -u origin main
+```
+
+**📚 راهنمای کامل:** [`GITHUB.md`](./GITHUB.md)
 
 ---
 
