@@ -1,0 +1,35 @@
+---
+description: AI image processing and analytics integration patterns
+---
+
+# AI Integration and Analytics
+
+## AI Image Processing
+- Use [src/utils/aiImageProcessor.ts](mdc:src/utils/aiImageProcessor.ts) for AI operations
+- Implement proper error handling for AI processing failures
+- Use async/await patterns for AI operations
+- Provide user feedback during processing
+
+## Analytics and Tracking
+- Use [src/utils/analytics.ts](mdc:src/utils/analytics.ts) for event tracking
+- Track user interactions and conversion events
+- Implement proper KPI tracking for business metrics
+- Use consistent event naming conventions
+
+## Error Handling
+- Implement graceful fallbacks for AI processing errors
+- Provide user-friendly error messages in Persian
+- Log errors for debugging and monitoring
+- Implement retry mechanisms for transient failures
+
+## Performance Optimization
+- Optimize image processing for mobile devices
+- Implement proper loading states
+- Use progressive enhancement for AI features
+- Monitor and optimize processing times
+
+## Data Privacy
+- Ensure proper handling of user images
+- Implement secure data transmission
+- Follow privacy regulations and best practices
+- Provide clear data usage policies to users

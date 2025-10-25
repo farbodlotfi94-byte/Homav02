@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ProductAwareLanding } from "./components/ProductAwareLanding";
+import { ProductSelection } from "./components/ProductSelection";
 import { PhotoUpload } from "./components/PhotoUpload";
 import { FilePrecheck } from "./components/FilePrecheck";
 import { StagedUpload } from "./components/StagedUpload";
@@ -16,6 +17,7 @@ import type { Product } from "./types/product";
 import {
   parseEntryParams,
   fetchProduct,
+  fetchProductByUniqueLink,
   validateProduct,
   getSuggestedProducts,
 } from "./utils/productLoader";
@@ -30,6 +32,7 @@ import "./utils/testHelpers"; // Load test helpers for console
 
 type Step =
   | "loading" // Initial product fetch
+  | "product-selection" // Product selection from list
   | "product-landing" // Product-aware landing with CTA
   | "product-fallback" // Invalid/unavailable product
   | "upload" // File picker/camera
@@ -61,6 +64,7 @@ export default function App() {
   const [currentStep, setCurrentStep] =
     useState<Step>("loading");
   const [product, setProduct] = useState<Product | null>(null);
+  const [productUniqueLink, setProductUniqueLink] = useState<string>("");
   const [suggestedProducts, setSuggestedProducts] = useState<
     Product[]
   >([]);
@@ -95,96 +99,72 @@ export default function App() {
     hasFeedbackForCurrentImage,
     setHasFeedbackForCurrentImage,
   ] = useState<boolean>(false);
+  const [isSaved, setIsSaved] = useState<boolean>(false);
 
-  // Initialize: Parse URL and fetch product
+  // Initialize: Parse URL and determine entry flow
   useEffect(() => {
     const initializeApp = async () => {
       console.log("[App] Initializing...");
+      console.log("[App] Current URL:", window.location.href);
 
       // Parse entry parameters from URL
-      let entryContext = parseEntryParams(window.location.href);
+      const entryContext = parseEntryParams(window.location.href);
+      console.log("[App] Parsed entry context:", entryContext);
 
-      if (!entryContext) {
-        console.log(
-          "[App] No product context found, using default product",
-        );
-        // Use default product for demo
-        const defaultProductId = "prod_rug_21902";
-
-        // Auto-set URL for demo
-        const url = new URL(window.location.href);
-        url.searchParams.set("productId", defaultProductId);
-        url.searchParams.set("utm_source", "instagram");
-        url.searchParams.set("utm_medium", "social");
-        window.history.replaceState({}, "", url);
-
-        // Re-parse with default
-        entryContext = {
-          productId: defaultProductId,
-          utm: {
-            source: "instagram",
-            medium: "social",
-          },
-          timestamp: Date.now(),
-        };
-      }
-
-      // Track entry
-      trackKPI("Entry", {
-        productId: entryContext.productId,
-        utm_source: entryContext.utm.source,
-        utm_medium: entryContext.utm.medium,
-        utm_campaign: entryContext.utm.campaign,
-        seller: entryContext.seller,
-      });
-
-      try {
-        // Fetch product data
-        const productData = await fetchProduct(
-          entryContext.productId,
-        );
-
-        if (!productData) {
-          console.log("[App] Product not found");
-          setFallbackReason("not_found");
-          setSuggestedProducts(
-            getSuggestedProducts("furniture", 3),
-          );
-          setCurrentStep("product-fallback");
-          return;
-        }
-
-        // Validate product
-        const validation = validateProduct(productData);
-
-        if (!validation.isValid) {
-          console.log(
-            "[App] Product invalid:",
-            validation.reason,
-          );
-          setFallbackReason(validation.reason!);
-          setSuggestedProducts(
-            getSuggestedProducts(productData.category, 3),
-          );
-          setCurrentStep("product-fallback");
-          return;
-        }
-
-        // Product is valid, show landing
-        console.log(
-          "[App] Product loaded successfully:",
-          productData.name,
-        );
-        setProduct(productData);
-        setProductVariant({
-          color: productData.selectedVariant?.color,
-          size: productData.selectedVariant?.size,
+      if (entryContext) {
+        // URL-based entry with specific product
+        console.log("[App] URL-based entry with product:", entryContext.productId);
+        
+        // Track entry
+        trackKPI("Entry", {
+          productId: entryContext.productId,
+          utm_source: entryContext.utm.source,
+          utm_medium: entryContext.utm.medium,
+          utm_campaign: entryContext.utm.campaign,
+          seller: entryContext.seller,
         });
-        setCurrentStep("product-landing");
-      } catch (error) {
-        console.error("[App] Error fetching product:", error);
-        setFallbackReason("error");
-        setCurrentStep("product-fallback");
+
+        try {
+          // Fetch product data
+          const productData = await fetchProduct(entryContext.productId);
+
+          if (!productData) {
+            console.log("[App] Product not found");
+            setFallbackReason("not_found");
+            setSuggestedProducts(await getSuggestedProducts("all", 3));
+            setCurrentStep("product-fallback");
+            return;
+          }
+
+          // Validate product
+          const validation = validateProduct(productData);
+
+          if (!validation.isValid) {
+            console.log("[App] Product invalid:", validation.reason);
+            setFallbackReason(validation.reason!);
+            setSuggestedProducts(await getSuggestedProducts(productData.category, 3));
+            setCurrentStep("product-fallback");
+            return;
+          }
+
+          // Product is valid, show landing
+          console.log("[App] Product loaded successfully:", productData.name);
+          setProduct(productData);
+          setProductUniqueLink(productData.unique_link);
+          setProductVariant({
+            color: productData.selectedVariant?.color,
+            size: productData.selectedVariant?.size,
+          });
+          setCurrentStep("product-landing");
+        } catch (error) {
+          console.error("[App] Error fetching product:", error);
+          setFallbackReason("error");
+          setCurrentStep("product-fallback");
+        }
+      } else {
+        // No URL parameters - show product selection
+        console.log("[App] No product context found, showing product selection");
+        setCurrentStep("product-selection");
       }
     };
 
@@ -210,6 +190,56 @@ export default function App() {
     trackAnalytics(event, eventData);
   };
 
+  // Product Selection Handler
+  const handleProductSelect = async (productId: string, uniqueLink: string) => {
+    trackKPI("Product Selected", {
+      productId,
+      uniqueLink,
+    });
+
+    // Update URL for sharing
+    const newUrl = `${window.location.origin}${window.location.pathname}?productId=${productId}`;
+    window.history.pushState({ productId }, '', newUrl);
+
+    try {
+      setCurrentStep("loading");
+      
+      // Fetch product data using uniqueLink directly
+      const productData = await fetchProductByUniqueLink(uniqueLink);
+
+      if (!productData) {
+        console.log("[App] Product not found after selection");
+        setFallbackReason("not_found");
+        setCurrentStep("product-fallback");
+        return;
+      }
+
+      // Validate product
+      const validation = validateProduct(productData);
+
+      if (!validation.isValid) {
+        console.log("[App] Selected product invalid:", validation.reason);
+        setFallbackReason(validation.reason!);
+        setCurrentStep("product-fallback");
+        return;
+      }
+
+      // Product is valid, show landing
+      console.log("[App] Selected product loaded successfully:", productData.name);
+      setProduct(productData);
+      setProductUniqueLink(uniqueLink);
+      setProductVariant({
+        color: productData.selectedVariant?.color,
+        size: productData.selectedVariant?.size,
+      });
+      setCurrentStep("product-landing");
+    } catch (error) {
+      console.error("[App] Error loading selected product:", error);
+      setFallbackReason("error");
+      setCurrentStep("product-fallback");
+    }
+  };
+
   // Product Landing → Upload
   const handleStartUpload = () => {
     trackKPI("upload_start", {
@@ -227,6 +257,7 @@ export default function App() {
     }
 
     setUploadStartTime(Date.now());
+    setIsSaved(false); // Reset saved state for new upload
     setCurrentStep("upload");
   };
 
@@ -304,11 +335,12 @@ export default function App() {
     setCurrentStep("confirmation");
 
     // Process image with AI
-    if (selectedFile && product) {
+    if (selectedFile && product && productUniqueLink) {
       try {
         const result = await processImageWithAI({
           imageFile: selectedFile,
           productId: product.id,
+          uniqueLink: productUniqueLink,
           sessionId,
         });
 
@@ -338,8 +370,12 @@ export default function App() {
               confidence: result.confidence,
             },
           });
+
+          // Wait a moment to show completion state before transitioning
+          await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
           setPlacementSuccess(false);
+          console.error('[App] Image processing failed:', result.error);
           trackEvent({
             eventType: "upload_error",
             productId: product.id,
@@ -352,6 +388,20 @@ export default function App() {
       } catch (error) {
         console.error("[App] خطا در پردازش تصویر:", error);
         setPlacementSuccess(false);
+        
+        // Track the error
+        if (product) {
+          trackEvent({
+            eventType: "upload_error",
+            productId: product.id,
+            sessionId,
+            metadata: { 
+              error: error instanceof Error ? error.message : 'خطای ناشناخته',
+              errorType: 'processing_exception'
+            },
+          });
+        }
+        
         setCurrentStep("visualization");
       }
     }
@@ -423,7 +473,7 @@ export default function App() {
   };
 
   // عملیات واقعی که بعد از feedback اجرا می‌شن
-  const handleSave = () => {
+  const handleSave = async () => {
     trackKPI("Action: Save", {
       productId: product?.id,
       placementSuccess,
@@ -442,7 +492,32 @@ export default function App() {
       });
     }
 
-    alert("تصویر ذخیره شد! 💾");
+    // Download the processed image
+    if (visualizedImageUrl) {
+      try {
+        const response = await fetch(visualizedImageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Generate filename with "homa" prefix and timestamp
+        const timestamp = new Date().toISOString().split('T')[0];
+        const productName = product?.name.replace(/\s+/g, '-') || 'product';
+        link.download = `homa-${productName}-${timestamp}.jpg`;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        // Show success feedback
+        setIsSaved(true);
+      } catch (error) {
+        console.error('Download failed:', error);
+        alert('خطا در دانلود تصویر');
+      }
+    }
 
     // اگه از feedback اومده، برگرد به visualization
     if (pendingAction === "save") {
@@ -647,6 +722,14 @@ export default function App() {
           </motion.div>
         )}
 
+        {/* Product Selection */}
+        {currentStep === "product-selection" && (
+          <ProductSelection
+            key="product-selection"
+            onProductSelect={handleProductSelect}
+          />
+        )}
+
         {/* Product Landing */}
         {currentStep === "product-landing" && product && (
           <ProductAwareLanding
@@ -796,6 +879,7 @@ export default function App() {
               }
               fileName={selectedFile.name}
               placementSuccess={placementSuccess}
+              isSaved={isSaved}
               onSave={handleSaveClick}
               onShare={handleShare}
               onChangeVariant={handleVariantChange}

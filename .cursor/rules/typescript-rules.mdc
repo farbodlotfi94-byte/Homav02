@@ -1,0 +1,37 @@
+---
+globs: *.ts,*.tsx
+---
+
+# TypeScript Development Rules
+
+## Type Safety
+- Always use strict TypeScript with proper type annotations
+- Define interfaces for all data structures (see [src/types/product.ts](mdc:src/types/product.ts))
+- Use proper generic types for React components and hooks
+- Avoid `any` type - use proper typing or `unknown` when necessary
+
+## Component Patterns
+- Use functional components with TypeScript
+- Define proper prop interfaces for all components
+- Use React.ComponentProps for extending HTML element props
+- Implement proper event handler types
+
+## Import/Export
+- Use named exports for components and utilities
+- Use default exports only for main components (App, main entry points)
+- Group imports: React imports first, then third-party, then local imports
+- Use path aliases: `@/` for src directory
+
+## Code Style
+- Use semicolons consistently
+- Use double quotes for strings
+- Use trailing commas in objects and arrays
+- Use 2 spaces for indentation
+- Use camelCase for variables and functions
+- Use PascalCase for components and interfaces
+
+## Error Handling
+- Use proper try-catch blocks for async operations
+- Define custom error types when needed
+- Use optional chaining and nullish coalescing
+- Implement proper fallback states for loading and error conditions

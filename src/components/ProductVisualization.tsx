@@ -12,6 +12,7 @@ interface ProductVisualizationProps {
   userImage: string;
   fileName: string;
   placementSuccess: boolean;
+  isSaved?: boolean;
   onSave: () => void;
   onShare: () => void;
   onChangeVariant: (type: "color" | "size", value: string) => void;
@@ -26,6 +27,7 @@ export function ProductVisualization({
   userImage,
   fileName,
   placementSuccess,
+  isSaved = false,
   onSave,
   onShare,
   onChangeVariant,
@@ -34,12 +36,10 @@ export function ProductVisualization({
   onPurchase,
   onBackToStore
 }: ProductVisualizationProps) {
-  const [isSaved, setIsSaved] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleSave = () => {
     onSave();
-    setIsSaved(true);
   };
 
   const openFullscreen = () => {
@@ -89,9 +89,24 @@ export function ProductVisualization({
             >
               {/* Room Image - Clean, no overlays */}
               <img 
-                src={roomImage} 
+                src={userImage} 
                 alt="تصویر نهایی اتاق شما"
                 className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  // Show error message instead of fallback image
+                  target.style.display = 'none';
+                  const errorDiv = document.createElement('div');
+                  errorDiv.className = 'absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center';
+                  errorDiv.innerHTML = `
+                    <div>
+                      <div class="text-2xl mb-2">⚠️</div>
+                      <div class="font-medium">خطا در بارگذاری تصویر</div>
+                      <div class="text-sm mt-1">لطفاً دوباره تلاش کنید</div>
+                    </div>
+                  `;
+                  target.parentNode?.appendChild(errorDiv);
+                }}
               />
             </div>
           </div>
@@ -217,9 +232,24 @@ export function ProductVisualization({
               onClick={(e) => e.stopPropagation()}
             >
               <img
-                src={roomImage}
+                src={userImage}
                 alt="تصویر نهایی اتاق شما - نمای تمام صفحه"
                 className="max-w-full max-h-full object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  // Show error message instead of fallback image
+                  target.style.display = 'none';
+                  const errorDiv = document.createElement('div');
+                  errorDiv.className = 'flex items-center justify-center bg-red-50 text-red-600 p-8 text-center rounded-lg';
+                  errorDiv.innerHTML = `
+                    <div>
+                      <div class="text-4xl mb-4">⚠️</div>
+                      <div class="font-medium text-lg">خطا در بارگذاری تصویر</div>
+                      <div class="text-sm mt-2">لطفاً دوباره تلاش کنید</div>
+                    </div>
+                  `;
+                  target.parentNode?.appendChild(errorDiv);
+                }}
               />
             </motion.div>
 

@@ -1,7 +1,8 @@
 // Product data types for Instagram-sourced products
 
 export interface Product {
-  id: string;
+  id: string; // Internal productId for URL compatibility
+  unique_link: string; // UUID from backend API
   name: string;
   nameEn?: string;
   thumbnail: string;
@@ -29,6 +30,11 @@ export interface Product {
   images: string[];
   description?: string;
   features?: string[];
+  // Backend-specific fields
+  shop_id: number | null;
+  is_predefined: number; // 0 or 1
+  image_path: string; // Path in MinIO storage
+  created_at: string; // ISO timestamp
 }
 
 export interface UTMParams {
@@ -44,4 +50,37 @@ export interface EntryContext {
   utm: UTMParams;
   seller?: string;
   timestamp: number;
+}
+
+// Backend API response types
+export interface BackendProduct {
+  id: number;
+  shop_id: number | null;
+  name: string;
+  description: string;
+  category: string;
+  is_predefined: number;
+  image_path: string;
+  unique_link: string;
+  created_at: string;
+}
+
+export interface BackendProductsResponse {
+  products: BackendProduct[];
+}
+
+export interface BackendProductResponse {
+  id: number;
+  shop_name: string;
+  image_path: string;
+  unique_link: string;
+  created_at: string;
+}
+
+export interface BackendProcessResponse {
+  id: number;
+  product_id: number;
+  customer_image_path: string;
+  processed_image_path: string;
+  created_at: string;
 }

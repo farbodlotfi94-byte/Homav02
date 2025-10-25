@@ -22,7 +22,7 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    host: true,
+    host: '0.0.0.0',
     // Force clear cache on startup
     force: true,
   },

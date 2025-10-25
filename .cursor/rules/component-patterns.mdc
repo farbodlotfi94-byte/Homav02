@@ -1,0 +1,58 @@
+---
+globs: src/components/**/*.tsx
+---
+
+# Component Development Patterns
+
+## Component Organization
+- Place all components in [src/components/](mdc:src/components/) directory
+- Use PascalCase for component file names
+- Create separate files for each component
+- Group related components in subdirectories when needed
+
+## Component Structure
+```typescript
+interface ComponentProps {
+  // Define all props with proper types
+}
+
+export const ComponentName = ({ prop1, prop2 }: ComponentProps) => {
+  // Hooks at the top
+  // Event handlers
+  // Render logic
+  return (
+    // JSX
+  );
+};
+```
+
+## UI Component Usage
+- Use components from [src/components/ui/](mdc:src/components/ui/) for consistent design
+- Import with proper version aliases (e.g., `@radix-ui/react-button@1.1.2`)
+- Customize UI components with Tailwind classes
+- Use the `cn()` utility for conditional class names
+
+## State Management in Components
+- Use local state for component-specific data
+- Lift state up to parent components when shared
+- Use proper TypeScript types for state variables
+- Implement proper state updates with functional updates when needed
+
+## Event Handling
+- Define event handlers as arrow functions
+- Use proper TypeScript event types
+- Implement proper error handling in event handlers
+- Use callback props for parent communication
+
+## Accessibility
+- Use proper ARIA attributes
+- Implement keyboard navigation
+- Ensure proper focus management
+- Use semantic HTML elements
+- Provide proper alt text for images
+
+## Persian/Farsi Content
+- All user-facing text must be in Persian
+- Use proper RTL layout with `dir="rtl"`
+- Test text rendering with Vazirmatn font
+- Ensure proper text alignment and spacing

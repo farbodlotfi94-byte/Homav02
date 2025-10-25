@@ -1,0 +1,42 @@
+---
+globs: *.css,*.tsx,*.ts
+---
+
+# Styling and Design Guidelines
+
+## CSS Architecture
+- Use Tailwind CSS utility classes as primary styling method
+- Use CSS custom properties (CSS variables) for theme values
+- Follow the design system defined in [src/styles/globals.css](mdc:src/styles/globals.css)
+- Use component-specific CSS only when Tailwind utilities are insufficient
+
+## HOMA Brand Colors
+- **Primary Accent**: `#E31E24` (HOMA Red) - Use for primary actions and highlights
+- **Secondary Accent**: `#F5E6D3` (HOMA Beige/Cream) - Use for secondary elements
+- **Background**: `#fafafa` (Light Gray) - Main background color
+- **Text**: `#000000` (Black) - Primary text color
+- **Borders**: `#e6e6e6` (Light Gray) - Border color
+
+## Typography
+- Use Vazirmatn font family for all Persian text
+- Font sizes: H1 (34px), H2 (22px), H3 (20px), H4 (17px), P (17px), Label (15px), Caption (12px)
+- Font weights: Bold (700), Semibold (600), Regular (400)
+- Line height: 1.5 for all text elements
+
+## Layout and Spacing
+- Use consistent spacing scale (4px, 8px, 12px, 16px, 24px, 32px, 48px, 64px)
+- Use proper border radius: 26px for cards, 100px for buttons
+- Implement proper elevation with shadows: `0px 15px 75px 0px rgba(0, 0, 0, 0.18)`
+- Use RTL layout for all components
+
+## Component Styling
+- Use shadcn/ui components as base and customize with Tailwind
+- Implement proper focus states with ring utilities
+- Use consistent hover and active states
+- Ensure proper contrast ratios for accessibility
+
+## Responsive Design
+- Mobile-first approach with responsive breakpoints
+- Use Tailwind responsive prefixes (sm:, md:, lg:, xl:)
+- Test on various screen sizes and orientations
+- Ensure touch-friendly interactive elements (minimum 44px touch targets)

@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+---
+
+# Development Workflow and Best Practices
+
+## Virtual Environment
+- **ALWAYS** use the virtual environment (venv) for Python dependencies
+- Activate venv before running any Python-related commands
+- Use `.venv` or `venv` directory in the project root
+- Never install or run Python packages without virtual environment
+
+## Development Commands
+- `npm run dev` - Start development server (port 3000)
+- `npm run build` - Create production build
+- Use `npm install` for adding new dependencies
+- Use `npm update` for updating existing dependencies
+
+## Code Quality
+- Use TypeScript strict mode
+- Implement proper error handling
+- Write clean, readable code with proper comments
+- Use consistent naming conventions
+- Follow the established project structure
+
+## Testing and Debugging
+- Use browser dev tools for debugging
+- Implement proper console logging for development
+- Test on multiple devices and browsers
+- Use React DevTools for component debugging
+- Test Persian/Farsi text rendering
+
+## Git Workflow
+- Use meaningful commit messages
+- Create feature branches for new features
+- Use pull requests for code review
+- Keep commits focused and atomic
+- Update documentation when making changes
+
+## Performance
+- Monitor bundle size and loading times
+- Optimize images and assets
+- Use proper lazy loading for components
+- Implement proper caching strategies
+- Monitor Core Web Vitals
+
+## Deployment
+- Test production builds locally before deployment
+- Ensure all environment variables are properly configured
+- Use proper build optimization settings
+- Monitor application performance in production

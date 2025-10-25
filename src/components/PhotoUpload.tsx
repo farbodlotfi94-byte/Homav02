@@ -46,6 +46,13 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
     }
   }, [onUploadComplete]);
 
+  const handleButtonClick = useCallback((inputId: string) => {
+    const input = document.getElementById(inputId) as HTMLInputElement;
+    if (input) {
+      input.click();
+    }
+  }, []);
+
   const simulateUpload = (uploadedFile: File) => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -122,13 +129,13 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
               className="hidden"
               id="file-upload"
             />
-            <label htmlFor="file-upload" className="block">
-              <Button
-                asChild
-                className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors cursor-pointer"
-              >
-                <span>انتخاب فایل</span>
-              </Button>
+            <label 
+              htmlFor="file-upload" 
+              className="block w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors cursor-pointer flex items-center justify-center font-medium select-none"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleButtonClick('file-upload')}
+            >
+              انتخاب فایل
             </label>
 
             {/* Mobile Camera */}
@@ -141,17 +148,14 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
                 className="hidden"
                 id="camera-upload"
               />
-              <label htmlFor="camera-upload" className="block">
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full h-14 border-gray-300 text-gray-900 hover:bg-gray-50 rounded-full cursor-pointer"
-                >
-                  <span className="flex items-center gap-2 justify-center">
-                    <Camera className="w-5 h-5" />
-                    گرفتن عکس
-                  </span>
-                </Button>
+              <label 
+                htmlFor="camera-upload" 
+                className="block w-full h-14 border-2 border-gray-300 text-gray-900 hover:bg-gray-50 rounded-full cursor-pointer flex items-center gap-2 justify-center font-medium select-none"
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleButtonClick('camera-upload')}
+              >
+                <Camera className="w-5 h-5" />
+                گرفتن عکس
               </label>
             </div>
           </div>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Debug</title>
+</head>
+<body>
+    <h1>API Debug Test</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                // Test products endpoint
+                console.log('Testing products endpoint...');
+                const productsResponse = await fetch('http://104.234.46.187:8888/api/products');
+                console.log('Products response:', productsResponse);
+                
+                if (!productsResponse.ok) {
+                    throw new Error(`HTTP ${productsResponse.status}: ${productsResponse.statusText}`);
+                }
+                
+                const productsData = await productsResponse.json();
+                console.log('Products data:', productsData);
+                
+                if (productsData.products && productsData.products.length > 0) {
+                    const firstProduct = productsData.products[0];
+                    console.log('First product:', firstProduct);
+                    
+                    // Test individual product endpoint
+                    console.log('Testing individual product endpoint...');
+                    const productResponse = await fetch(`http://104.234.46.187:8888/api/products/${firstProduct.unique_link}`);
+                    console.log('Product response:', productResponse);
+                    
+                    if (!productResponse.ok) {
+                        throw new Error(`HTTP ${productResponse.status}: ${productResponse.statusText}`);
+                    }
+                    
+                    const productData = await productResponse.json();
+                    console.log('Product data:', productData);
+                    
+                    resultDiv.innerHTML = `
+                        <h2>Success!</h2>
+                        <p>Products endpoint works: ${productsData.products.length} products found</p>
+                        <p>Individual product endpoint works: ${productData.shop_name}</p>
+                        <pre>${JSON.stringify(productData, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = '<p>No products found</p>';
+                }
+            } catch (error) {
+                console.error('API Test Error:', error);
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,141 +1,52 @@
-import type { Product, UTMParams, EntryContext } from "../types/product";
-import rugImage1 from "figma:asset/ecdea148753a026b4eb9077903a5700290607184.png";
-import rugImage2 from "figma:asset/13e86ead7883d0975051ca1d917031988ea7cdd0.png";
+import type { 
+  Product, 
+  UTMParams, 
+  EntryContext, 
+  BackendProduct, 
+  BackendProductResponse 
+} from "../types/product";
+import { apiGet } from "../services/api";
+import { API_CONFIG } from "../config/api";
 
-// Mock product database
-const mockProducts: Record<string, Product> = {
-  "prod_rug_21902": {
-    id: "prod_rug_21902",
-    name: "قالی دستباف قشقایی شیراز",
-    nameEn: "Qashqai Handwoven Rug Shiraz",
-    thumbnail: rugImage1,
-    price: 45000000,
+// Product mapping for URL compatibility
+const productIdToUniqueLink: Record<string, string> = {};
+
+/**
+ * Transform backend product to internal Product type
+ */
+function transformBackendProduct(backendProduct: BackendProduct): Product {
+  const productId = `prod_${backendProduct.id}`;
+  
+  // Store mapping for URL compatibility
+  productIdToUniqueLink[productId] = backendProduct.unique_link;
+  
+  return {
+    id: productId,
+    unique_link: backendProduct.unique_link,
+    name: backendProduct.name, // Use real product name from backend
+    thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
     currency: "تومان",
     seller: {
-      name: "گالری فرش ایرانی",
+      name: "Predefined Product",
       verified: true
     },
-    brand: "قشقایی اصیل",
-    category: "rug",
-    variants: {
-      colors: [
-        { name: "قرمز سنتی", hex: "#8B2635", available: true },
-      ],
-      sizes: [
-        { name: "۲×۳ متر", available: true },
-        { name: "۳×۴ متر", available: true }
-      ]
-    },
-    selectedVariant: {
-      color: "قرمز سنتی",
-      size: "۲×۳ متر"
-    },
+    category: backendProduct.category, // Use real category from backend
     status: "active",
-    images: [
-      rugImage1,
-      rugImage2
-    ],
-    description: "قالی دستباف اصیل قشقایی از شیراز با رنگ‌های طبیعی و نقوش سنتی. هنر دست‌بافت اصیل ایرانی با کیفیت بی‌نظیر.",
+    images: [`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`],
+    description: backendProduct.description, // Use real description from backend
     features: [
-      "رنگ‌های طبیعی گیاهی",
-      "بافت دست با پشم طبیعی",
-      "نقش‌های سنتی قشقایی",
-      "شناسه محصول: 21902",
-      "ساخت شیراز - ایران"
-    ]
-  },
-  "prod_chair_01": {
-    id: "prod_chair_01",
-    name: "صندلی راحتی مدرن",
-    nameEn: "Modern Comfort Chair",
-    thumbnail: "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400",
-    price: 2500000,
-    currency: "تومان",
-    seller: {
-      name: "فروشگاه مبل آسمان",
-      verified: true
-    },
-    brand: "Nordic Home",
-    category: "furniture",
-    variants: {
-      colors: [
-        { name: "خاکستری", hex: "#808080", available: true },
-        { name: "آبی", hex: "#4A90E2", available: true },
-        { name: "کرم", hex: "#F5F5DC", available: false }
-      ],
-      sizes: [
-        { name: "تک‌نفره", available: true },
-        { name: "دونفره", available: true }
-      ]
-    },
-    selectedVariant: {
-      color: "خاکستری",
-      size: "تک‌نفره"
-    },
-    status: "active",
-    images: [
-      "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=800",
-      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800"
+      "محصول از پیش تعریف شده",
+      "قابل تست در فضای شما",
+      `دسته‌بندی: ${backendProduct.category}`,
+      `تاریخ ایجاد: ${new Date(backendProduct.created_at).toLocaleDateString('fa-IR')}`
     ],
-    description: "صندلی راحتی با طراحی مدرن و پارچه با کیفیت بالا. مناسب برای اتاق نشیمن و فضاهای مدرن.",
-    features: [
-      "پارچه ضد لک و قابل شستشو",
-      "فوم با کیفیت بالا",
-      "پایه فلزی مقاوم",
-      "گارانتی ۲ ساله"
-    ]
-  },
-  "prod_lamp_02": {
-    id: "prod_lamp_02",
-    name: "چراغ ایستاده مینیمال",
-    thumbnail: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400",
-    priceRange: {
-      min: 800000,
-      max: 1200000
-    },
-    currency: "تومان",
-    seller: {
-      name: "نورسازه",
-      verified: false
-    },
-    category: "lighting",
-    variants: {
-      colors: [
-        { name: "مشکی", hex: "#000000", available: true },
-        { name: "سفید", hex: "#FFFFFF", available: true },
-        { name: "طلایی", hex: "#FFD700", available: true }
-      ]
-    },
-    selectedVariant: {
-      color: "مشکی"
-    },
-    status: "active",
-    images: [
-      "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=800"
-    ],
-    description: "چراغ ایستاده با طراحی مینیمال و نور قابل تنظیم.",
-    features: [
-      "نور LED کم‌مصرف",
-      "قابلیت تنظیم شدت نور",
-      "طراحی مدرن",
-      "مصرف برق کم"
-    ]
-  }
-};
-
-const suggestedProductsMap: Record<string, Product[]> = {
-  "rug": [
-    mockProducts["prod_rug_21902"],
-    mockProducts["prod_chair_01"]
-  ],
-  "furniture": [
-    mockProducts["prod_chair_01"],
-    mockProducts["prod_lamp_02"]
-  ],
-  "lighting": [
-    mockProducts["prod_lamp_02"]
-  ]
-};
+    // Backend-specific fields
+    shop_id: backendProduct.shop_id,
+    is_predefined: backendProduct.is_predefined,
+    image_path: backendProduct.image_path,
+    created_at: backendProduct.created_at
+  };
+}
 
 /**
  * Parse URL parameters to extract product ID and UTM data
@@ -170,21 +81,107 @@ export function parseEntryParams(url: string): EntryContext | null {
 
 /**
  * Fetch product metadata by ID
- * In production, this would be an API call
+ * Maps internal productId to unique_link and fetches from API
  */
 export async function fetchProduct(productId: string): Promise<Product | null> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return mockProducts[productId] || null;
+  try {
+    console.log('[fetchProduct] Fetching product:', { productId });
+    
+    // Use the same approach as fetchProductByUniqueLink for consistency
+    const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
+    
+    console.log('[fetchProduct] API response:', response);
+    
+    if (response.success && response.data) {
+      let backendProduct: BackendProduct | undefined;
+      
+      // Check if productId has the prod_ prefix (e.g., prod_18)
+      if (productId.startsWith('prod_')) {
+        const numericId = parseInt(productId.replace('prod_', ''));
+        console.log('[fetchProduct] Looking for numeric ID:', numericId);
+        backendProduct = response.data.products.find(p => p.id === numericId);
+      } else {
+        // Check if we have a mapping, otherwise assume productId is unique_link
+        const uniqueLink = productIdToUniqueLink[productId] || productId;
+        console.log('[fetchProduct] Looking for unique_link:', uniqueLink);
+        backendProduct = response.data.products.find(p => p.unique_link === uniqueLink);
+      }
+      
+      if (backendProduct) {
+        console.log('[fetchProduct] Found product:', backendProduct);
+        // Transform using the full product data
+        return transformBackendProduct(backendProduct);
+      } else {
+        console.log('[fetchProduct] Product not found in products list');
+        return null;
+      }
+    }
+    
+    console.log('[fetchProduct] Products API error');
+    return null;
+  } catch (error) {
+    console.error('[fetchProduct] Error:', error);
+    return null;
+  }
 }
 
 /**
- * Get suggested products based on category or product ID
+ * Fetch product by unique_link directly
+ * This is used when we have the unique_link from product selection
  */
-export function getSuggestedProducts(category: string, limit: number = 3): Product[] {
-  const suggestions = suggestedProductsMap[category] || Object.values(mockProducts);
-  return suggestions.slice(0, limit);
+export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Product | null> {
+  try {
+    console.log('[fetchProductByUniqueLink] Fetching product by unique_link:', uniqueLink);
+    
+    // Fetch all products and find the one with matching unique_link
+    const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
+    
+    console.log('[fetchProductByUniqueLink] API response:', response);
+    
+    if (response.success && response.data) {
+      // Find the product with matching unique_link
+      const backendProduct = response.data.products.find(p => p.unique_link === uniqueLink);
+      
+      if (backendProduct) {
+        console.log('[fetchProductByUniqueLink] Found product:', backendProduct);
+        // Transform using the full product data
+        return transformBackendProduct(backendProduct);
+      } else {
+        console.log('[fetchProductByUniqueLink] Product not found in products list');
+        return null;
+      }
+    }
+    
+    console.log('[fetchProductByUniqueLink] Products API error');
+    return null;
+  } catch (error) {
+    console.error('[fetchProductByUniqueLink] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * Get suggested products based on category
+ * Fetches all products and filters by category
+ */
+export async function getSuggestedProducts(category: string, limit: number = 3): Promise<Product[]> {
+  try {
+    const response = await apiGet<{ products: BackendProduct[] }>(API_CONFIG.ENDPOINTS.PRODUCTS);
+    
+    if (response.success && response.data) {
+      const filteredProducts = response.data.products
+        .filter(product => product.category === category || category === 'all')
+        .slice(0, limit)
+        .map(transformBackendProduct);
+      
+      return filteredProducts;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('[getSuggestedProducts] Error:', error);
+    return [];
+  }
 }
 
 /**

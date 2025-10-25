@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+# Project Structure Guide
+
+This is a React + TypeScript + Vite project for HOMA, a Persian/Farsi furniture visualization app that allows users to upload photos and see how products look in their space.
+
+## Key Files and Directories
+
+- **Main Entry**: [src/main.tsx](mdc:src/main.tsx) - Application entry point
+- **App Component**: [src/App.tsx](mdc:src/App.tsx) - Main application logic with step-based flow
+- **Types**: [src/types/product.ts](mdc:src/types/product.ts) - Product and UTM parameter types
+- **Components**: [src/components/](mdc:src/components/) - All React components
+- **UI Components**: [src/components/ui/](mdc:src/components/ui/) - Reusable UI components (Radix UI + shadcn/ui)
+- **Utils**: [src/utils/](mdc:src/utils/) - Utility functions for AI processing, analytics, etc.
+- **Styles**: [src/styles/globals.css](mdc:src/styles/globals.css) - Global CSS with Persian typography and HOMA brand colors
+- **Config**: [vite.config.ts](mdc:vite.config.ts) - Vite configuration with path aliases
+
+## Technology Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI Library**: Radix UI + shadcn/ui components
+- **Styling**: Tailwind CSS with custom Persian typography
+- **Animation**: Framer Motion
+- **State Management**: React hooks (useState, useEffect)
+- **Build Tool**: Vite with SWC for fast compilation
+
+## Development Environment
+
+- Always use the virtual environment (venv) for Python dependencies
+- Use `npm run dev` to start development server on port 3000
+- Use `npm run build` to create production build

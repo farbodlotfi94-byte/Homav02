@@ -1,0 +1,40 @@
+---
+globs: *.tsx,*.jsx
+---
+
+# React Development Patterns
+
+## Component Structure
+- Use functional components with hooks
+- Keep components focused and single-purpose
+- Extract complex logic into custom hooks when needed
+- Use proper prop destructuring with TypeScript interfaces
+
+## State Management
+- Use useState for local component state
+- Use useEffect for side effects and lifecycle management
+- Implement proper cleanup in useEffect (return cleanup functions)
+- Use useCallback and useMemo for performance optimization when needed
+
+## Event Handling
+- Define event handlers as arrow functions or useCallback
+- Use proper TypeScript event types (React.ChangeEvent, React.MouseEvent, etc.)
+- Implement proper event propagation control (stopPropagation, preventDefault)
+
+## Component Communication
+- Use props for parent-to-child communication
+- Use callback props for child-to-parent communication
+- Implement proper prop validation with TypeScript
+- Use context for deeply nested component communication when needed
+
+## Performance
+- Use React.memo for expensive components
+- Implement proper key props for list items
+- Use lazy loading for large components when appropriate
+- Avoid creating objects/functions in render methods
+
+## Persian/Farsi Support
+- All text content should be in Persian (Farsi)
+- Use RTL (right-to-left) layout with `direction: rtl`
+- Use Vazirmatn font family for Persian text
+- Ensure proper text alignment and spacing for RTL content
