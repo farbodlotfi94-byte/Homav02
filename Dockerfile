@@ -1,6 +1,16 @@
 # Multi-stage build for React application
 FROM node:18-alpine AS builder
 
+# Accept build argument for API URL
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
+# Accept other environment variables
+ARG VITE_API_TIMEOUT
+ARG VITE_API_IMAGE_PROCESSING_TIMEOUT
+ENV VITE_API_TIMEOUT=${VITE_API_TIMEOUT}
+ENV VITE_API_IMAGE_PROCESSING_TIMEOUT=${VITE_API_IMAGE_PROCESSING_TIMEOUT}
+
 # Set working directory
 WORKDIR /app
 

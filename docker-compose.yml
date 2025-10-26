@@ -5,6 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-https://api.myhoma.ir}
+        - VITE_API_TIMEOUT=${VITE_API_TIMEOUT:-300000}
+        - VITE_API_IMAGE_PROCESSING_TIMEOUT=${VITE_API_IMAGE_PROCESSING_TIMEOUT:-600000}
     container_name: homav-frontend
     restart: unless-stopped
     ports:
