@@ -4,7 +4,7 @@
  */
 
 export const API_CONFIG = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://104.234.46.187:8888',
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://104.234.46.187:8888',
   ENDPOINTS: {
     PRODUCTS: '/api/products',
     PRODUCT_DETAILS: (uniqueLink: string) => `/api/products/${uniqueLink}`,
