@@ -27,7 +27,7 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
     thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
     currency: "تومان",
     seller: {
-      name: "Predefined Product",
+      name: "فرش هریس",
       verified: true
     },
     category: backendProduct.category, // Use real category from backend
