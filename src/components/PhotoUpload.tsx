@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
 import { Progress } from "./ui/progress";
 import { motion } from "motion/react";
@@ -16,6 +16,8 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -46,11 +48,12 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
     }
   }, [onUploadComplete]);
 
-  const handleButtonClick = useCallback((inputId: string) => {
-    const input = document.getElementById(inputId) as HTMLInputElement;
-    if (input) {
-      input.click();
-    }
+  const handleFileButtonClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleCameraButtonClick = useCallback(() => {
+    cameraInputRef.current?.click();
   }, []);
 
   const simulateUpload = (uploadedFile: File) => {
@@ -123,40 +126,38 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
           {/* Buttons */}
           <div className="space-y-3">
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/jpeg,image/png"
               onChange={handleFileSelect}
               className="hidden"
-              id="file-upload"
             />
-            <label 
-              htmlFor="file-upload" 
-              className="block w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors cursor-pointer flex items-center justify-center font-medium select-none"
-              style={{ cursor: 'pointer' }}
-              onClick={() => handleButtonClick('file-upload')}
+            <button 
+              type="button"
+              onClick={handleFileButtonClick}
+              className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors cursor-pointer flex items-center justify-center font-medium select-none"
             >
               انتخاب فایل
-            </label>
+            </button>
 
             {/* Mobile Camera */}
             <div className="md:hidden">
               <input
+                ref={cameraInputRef}
                 type="file"
                 accept="image/*"
                 capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
-                id="camera-upload"
               />
-              <label 
-                htmlFor="camera-upload" 
-                className="block w-full h-14 border-2 border-gray-300 text-gray-900 hover:bg-gray-50 rounded-full cursor-pointer flex items-center gap-2 justify-center font-medium select-none"
-                style={{ cursor: 'pointer' }}
-                onClick={() => handleButtonClick('camera-upload')}
+              <button
+                type="button"
+                onClick={handleCameraButtonClick}
+                className="w-full h-14 border-2 border-gray-300 text-gray-900 hover:bg-gray-50 rounded-full cursor-pointer flex items-center gap-2 justify-center font-medium select-none"
               >
                 <Camera className="w-5 h-5" />
                 گرفتن عکس
-              </label>
+              </button>
             </div>
           </div>
         </motion.div>
