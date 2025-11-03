@@ -1,6 +1,6 @@
 /**
- * ModelPromptTab Component
- * Manages AI model prompt configuration with textarea editor
+ * GeminiPromptTab Component
+ * Manages Gemini AI model prompt configuration with textarea editor
  */
 
 import { useState, useEffect } from 'react';
@@ -9,18 +9,19 @@ import { Textarea } from '../ui/textarea';
 import { Card } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { 
-  Save, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle, 
+import { Label } from '../ui/label';
+import {
+  Save,
+  Loader2,
+  AlertCircle,
+  CheckCircle,
   Clock,
   RefreshCw
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
 import type { AdminError, ModelPromptFormState } from '../../types/admin';
 
-export function ModelPromptTab() {
+export function GeminiPromptTab() {
   const [formState, setFormState] = useState<ModelPromptFormState>({
     prompt: '',
     isSubmitting: false,
@@ -104,7 +105,7 @@ export function ModelPromptTab() {
           lastSaved: response.data!.updated_at,
         }));
         setSuccess('Prompt با موفقیت ذخیره شد');
-        
+
         // Clear success message after 3 seconds
         setTimeout(() => setSuccess(null), 3000);
       } else {
@@ -149,9 +150,9 @@ export function ModelPromptTab() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">تنظیمات AI Model</h3>
+          <h3 className="text-lg font-semibold text-gray-900">تنظیمات Gemini Prompt</h3>
         </div>
-        
+
         <Card className="p-6">
           <div className="space-y-4">
             <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
@@ -168,12 +169,12 @@ export function ModelPromptTab() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">تنظیمات AI Model</h3>
+          <h3 className="text-lg font-semibold text-gray-900">تنظیمات Gemini Prompt</h3>
           <p className="text-sm text-gray-600">
-            مدیریت prompt برای پردازش تصاویر با هوش مصنوعی
+            مدیریت prompt برای تولید تصاویر با Gemini AI
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           {formState.lastSaved && (
             <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -181,7 +182,7 @@ export function ModelPromptTab() {
               <span>آخرین ذخیره: {formatDate(formState.lastSaved)}</span>
             </div>
           )}
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -217,7 +218,7 @@ export function ModelPromptTab() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium text-gray-700">
-              AI Model Prompt
+              Gemini Image Generation Prompt
             </Label>
             <div className="flex items-center gap-4 text-sm text-gray-500">
               <Badge variant="outline">
@@ -233,7 +234,7 @@ export function ModelPromptTab() {
             value={formState.prompt}
             onChange={(e) => handlePromptChange(e.target.value)}
             placeholder="Prompt خود را اینجا وارد کنید..."
-            className="min-h-[400px] font-mono text-sm"
+            className="min-h-[600px] font-mono text-sm "
             disabled={formState.isSubmitting}
           />
 
@@ -249,7 +250,11 @@ export function ModelPromptTab() {
             <Button
               onClick={handleSave}
               disabled={!formState.hasChanges || formState.isSubmitting || !formState.prompt.trim()}
-              className="bg-[#E31E24] hover:bg-[#C41E3A] text-white"
+              style={{
+                backgroundColor: !formState.hasChanges || formState.isSubmitting || !formState.prompt.trim() ? undefined : '#E31E24',
+                color: 'white'
+              }}
+              className="hover:opacity-90 transition-opacity"
             >
               {formState.isSubmitting ? (
                 <>
@@ -272,7 +277,7 @@ export function ModelPromptTab() {
         <div className="text-sm text-blue-800">
           <h4 className="font-medium mb-2">راهنمای استفاده:</h4>
           <ul className="space-y-1 list-disc list-inside">
-            <li>Prompt شما برای پردازش تمام تصاویر کاربران استفاده می‌شود</li>
+            <li>Prompt شما برای تولید تصاویر با Gemini استفاده می‌شود</li>
             <li>تغییرات فوری اعمال می‌شوند و روی تصاویر جدید تأثیر می‌گذارند</li>
             <li>برای بهترین نتیجه، دستورالعمل‌های واضح و دقیق بنویسید</li>
             <li>می‌توانید از متغیرهای خاص مثل نام محصول استفاده کنید</li>
@@ -282,7 +287,3 @@ export function ModelPromptTab() {
     </div>
   );
 }
-
-// Add Label import
-import { Label } from '../ui/label';
-

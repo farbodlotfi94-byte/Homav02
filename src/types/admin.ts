@@ -55,6 +55,12 @@ export interface ModelPromptResponse {
   updated_at: string;
 }
 
+// Groq Prompt Types
+export interface GroqPromptResponse {
+  prompt: string;
+  updated_at: string;
+}
+
 // API Response Types
 export interface AdminApiResponse<T = any> {
   success: boolean;
@@ -73,10 +79,9 @@ export interface AdminError {
 
 // UI State Types
 export interface AdminDashboardState {
-  isVisible: boolean;
   isAuthenticated: boolean;
   isLoading: boolean;
-  currentTab: 'products' | 'model-prompt' | 'analytics';
+  currentTab: 'products' | 'gemini-prompt' | 'groq-prompt' | 'analytics';
   error: AdminError | null;
 }
 
@@ -158,7 +163,6 @@ export const ADMIN_CONSTANTS = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   ALLOWED_FILE_TYPES: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
   DEFAULT_PAGE_SIZE: 20,
-  KEYBOARD_SHORTCUT: 'Shift+Ctrl+A',
 } as const;
 
 export const ADMIN_CATEGORIES = [

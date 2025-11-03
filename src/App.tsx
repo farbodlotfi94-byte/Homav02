@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
 import { ProductAwareLanding } from "./components/ProductAwareLanding";
 import { ProductSelection } from "./components/ProductSelection";
 import { PhotoUpload } from "./components/PhotoUpload";
@@ -702,8 +703,14 @@ export default function App() {
   };
 
   return (
-    <>
-      <AnimatePresence mode="wait">
+    <Routes>
+      {/* Admin Route */}
+      <Route path="/admin" element={<AdminDashboard />} />
+
+      {/* Main App Route */}
+      <Route path="/" element={
+        <>
+          <AnimatePresence mode="wait">
         {/* Loading State */}
         {currentStep === "loading" && (
           <motion.div
@@ -926,11 +933,10 @@ export default function App() {
         onClose={() => setShowTerms(false)}
       />
 
-      {/* Admin Dashboard - Accessible with Shift + Ctrl + K */}
-      <AdminDashboard />
-
       {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
       <BrandColors />
-    </>
+        </>
+      } />
+    </Routes>
   );
 }

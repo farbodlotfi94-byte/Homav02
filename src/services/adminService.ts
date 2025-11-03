@@ -12,6 +12,7 @@ import type {
   AdminProductsResponse,
   ModelPrompt,
   ModelPromptResponse,
+  GroqPromptResponse,
   AdminApiResponse,
   AdminError,
 } from '../types/admin';
@@ -362,17 +363,36 @@ class AdminService {
   // Model Prompt Methods
 
   /**
-   * Get current model prompt
+   * Get current model prompt (Gemini)
    */
   async getModelPrompt(): Promise<AdminApiResponse<ModelPromptResponse>> {
     return this.makeRequest<ModelPromptResponse>('/api/admin/model-prompt');
   }
 
   /**
-   * Update model prompt
+   * Update model prompt (Gemini)
    */
   async updateModelPrompt(prompt: string): Promise<AdminApiResponse<ModelPromptResponse>> {
     return this.makeRequest<ModelPromptResponse>('/api/admin/model-prompt', {
+      method: 'PUT',
+      body: JSON.stringify({ prompt }),
+    });
+  }
+
+  // Groq Prompt Methods
+
+  /**
+   * Get current Groq prompt
+   */
+  async getGroqPrompt(): Promise<AdminApiResponse<GroqPromptResponse>> {
+    return this.makeRequest<GroqPromptResponse>('/api/admin/groq-prompt');
+  }
+
+  /**
+   * Update Groq prompt
+   */
+  async updateGroqPrompt(prompt: string): Promise<AdminApiResponse<GroqPromptResponse>> {
+    return this.makeRequest<GroqPromptResponse>('/api/admin/groq-prompt', {
       method: 'PUT',
       body: JSON.stringify({ prompt }),
     });
