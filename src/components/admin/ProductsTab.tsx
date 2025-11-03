@@ -208,17 +208,6 @@ export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct }:
               : `${filteredProducts.length} از ${pagination.totalItems} محصول نمایش داده شد`}
           </p>
         </div>
-        <Button
-          onClick={onCreateProduct}
-          style={{
-            backgroundColor: '#E31E24',
-            color: 'white'
-          }}
-          className="hover:opacity-90 transition-opacity flex-shrink-0 w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4 ml-2" />
-          افزودن محصول جدید
-        </Button>
       </div>
 
       {/* Filters */}

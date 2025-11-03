@@ -83,18 +83,8 @@ export function ProductForm({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'نام محصول الزامی است';
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'توضیحات محصول الزامی است';
-    }
-
-    if (!formData.category) {
-      newErrors.category = 'دسته‌بندی الزامی است';
-    }
-
+    // Note: name, description, and category are optional per API spec
+    // Only validate if file is required (create mode)
     if (mode === 'create' && !selectedFile) {
       newErrors.file = 'تصویر محصول الزامی است';
     }
@@ -235,7 +225,7 @@ export function ProductForm({
             {/* Product Name */}
             <div className="space-y-2">
               <Label htmlFor="name" className="text-sm font-medium text-gray-700">
-                نام محصول *
+                نام محصول
               </Label>
               <Input
                 id="name"
@@ -253,7 +243,7 @@ export function ProductForm({
             {/* Description */}
             <div className="space-y-2">
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
-                توضیحات *
+                توضیحات
               </Label>
               <Textarea
                 id="description"
@@ -272,7 +262,7 @@ export function ProductForm({
             {/* Category */}
             <div className="space-y-2">
               <Label className="text-sm font-medium text-gray-700">
-                دسته‌بندی *
+                دسته‌بندی
               </Label>
               <Select 
                 value={formData.category} 
@@ -389,7 +379,7 @@ export function ProductForm({
               </Button>
               <Button
                 type="submit"
-                className="bg-[#E31E24] hover:bg-[#C41E3A] text-white"
+                className="flex items-center justify-end gap-3 pt-4 border-t"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

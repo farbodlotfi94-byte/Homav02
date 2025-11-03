@@ -209,17 +209,18 @@ class AdminService {
    */
   private async makeMultipartRequest<T>(
     endpoint: string,
-    formData: FormData
+    formData: FormData,
+    method: 'POST' | 'PUT' = 'POST'
   ): Promise<AdminApiResponse<T>> {
     try {
       const url = new URL(endpoint, this.baseUrl);
-      console.log('[AdminService] Making multipart request to:', url.toString());
+      console.log('[AdminService] Making multipart request to:', url.toString(), 'method:', method);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
 
       const response = await fetch(url.toString(), {
-        method: 'POST',
+        method,
         headers: this.getMultipartHeaders(),
         body: formData,
         signal: controller.signal,
@@ -230,6 +231,8 @@ class AdminService {
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('[AdminService] Multipart request failed with status:', response.status);
+        console.error('[AdminService] Error response data:', JSON.stringify(data, null, 2));
         const error = this.handleApiError(data, response);
         return {
           success: false,
@@ -237,6 +240,9 @@ class AdminService {
           statusCode: error.statusCode,
         };
       }
+
+      console.log('[AdminService] Multipart request successful:', response.status);
+      console.log('[AdminService] Response data:', JSON.stringify(data, null, 2));
 
       return {
         success: true,
@@ -319,11 +325,31 @@ class AdminService {
     imageFile: File
   ): Promise<AdminApiResponse<AdminProduct>> {
     const formData = new FormData();
+
+    // File is required
     formData.append('file', imageFile);
-    formData.append('name', productData.name);
-    formData.append('description', productData.description);
-    formData.append('category', productData.category);
-    formData.append('is_predefined', productData.is_predefined.toString());
+
+    // Create product_data object (only include fields with values)
+    const productDataObj: any = {
+      is_predefined: productData.is_predefined
+    };
+
+    if (productData.name && productData.name.trim()) {
+      productDataObj.name = productData.name.trim();
+    }
+    if (productData.description && productData.description.trim()) {
+      productDataObj.description = productData.description.trim();
+    }
+    if (productData.category && productData.category.trim()) {
+      productDataObj.category = productData.category.trim();
+    }
+
+    // Send product_data as JSON string
+    formData.append('product_data', JSON.stringify(productDataObj));
+
+    console.log('[AdminService] Creating product with FormData:');
+    console.log('- file:', imageFile.name, imageFile.type, imageFile.size);
+    console.log('- product_data:', JSON.stringify(productDataObj, null, 2));
 
     return this.makeMultipartRequest<AdminProduct>('/api/admin/products', formData);
   }
@@ -338,16 +364,38 @@ class AdminService {
   ): Promise<AdminApiResponse<AdminProduct>> {
     const formData = new FormData();
 
-    if (productData.name !== undefined) formData.append('name', productData.name);
-    if (productData.description !== undefined) formData.append('description', productData.description);
-    if (productData.category !== undefined) formData.append('category', productData.category);
-    if (productData.is_predefined !== undefined) {
-      formData.append('is_predefined', productData.is_predefined.toString());
+    // Create product_data object (only include fields that are defined)
+    const productDataObj: any = {};
+
+    if (productData.name !== undefined && productData.name.trim()) {
+      productDataObj.name = productData.name.trim();
     }
-    if (imageFile) formData.append('file', imageFile);
+    if (productData.description !== undefined && productData.description.trim()) {
+      productDataObj.description = productData.description.trim();
+    }
+    if (productData.category !== undefined && productData.category.trim()) {
+      productDataObj.category = productData.category.trim();
+    }
+    if (productData.is_predefined !== undefined) {
+      productDataObj.is_predefined = productData.is_predefined;
+    }
+
+    // Only append product_data if there are fields to update
+    if (Object.keys(productDataObj).length > 0) {
+      formData.append('product_data', JSON.stringify(productDataObj));
+    }
+
+    // Add file if provided
+    if (imageFile) {
+      formData.append('file', imageFile);
+    }
+
+    console.log('[AdminService] Updating product', productId, 'with:');
+    console.log('- product_data:', JSON.stringify(productDataObj, null, 2));
+    console.log('- has file:', !!imageFile);
 
     const endpoint = `/api/admin/products/${productId}`;
-    return this.makeMultipartRequest<AdminProduct>(endpoint, formData);
+    return this.makeMultipartRequest<AdminProduct>(endpoint, formData, 'PUT');
   }
 
   /**

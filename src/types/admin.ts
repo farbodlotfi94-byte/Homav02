@@ -166,14 +166,14 @@ export const ADMIN_CONSTANTS = {
 } as const;
 
 export const ADMIN_CATEGORIES = [
-  'Rugs & Carpets',
-  'Furniture',
-  'Decor',
-  'Lighting',
-  'Textiles',
-  'Art & Wall Decor',
-  'Storage',
-  'Other',
+  'فرش و قالی',
+  'مبلمان',
+  'دکوراسیون',
+  'روشنایی',
+  'پارچه',
+  'هنر و دیوارکوب',
+  'نگهداری',
+  'سایر',
 ] as const;
 
 export type AdminCategory = typeof ADMIN_CATEGORIES[number];
