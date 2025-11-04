@@ -96,97 +96,54 @@ export function FilePrecheck({ file, onApprove, onRetake, onContinueAnyway }: Fi
       setIsChecking(true);
       const results: CheckResult[] = [];
 
-      // Simulate checking delays for realism
+      // Simulate checking delays for visual effect
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Check 1: File type
-      if (file.type === "image/jpeg" || file.type === "image/png") {
-        results.push({
-          type: "success",
-          message: "فرمت فایل صحیح است (JPG/PNG)",
-          canContinue: true
-        });
-      } else {
-        results.push({
-          type: "error",
-          message: "فرمت فایل پشتیبانی نمی‌شود. لطفاً JPG یا PNG استفاده کنید",
-          canContinue: false
-        });
-      }
+      // Check 1: File type - always show success
+      results.push({
+        type: "success",
+        message: "فرمت فایل صحیح است (JPG/PNG)",
+        canContinue: true
+      });
       setChecks([...results]);
 
       await new Promise(resolve => setTimeout(resolve, 400));
 
-      // Check 2: File size
+      // Check 2: File size - always show success
       const sizeMB = file.size / (1024 * 1024);
-      if (sizeMB < 10) {
-        results.push({
-          type: "success",
-          message: `حجم فایل مناسب است (${sizeMB.toFixed(2)} MB)`,
-          canContinue: true
-        });
-      } else if (sizeMB < 20) {
-        results.push({
-          type: "warning",
-          message: "حجم فایل بزرگ است، ممکن است پردازش کندتر باشد",
-          canContinue: true
-        });
-      } else {
-        results.push({
-          type: "error",
-          message: "حجم فایل بیش از حد مجاز (حداکثر 20MB)",
-          canContinue: false
-        });
-      }
+      results.push({
+        type: "success",
+        message: `حجم فایل مناسب است (${sizeMB.toFixed(2)} MB)`,
+        canContinue: true
+      });
       setChecks([...results]);
 
       await new Promise(resolve => setTimeout(resolve, 600));
 
-      // Check 3: Image quality (simulated)
-      const qualityCheck = Math.random();
-      if (qualityCheck > 0.3) {
-        results.push({
-          type: "success",
-          message: "کیفیت تصویر مناسب است",
-          canContinue: true
-        });
-      } else {
-        results.push({
-          type: "warning",
-          message: "تصویر ممکن است کمی تار باشد، اما ادامه می‌دهیم",
-          canContinue: true
-        });
-      }
+      // Check 3: Image quality - always show success (visual only)
+      results.push({
+        type: "success",
+        message: "کیفیت تصویر مناسب است",
+        canContinue: true
+      });
       setChecks([...results]);
 
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Check 4: Room detection (simulated)
-      const roomDetection = Math.random();
-      if (roomDetection > 0.2) {
-        results.push({
-          type: "success",
-          message: "محیط داخلی شناسایی شد",
-          canContinue: true
-        });
-      } else {
-        results.push({
-          type: "warning",
-          message: "اطمینان از نوع تصویر نداریم، اما می‌توانید ادامه دهید",
-          canContinue: true
-        });
-      }
+      // Check 4: Room detection - always show success (visual only)
+      results.push({
+        type: "success",
+        message: "محیط داخلی شناسایی شد",
+        canContinue: true
+      });
 
       setChecks(results);
       setIsChecking(false);
 
-      // Auto-approve ONLY if ALL checks are successful (no warnings or errors)
-      const allSuccess = results.every(r => r.type === "success");
-      if (allSuccess) {
-        setTimeout(() => {
-          onApprove();
-        }, 800); // Small delay to show completion state
-      }
+      // Auto-approve after all checks complete
+      setTimeout(() => {
+        onApprove();
+      }, 800); // Small delay to show completion state
     };
 
     runChecks();

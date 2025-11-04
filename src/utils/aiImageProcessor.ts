@@ -52,36 +52,6 @@ async function testBackendConnection(): Promise<boolean> {
   }
 }
 
-/**
- * Test if we can reach the specific process endpoint
- */
-async function testProcessEndpoint(uniqueLink: string): Promise<boolean> {
-  try {
-    console.log('[AI Processing] تست endpoint پردازش...');
-    const testUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PROCESS_IMAGE(uniqueLink)}`;
-    console.log('[AI Processing] تست URL:', testUrl);
-    
-    // Try a simple GET request to see if the endpoint exists
-    const response = await fetch(testUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    console.log('[AI Processing] تست endpoint نتیجه:', {
-      status: response.status,
-      ok: response.ok,
-      statusText: response.statusText
-    });
-    
-    // Even if it returns 405 (Method Not Allowed), it means the endpoint exists
-    return response.status !== 404;
-  } catch (error) {
-    console.error('[AI Processing] خطا در تست endpoint:', error);
-    return false;
-  }
-}
 
 /**
  * Process image with AI using real backend API with retry mechanism
@@ -133,33 +103,47 @@ export async function processImageWithAI(
           error: 'سرور در دسترس نیست - لطفاً دوباره تلاش کنید',
         };
       }
-      
-      // Test the specific process endpoint
-      const isEndpointReachable = await testProcessEndpoint(request.uniqueLink);
-      if (!isEndpointReachable) {
-        return {
-          success: false,
-          visualizedImageUrl: '',
-          originalImageUrl: '',
-          processingTime: 0,
-          confidence: 0,
-          error: 'endpoint پردازش تصویر در دسترس نیست',
-        };
-      }
     }
 
     // Strip EXIF data to prevent backend from auto-rotating the image
     console.log('[AI Processing] Stripping EXIF metadata from image...');
     const imageFileWithoutExif = await stripExifData(request.imageFile);
 
+    // Validate that the file is not empty after EXIF stripping
+    if (!imageFileWithoutExif || imageFileWithoutExif.size === 0) {
+      console.error('[AI Processing] تصویر بعد از حذف EXIF خالی است');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: 0,
+        confidence: 0,
+        error: 'خطا در پردازش تصویر - فایل خالی است',
+      };
+    }
+
     // Create FormData for multipart upload
     const formData = new FormData();
     formData.append('file', imageFileWithoutExif);
-    
+
     // Debug FormData contents
     console.log('[AI Processing] FormData contents:');
     for (const [key, value] of formData.entries()) {
       console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size} bytes)` : value);
+    }
+
+    // Verify file was appended to FormData
+    const fileInFormData = formData.get('file') as File | null;
+    if (!fileInFormData || fileInFormData.size === 0) {
+      console.error('[AI Processing] فایل به FormData اضافه نشد یا خالی است');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: 0,
+        confidence: 0,
+        error: 'خطا در آماده‌سازی فایل برای ارسال',
+      };
     }
 
     const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PROCESS_IMAGE(request.uniqueLink)}`;
