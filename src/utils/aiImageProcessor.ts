@@ -6,6 +6,7 @@
 import { apiPost, apiPostWithTimeout } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProcessResponse } from "../types/product";
+import { stripExifData } from "./stripExif";
 
 export interface ProcessImageRequest {
   imageFile: File;
@@ -146,10 +147,14 @@ export async function processImageWithAI(
         };
       }
     }
-    
+
+    // Strip EXIF data to prevent backend from auto-rotating the image
+    console.log('[AI Processing] Stripping EXIF metadata from image...');
+    const imageFileWithoutExif = await stripExifData(request.imageFile);
+
     // Create FormData for multipart upload
     const formData = new FormData();
-    formData.append('file', request.imageFile);
+    formData.append('file', imageFileWithoutExif);
     
     // Debug FormData contents
     console.log('[AI Processing] FormData contents:');
