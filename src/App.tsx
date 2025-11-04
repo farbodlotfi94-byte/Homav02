@@ -26,6 +26,7 @@ import {
   processImageWithAI,
   saveVisualization,
   trackEvent,
+  type ProcessImageResponse,
 } from "./utils/aiImageProcessor";
 import { trackEvent as trackAnalytics } from "./utils/analytics";
 import "./utils/mockUrl"; // Load mock URL helper
@@ -101,6 +102,8 @@ export default function App() {
     setHasFeedbackForCurrentImage,
   ] = useState<boolean>(false);
   const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [apiProcessingPromise, setApiProcessingPromise] = useState<Promise<ProcessImageResponse> | null>(null);
+  const [apiStartTime, setApiStartTime] = useState<number>(0);
 
   // Initialize: Parse URL and determine entry flow
   useEffect(() => {
@@ -271,6 +274,22 @@ export default function App() {
       productId: product?.id,
     });
     setSelectedFile(file);
+
+    // Start API processing immediately in background
+    if (product && productUniqueLink) {
+      console.log('[App] Starting API processing in background...');
+      const apiPromise = processImageWithAI({
+        imageFile: file,
+        productId: product.id,
+        uniqueLink: productUniqueLink,
+        sessionId,
+      });
+      setApiProcessingPromise(apiPromise);
+      setApiStartTime(Date.now());
+    } else {
+      console.warn('[App] Product or uniqueLink not available, cannot start API processing');
+    }
+
     setCurrentStep("precheck");
   };
 
@@ -292,6 +311,9 @@ export default function App() {
       productId: product?.id,
     });
     setSelectedFile(null);
+    // Clear any ongoing API processing
+    setApiProcessingPromise(null);
+    setApiStartTime(0);
     setCurrentStep("upload");
   };
 
@@ -335,15 +357,17 @@ export default function App() {
 
     setCurrentStep("confirmation");
 
-    // Process image with AI
-    if (selectedFile && product && productUniqueLink) {
+    // Await API processing that was started earlier
+    if (apiProcessingPromise && product) {
       try {
-        const result = await processImageWithAI({
-          imageFile: selectedFile,
-          productId: product.id,
-          uniqueLink: productUniqueLink,
-          sessionId,
-        });
+        console.log('[App] Waiting for background API processing to complete...');
+        const apiProcessingTime = Date.now() - apiStartTime;
+        console.log(`[App] API has been processing for ${(apiProcessingTime / 1000).toFixed(1)}s`);
+
+        const result = await apiProcessingPromise;
+
+        const totalApiTime = Date.now() - apiStartTime;
+        console.log(`[App] API processing completed in ${(totalApiTime / 1000).toFixed(1)}s`);
 
         if (result.success) {
           setVisualizedImageUrl(result.visualizedImageUrl);
@@ -369,6 +393,7 @@ export default function App() {
             metadata: {
               processingTime: result.processingTime,
               confidence: result.confidence,
+              backgroundProcessingTime: totalApiTime,
             },
           });
 
@@ -389,22 +414,30 @@ export default function App() {
       } catch (error) {
         console.error("[App] خطا در پردازش تصویر:", error);
         setPlacementSuccess(false);
-        
+
         // Track the error
         if (product) {
           trackEvent({
             eventType: "upload_error",
             productId: product.id,
             sessionId,
-            metadata: { 
+            metadata: {
               error: error instanceof Error ? error.message : 'خطای ناشناخته',
               errorType: 'processing_exception'
             },
           });
         }
-        
+
         setCurrentStep("visualization");
+      } finally {
+        // Clear the promise after completion
+        setApiProcessingPromise(null);
+        setApiStartTime(0);
       }
+    } else if (!apiProcessingPromise) {
+      console.error('[App] No API promise available - this should not happen');
+      setPlacementSuccess(false);
+      setCurrentStep("visualization");
     }
   };
 
@@ -536,6 +569,9 @@ export default function App() {
     setPlacementSuccess(true);
     setVisualizedImageUrl("");
     setHasFeedbackForCurrentImage(false); // Reset برای عکس جدید
+    // Clear any ongoing API processing
+    setApiProcessingPromise(null);
+    setApiStartTime(0);
     setCurrentStep("upload");
   };
 
@@ -625,6 +661,9 @@ export default function App() {
       productId: product?.id,
     });
     setShowProductDetails(false);
+    // Clear any ongoing API processing
+    setApiProcessingPromise(null);
+    setApiStartTime(0);
     setCurrentStep("upload");
   };
 
@@ -642,6 +681,9 @@ export default function App() {
     trackKPI("Fallback Upload", {
       reason: fallbackReason,
     });
+    // Clear any ongoing API processing
+    setApiProcessingPromise(null);
+    setApiStartTime(0);
     setCurrentStep("upload");
   };
 
