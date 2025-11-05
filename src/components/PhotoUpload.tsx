@@ -1,6 +1,4 @@
 import { useState, useCallback, useRef } from "react";
-import { Button } from "./ui/button";
-import { Progress } from "./ui/progress";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
@@ -55,29 +53,6 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
   const handleCameraButtonClick = useCallback(() => {
     cameraInputRef.current?.click();
   }, []);
-
-  const simulateUpload = (uploadedFile: File) => {
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          setIsProcessing(true);
-          
-          setTimeout(() => {
-            setIsProcessing(false);
-            onUploadComplete(uploadedFile);
-          }, 1500);
-          
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 150);
-  };
 
   const removeFile = () => {
     setFile(null);
