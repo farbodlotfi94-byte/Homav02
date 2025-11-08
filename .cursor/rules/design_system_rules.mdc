@@ -1,0 +1,93 @@
+# Design System Rules
+
+## Token Definitions
+- Primary design tokens live in `src/styles/globals.css`; typography, color, elevation, and radius values are exposed as CSS custom properties and re-exported through an inline Tailwind theme via `@theme inline`.
+- The app enforces RTL defaults and Vazirmatn typography globally; a `@custom-variant dark` block and `.dark` class override handle theming without a separate token transformation pipeline.
+- Tailwind v4 inherits the variables (e.g., `--color-background`) so Tailwind utilities stay in sync with the bespoke token set. Animation utility classes supplement these tokens in `src/styles/animations.css`.
+
+```105:116:src/styles/globals.css
+  /* Feedback Survey Colors */
+  --feedback-good: #00312D;
+  --feedback-neutral: #FC6F20;
+  --feedback-bad: #5D0D02;
+  --feedback-bg: #FEE8D0;
+
+  /* Custom Colors - Old Flax & Jet Black */
+  --old-flax: #dff370;
+  --old-flax-light: #edf9b5;
+  --old-flax-bg: #f7fcde;
+  --jet-black: #292b2d;
+}
+```
+
+## Component Library
+- Reusable primitives live in `src/components/ui/` and follow the shadcn/ui + Radix UI pairing. Each file exports a typed component plus variant helpers configured with `class-variance-authority`.
+- Shared styling helpers use the `cn()` function (`src/components/ui/utils.ts`) to merge Tailwind classes safely.
+- Figma-generated layouts/components are preserved under `src/imports/` alongside Radix components for parity when translating design nodes.
+
+```7:34:src/components/ui/button.tsx
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+```
+
+## Frameworks & Libraries
+- Frontend stack: React 18 + TypeScript with Vite 6 (`@vitejs/plugin-react-swc`). Tailwind CSS v4 powers utilities; Framer Motion (`motion/react`) and Radix UI cover interaction patterns.
+- Styling helpers: `clsx`, `tailwind-merge`, `class-variance-authority`; form/state libraries include `react-hook-form`, `cmdk`, `embla-carousel-react`, and `sonner` for toasts.
+- Build tooling relies on alias resolution in `vite.config.ts` and SWC for compilation; no Storybook is present, but component usage mirrors shadcn documentation.
+
+## Asset Management
+- Design exports map to `src/assets/` (PNG snapshots) and `src/imports/` (auto-generated JSX + SVG path modules). The Vite config pre-binds Figma asset URIs to local files, so JSX can reference `figma:asset/...` identifiers.
+- Runtime media (upload previews, processed imagery) flows through API URLs, while local assets focus on marketing UI.
+- No CDN or image optimizer is wired into the Vite build; ensure large assets are optimized before inclusion.
+
+```20:29:vite.config.ts
+        'figma:asset/ecdea148753a026b4eb9077903a5700290607184.png': path.resolve(__dirname, './src/assets/ecdea148753a026b4eb9077903a5700290607184.png'),
+        'figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png': path.resolve(__dirname, './src/assets/2dcfa98ed64c38bd654f16130835649de4da1a8f.png'),
+        'figma:asset/13e86ead7883d0975051ca1d917031988ea7cdd0.png': path.resolve(__dirname, './src/assets/13e86ead7883d0975051ca1d917031988ea7cdd0.png'),
+```
+
+## Icon System
+- Standard icons come from `lucide-react` (see `src/components/ProductChip.tsx`, `ProductVisualization.tsx`, etc.), keeping stroke weight consistent with design.
+- Figma exports complex glyphs into `src/imports/svg-*.ts`; generated components simply import a path map and render inline SVG wrapped in absolutely positioned divs, so preserve those modules when syncing with design updates.
+- Naming follows Figma auto-export IDs (e.g., `svg-zajtydnsb9`); prefer wrapping them in higher-level UI components instead of renaming to avoid merge pain when re-exporting from Figma.
+
+```1:3:src/components/ProductChip.tsx
+import { motion } from "motion/react";
+import { ExternalLink, CheckCircle } from "lucide-react";
+import type { Product } from "../types/product";
+```
+
+## Styling Approach
+- Tailwind v4 is bundled via `@tailwindcss/postcss` with design tokens piped through the CSS variable layer; no explicit `tailwind.config.{js,ts}` is required.
+- Global RTL + typography directives live inside `@layer base` within `src/styles/globals.css`; additional animation utilities are declared in both `globals.css` and `styles/animations.css`.
+- Responsive behavior relies on standard Tailwind prefixes (`sm:`, `md:`, etc.) which remain in the generated utility sheet (`src/index.css`)—keep Figma breakpoints aligned with Tailwind’s default screen sizes or update via CSS variables if needed.
+
+```198:211:src/styles/globals.css
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-family-vazirmatn);
+    direction: rtl;
+  }
+}
+```
+
+## Project Structure
+- `src/components/` holds feature components: user journey screens at the root, admin views under `components/admin/`, and base UI primitives under `components/ui/`.
+- `src/imports/` mirrors Figma frames for high-fidelity marketing/illustration blocks; synchronize these when design tokens shift.
+- Utilities stay under `src/utils/` (API, analytics, AI helpers) while configuration sits in `src/config/`. Styles consolidate in `src/styles/` with Tailwind entrypoint `src/index.css`.
+- When exporting new Figma nodes, re-run the MCP integration so generated files land alongside existing ones, then wire them into React by referencing the exported component/function names.

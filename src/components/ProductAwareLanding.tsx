@@ -5,6 +5,7 @@ import type { Product } from "../types/product";
 import { Header } from "./Header";
 import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-an2xierte7";
+import { AuthModal, type AuthUser } from "./AuthModal";
 
 interface ProductAwareLandingProps {
   product: Product;
@@ -16,10 +17,13 @@ interface ProductAwareLandingProps {
 export function ProductAwareLanding({ 
   product, 
   onUploadStart, 
-  onShowProductDetails
+  onShowProductDetails,
+  onShowTerms
 }: ProductAwareLandingProps) {
   const [showSnackbar, setShowSnackbar] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   
   // Auto-hide snackbar after 5 seconds
   useEffect(() => {
@@ -31,6 +35,35 @@ export function ProductAwareLanding({
       return () => clearTimeout(timer);
     }
   }, [showSnackbar]);
+  
+  useEffect(() => {
+    const storedToken = localStorage.getItem("authToken");
+    if (storedToken) {
+      setCurrentUser({
+        id: "stored_user",
+        phone: "",
+        name: "کاربر HOMA",
+        token: storedToken,
+      });
+    }
+  }, []);
+
+  const handleUploadClick = () => {
+    const token = localStorage.getItem("authToken");
+
+    if (!token) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    onUploadStart();
+  };
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    setIsAuthModalOpen(false);
+    onUploadStart();
+  };
   
   const displayPrice = product.price 
     ? `${product.price.toLocaleString('fa-IR')} ${product.currency}`
@@ -245,7 +278,7 @@ export function ProductAwareLanding({
           <div className="flex flex-col gap-3">
             {/* Top Row: Try in Your Space Button */}
             <Button
-              onClick={onUploadStart}
+              onClick={handleUploadClick}
               className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors flex items-center justify-center gap-2"
             >
               <Upload className="w-5 h-5" />
@@ -254,6 +287,13 @@ export function ProductAwareLanding({
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
+        onRequestTerms={onShowTerms}
+      />
     </div>
   );
 }
