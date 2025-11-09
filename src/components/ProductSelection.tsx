@@ -6,13 +6,25 @@ import { Header } from "./Header";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProduct, BackendProductsResponse } from "../types/product";
+import type { User } from "../types/auth";
 
 interface ProductSelectionProps {
   onProductSelect: (productId: string, uniqueLink: string) => void;
   onBack?: () => void;
+  isAuthenticated?: boolean;
+  user?: User | null;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
-export function ProductSelection({ onProductSelect, onBack }: ProductSelectionProps) {
+export function ProductSelection({
+  onProductSelect,
+  onBack,
+  isAuthenticated,
+  user,
+  onLogin,
+  onLogout
+}: ProductSelectionProps) {
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +77,14 @@ export function ProductSelection({ onProductSelect, onBack }: ProductSelectionPr
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <Header showBackButton={!!onBack} onBack={onBack} />
+        <Header
+          showBackButton={!!onBack}
+          onBack={onBack}
+          isAuthenticated={isAuthenticated}
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+        />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-600" />
@@ -79,7 +98,14 @@ export function ProductSelection({ onProductSelect, onBack }: ProductSelectionPr
   if (error) {
     return (
       <div className="min-h-screen bg-white">
-        <Header showBackButton={!!onBack} onBack={onBack} />
+        <Header
+          showBackButton={!!onBack}
+          onBack={onBack}
+          isAuthenticated={isAuthenticated}
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+        />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-sm mx-auto px-6">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -96,7 +122,14 @@ export function ProductSelection({ onProductSelect, onBack }: ProductSelectionPr
 
   return (
     <div className="min-h-screen bg-white">
-      <Header showBackButton={!!onBack} onBack={onBack} />
+      <Header
+        showBackButton={!!onBack}
+        onBack={onBack}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        onLogin={onLogin}
+        onLogout={onLogout}
+      />
       
       <div className="pt-14 pb-6">
         <div className="max-w-lg mx-auto px-6">

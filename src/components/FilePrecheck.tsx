@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Camera } from "lucide-react";
 import { Header } from "./Header";
+import type { User } from "../types/auth";
 import svgPaths from "../imports/svg-m4kfj8jpfi";
 
 interface FilePrecheckProps {
@@ -9,6 +10,10 @@ interface FilePrecheckProps {
   onApprove: () => void;
   onRetake: () => void;
   onContinueAnyway: () => void;
+  isAuthenticated?: boolean;
+  user?: User | null;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 interface CheckResult {
@@ -87,7 +92,16 @@ function AlertIcon() {
   );
 }
 
-export function FilePrecheck({ file, onApprove, onRetake, onContinueAnyway }: FilePrecheckProps) {
+export function FilePrecheck({
+  file,
+  onApprove,
+  onRetake,
+  onContinueAnyway,
+  isAuthenticated,
+  user,
+  onLogin,
+  onLogout
+}: FilePrecheckProps) {
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [isChecking, setIsChecking] = useState(true);
 
@@ -157,7 +171,14 @@ export function FilePrecheck({ file, onApprove, onRetake, onContinueAnyway }: Fi
 
   return (
     <div className="bg-white relative min-h-screen">
-      <Header onBack={onRetake} showBackButton={true} />
+      <Header
+        onBack={onRetake}
+        showBackButton={true}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        onLogin={onLogin}
+        onLogout={onLogout}
+      />
       
       {/* Main Container */}
       <div className="px-6 pt-[104px] pb-8">

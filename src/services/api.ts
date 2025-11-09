@@ -5,8 +5,6 @@
  * ENHANCED WITH:
  * - Auto-injection of user auth headers
  * - 401 handling with token refresh and retry
- * - 429 rate limit error handling
- * - Response headers exposure for rate limit tracking
  */
 
 import { API_CONFIG } from '../config/api';
@@ -17,9 +15,8 @@ export interface ApiResponse<T = any> {
   success: boolean;
   error?: string;
   status: number;
-  headers?: Headers;         // NEW: Expose response headers
-  requiresLogin?: boolean;   // NEW: Flag for 401 after refresh failed
-  retryAfter?: number;       // NEW: Seconds for 429 errors
+  headers?: Headers;         // Expose response headers
+  requiresLogin?: boolean;   // Flag for 401 after refresh failed
 }
 
 export interface ApiError {
@@ -114,32 +111,6 @@ async function apiRequest<T = any>(
       }
     }
 
-    // Handle 429 Rate Limit Exceeded
-    if (response.status === 429) {
-      console.log('[API] 429 Rate Limit Exceeded');
-
-      const retryAfter = response.headers.get('Retry-After');
-      let errorMessage = 'محدودیت روزانه به پایان رسید';
-      let detail = '';
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-        detail = errorData.detail || '5 per 1 hour';
-      } catch (jsonError) {
-        // Ignore JSON parsing errors
-      }
-
-      return {
-        data: null as T,
-        success: false,
-        error: errorMessage,
-        status: 429,
-        retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
-        headers: response.headers,
-      };
-    }
-
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
@@ -166,7 +137,7 @@ async function apiRequest<T = any>(
       data,
       success: true,
       status: response.status,
-      headers: response.headers,  // EXPOSE headers for rate limit tracking
+      headers: response.headers,
     };
   } catch (error) {
     // Clean up timeout
@@ -366,30 +337,6 @@ export async function apiPostWithTimeout<T = any>(
       }
     }
 
-    // Handle 429 Rate Limit Exceeded
-    if (response.status === 429) {
-      console.log('[API] 429 Rate Limit Exceeded');
-
-      const retryAfter = response.headers.get('Retry-After');
-      let errorMessage = 'محدودیت روزانه به پایان رسید';
-
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-      } catch (jsonError) {
-        // Ignore JSON parsing errors
-      }
-
-      return {
-        data: null as T,
-        success: false,
-        error: errorMessage,
-        status: 429,
-        retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
-        headers: response.headers,
-      };
-    }
-
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
@@ -416,7 +363,7 @@ export async function apiPostWithTimeout<T = any>(
       data,
       success: true,
       status: response.status,
-      headers: response.headers,  // EXPOSE headers for rate limit tracking
+      headers: response.headers,
     };
   } catch (error) {
     // Clean up timeout

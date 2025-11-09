@@ -14,14 +14,10 @@ import { FeedbackSurvey } from "./components/FeedbackSurvey";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { BrandColors } from "./components/BrandColors";
 import { UserLogin } from "./components/UserLogin";
-import { RateLimitExceededModal } from "./components/RateLimitExceededModal";
-import { AuthStatusBadge } from "./components/AuthStatusBadge";
 import { AnimatePresence, motion } from "motion/react";
 import type { Product } from "./types/product";
 import type { User, AuthResponse } from "./types/auth";
-import type { RateLimitState } from "./types/rateLimit";
 import { userAuthService } from "./services/userAuthService";
-import { rateLimitService } from "./services/rateLimitService";
 import { submitVote } from "./services/api";
 import {
   parseEntryParams,
@@ -120,13 +116,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // NEW: Rate limit state
-  const [rateLimit, setRateLimit] = useState<RateLimitState>(
-    rateLimitService.createDefault()
-  );
-  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
-
-  // Initialize: Load auth state and rate limit from storage
+  // Initialize: Load auth state from storage
   useEffect(() => {
     // Check if user is authenticated
     const isAuth = userAuthService.isAuthenticated();
@@ -135,13 +125,6 @@ export default function App() {
     if (isAuth) {
       const userData = userAuthService.getUser();
       setUser(userData);
-
-      // Load rate limit from storage
-      const storedRateLimit = rateLimitService.load();
-      if (storedRateLimit) {
-        setRateLimit(storedRateLimit);
-        console.log('[App] Loaded rate limit from storage:', storedRateLimit);
-      }
 
       console.log('[App] Auth initialized:', { isAuthenticated: isAuth, user: userData?.phone_number });
     } else {
@@ -293,9 +276,6 @@ export default function App() {
     setUser(authResponse.user);
     setIsAuthenticated(true);
 
-    // Initialize rate limit for new user
-    setRateLimit(rateLimitService.createDefault());
-
     trackKPI('user_authenticated', {
       userId: authResponse.user.id,
       phone: authResponse.user.phone_number,
@@ -314,7 +294,6 @@ export default function App() {
 
     setUser(null);
     setIsAuthenticated(false);
-    setRateLimit(rateLimitService.createDefault());
 
     // Clear any ongoing processing
     setApiProcessingPromise(null);
@@ -333,30 +312,10 @@ export default function App() {
     setCurrentStep('product-landing');
   };
 
-  // NEW: Rate limit update handler
-  const handleRateLimitUpdate = (newRateLimit: RateLimitState) => {
-    setRateLimit(newRateLimit);
-    rateLimitService.save(newRateLimit);
-
-    console.log('[App] Rate limit updated:', newRateLimit);
-
-    trackKPI('rate_limit_update', {
-      userId: user?.id,
-      remaining: newRateLimit.remaining,
-      limit: newRateLimit.limit,
-    });
-  };
-
-  // NEW: Rate limit exceeded handler
-  const handleRateLimitExceeded = () => {
-    setShowRateLimitModal(true);
-
-    trackKPI('rate_limit_exceeded', {
-      userId: user?.id,
-      productId: product?.id,
-      resetAt: rateLimit.resetAt,
-      resetIn: rateLimit.resetIn,
-    });
+  // NEW: Login button handler (opens auth modal)
+  const handleLoginClick = () => {
+    console.log('[App] Login button clicked');
+    setCurrentStep('user-auth');
   };
 
   // Product Landing → Check Auth → Upload
@@ -376,13 +335,6 @@ export default function App() {
         productId: product?.id,
       });
       setCurrentStep('user-auth');
-      return;
-    }
-
-    // Check rate limit
-    if (rateLimit.isExceeded) {
-      console.log('[App] Rate limit exceeded');
-      handleRateLimitExceeded();
       return;
     }
 
@@ -507,25 +459,10 @@ export default function App() {
         const totalApiTime = Date.now() - apiStartTime;
         console.log(`[App] API processing completed in ${(totalApiTime / 1000).toFixed(1)}s`);
 
-        // Extract and update rate limit from response
-        if (result.rateLimit) {
-          handleRateLimitUpdate(result.rateLimit);
-        }
-
         // Handle 401 error (token expired and refresh failed)
         if (result.status === 401 && result.requiresLogin) {
           console.error('[App] Session expired, user logged out');
           await handleLogout();
-          setApiStatus('failure');
-          setPlacementSuccess(false);
-          setCurrentStep('visualization');
-          return;
-        }
-
-        // Handle 429 error (rate limit exceeded)
-        if (result.status === 429) {
-          console.error('[App] Rate limit exceeded');
-          handleRateLimitExceeded();
           setApiStatus('failure');
           setPlacementSuccess(false);
           setCurrentStep('visualization');
@@ -1024,6 +961,10 @@ export default function App() {
           <ProductSelection
             key="product-selection"
             onProductSelect={handleProductSelect}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={handleLoginClick}
+            onLogout={handleLogout}
           />
         )}
 
@@ -1032,10 +973,13 @@ export default function App() {
           <ProductAwareLanding
             key="product-landing"
             product={product}
-            rateLimit={rateLimit}
             onUploadStart={handleStartUpload}
             onShowProductDetails={handleShowProductDetails}
             onShowTerms={() => setShowTerms(true)}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={handleLoginClick}
+            onLogout={handleLogout}
           />
         )}
 
@@ -1064,9 +1008,12 @@ export default function App() {
         {currentStep === "upload" && (
           <PhotoUpload
             key="upload"
-            rateLimit={rateLimit}
             onUploadComplete={handleFileSelected}
             onBack={() => setCurrentStep("product-landing")}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={handleLoginClick}
+            onLogout={handleLogout}
           />
         )}
 
@@ -1078,6 +1025,10 @@ export default function App() {
             onApprove={handlePrecheckApprove}
             onRetake={handlePrecheckRetake}
             onContinueAnyway={handleContinueAnyway}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={handleLoginClick}
+            onLogout={handleLogout}
           />
         )}
 
@@ -1088,6 +1039,10 @@ export default function App() {
             file={selectedFile}
             onComplete={handleUploadComplete}
             onError={handleUploadError}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={handleLoginClick}
+            onLogout={handleLogout}
           />
         )}
 
@@ -1194,6 +1149,11 @@ export default function App() {
               onViewProductDetails={handleShowProductDetails}
               onPurchase={handlePurchase}
               onBackToStore={handleBackToStoreClick}
+              onBack={() => setCurrentStep("product-landing")}
+              isAuthenticated={isAuthenticated}
+              user={user}
+              onLogin={handleLoginClick}
+              onLogout={handleLogout}
             />
           )}
 
@@ -1232,22 +1192,6 @@ export default function App() {
         open={showTerms}
         onClose={() => setShowTerms(false)}
       />
-
-      {/* Rate Limit Exceeded Modal - NEW */}
-      {showRateLimitModal && rateLimit.resetAt && (
-        <RateLimitExceededModal
-          open={showRateLimitModal}
-          onClose={() => setShowRateLimitModal(false)}
-          resetAt={rateLimit.resetAt}
-        />
-      )}
-
-      {/* Auth Status Badge - NEW (shown when authenticated) */}
-      {isAuthenticated && user && (
-        <div className="fixed top-4 left-4 z-40">
-          <AuthStatusBadge user={user} onLogout={handleLogout} />
-        </div>
-      )}
 
       {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
       <BrandColors />

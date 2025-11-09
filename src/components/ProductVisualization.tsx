@@ -5,6 +5,7 @@ import { Download, RotateCcw, AlertTriangle, Store, Check, X } from "lucide-reac
 import { ProductChip } from "./ProductChip";
 import { Header } from "./Header";
 import type { Product } from "../types/product";
+import type { User } from "../types/auth";
 import roomImage from "figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png";
 
 interface ProductVisualizationProps {
@@ -21,6 +22,11 @@ interface ProductVisualizationProps {
   onViewProductDetails: () => void;
   onPurchase: () => void;
   onBackToStore: () => void;
+  onBack?: () => void;
+  isAuthenticated?: boolean;
+  user?: User | null;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 export function ProductVisualization({
@@ -36,7 +42,12 @@ export function ProductVisualization({
   onTryAnother,
   onViewProductDetails,
   onPurchase,
-  onBackToStore
+  onBackToStore,
+  onBack,
+  isAuthenticated,
+  user,
+  onLogin,
+  onLogout
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -63,7 +74,14 @@ export function ProductVisualization({
 
   return (
     <div className="min-h-screen bg-white">
-      <Header showBackButton={false} />
+      <Header
+        showBackButton={true}
+        onBack={onBack}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        onLogin={onLogin}
+        onLogout={onLogout}
+      />
 
       <div className="pt-14">
         <motion.div

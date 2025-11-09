@@ -4,16 +4,13 @@
  *
  * ENHANCED WITH:
  * - Auth token auto-injection (via api.ts)
- * - Rate limit tracking from headers
- * - 401/429 error handling
+ * - 401 error handling
  */
 
 import { apiPost, apiPostWithTimeout } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProcessResponse } from "../types/product";
-import type { RateLimitState } from "../types/rateLimit";
 import { stripExifData } from "./stripExif";
-import { rateLimitService } from "../services/rateLimitService";
 
 export interface ProcessImageRequest {
   imageFile: File;
@@ -33,7 +30,6 @@ export interface ProcessImageResponse {
   error?: string;
   status?: number;           // HTTP status code
   requiresLogin?: boolean;   // 401 error flag
-  rateLimit?: RateLimitState | null;  // Rate limit info from headers
 }
 
 /**
@@ -203,17 +199,6 @@ export async function processImageWithAI(
 
     const processingTime = Date.now() - startTime;
 
-    // Extract rate limit info from headers (if available)
-    let rateLimitInfo: RateLimitState | null = null;
-    if (response.headers) {
-      rateLimitInfo = rateLimitService.extractFromHeaders(response.headers);
-      if (rateLimitInfo) {
-        // Save to localStorage for persistence
-        rateLimitService.save(rateLimitInfo);
-        console.log('[AI Processing] محدودیت استفاده به‌روز شد:', rateLimitInfo);
-      }
-    }
-
     // Handle 401 error (token expired, already handled by api.ts but might fail)
     if (response.status === 401 && response.requiresLogin) {
       console.error('[AI Processing] نیاز به ورود مجدد');
@@ -226,22 +211,6 @@ export async function processImageWithAI(
         error: response.error || 'نشست شما منقضی شده است',
         status: 401,
         requiresLogin: true,
-        rateLimit: rateLimitInfo,
-      };
-    }
-
-    // Handle 429 error (rate limit exceeded)
-    if (response.status === 429) {
-      console.error('[AI Processing] محدودیت روزانه به پایان رسید');
-      return {
-        success: false,
-        visualizedImageUrl: '',
-        originalImageUrl: '',
-        processingTime: Math.round(processingTime),
-        confidence: 0,
-        error: response.error || 'محدودیت روزانه به پایان رسید',
-        status: 429,
-        rateLimit: rateLimitInfo,
       };
     }
 
@@ -274,7 +243,6 @@ export async function processImageWithAI(
         processedImageId,
         imageUrl: visualizedImageUrl,
         format: isNewFormat ? 'new' : 'legacy',
-        rateLimit: rateLimitInfo
       });
 
       return {
@@ -284,7 +252,6 @@ export async function processImageWithAI(
         processingTime: Math.round(processingTime),
         confidence: 0.95, // High confidence for successful processing
         imageId: processedImageId, // Include processed image ID for vote API
-        rateLimit: rateLimitInfo,  // Include rate limit info
       };
     } else {
       console.error('[AI Processing] خطا در پردازش:', response.error);
@@ -296,7 +263,6 @@ export async function processImageWithAI(
         confidence: 0,
         error: response.error || 'خطا در پردازش تصویر توسط سرور',
         status: response.status,
-        rateLimit: rateLimitInfo,
       };
     }
   } catch (error) {

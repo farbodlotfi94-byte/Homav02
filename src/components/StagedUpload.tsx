@@ -2,12 +2,17 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 import { Header } from "./Header";
+import type { User } from "../types/auth";
 import svgPaths from "../imports/svg-m4kfj8jpfi";
 
 interface StagedUploadProps {
   file: File;
   onComplete: () => void;
   onError: (error: string) => void;
+  isAuthenticated?: boolean;
+  user?: User | null;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 type Stage = {
@@ -67,7 +72,15 @@ function ProcessingIcon() {
   );
 }
 
-export function StagedUpload({ file, onComplete, onError }: StagedUploadProps) {
+export function StagedUpload({
+  file,
+  onComplete,
+  onError,
+  isAuthenticated,
+  user,
+  onLogin,
+  onLogout
+}: StagedUploadProps) {
   const [stages, setStages] = useState<Stage[]>([
     { id: 1, label: "بارگذاری فایل", progress: 0, status: "active" },
     { id: 2, label: "پردازش تصویر", progress: 0, status: "pending" },
@@ -174,7 +187,13 @@ export function StagedUpload({ file, onComplete, onError }: StagedUploadProps) {
 
   return (
     <div className="bg-white relative min-h-screen">
-      <Header showBackButton={false} />
+      <Header
+        showBackButton={false}
+        isAuthenticated={isAuthenticated}
+        user={user}
+        onLogin={onLogin}
+        onLogout={onLogout}
+      />
       
       {/* Main Container */}
       <div className="px-6 pt-[104px] pb-8">

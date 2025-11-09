@@ -25,7 +25,8 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
     unique_link: backendProduct.unique_link,
     name: backendProduct.name, // Use real product name from backend
     thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
-    currency: "تومان",
+    price: backendProduct.price, // Include price from backend
+    currency: backendProduct.currency || "تومان", // Use backend currency or default to تومان
     seller: {
       name: "فرش هریس",
       verified: true
