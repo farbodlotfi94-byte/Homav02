@@ -27,6 +27,11 @@ import {
   getSuggestedProducts,
 } from "./utils/productLoader";
 import {
+  isMobileDevice,
+  isWebShareSupported,
+  canShareFiles,
+} from "./utils/deviceDetection";
+import {
   processImageWithAI,
   saveVisualization,
   trackEvent,
@@ -709,26 +714,64 @@ export default function App() {
       try {
         const response = await fetch(visualizedImageUrl);
         const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
+
         // Generate filename with "homa" prefix and timestamp
         const timestamp = new Date().toISOString().split('T')[0];
         const productName = product?.name.replace(/\s+/g, '-') || 'product';
-        link.download = `homa-${productName}-${timestamp}.jpg`;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        // Show success feedback
-        setIsSaved(true);
+        const filename = `homa-${productName}-${timestamp}.jpg`;
+
+        // Check if mobile device and Web Share API is available
+        const isMobile = isMobileDevice();
+        const canShare = isWebShareSupported() && canShareFiles();
+
+        if (isMobile && canShare) {
+          // Mobile: Use Web Share API to save to gallery
+          try {
+            const file = new File([blob], filename, { type: 'image/jpeg' });
+
+            await navigator.share({
+              files: [file],
+              title: 'HOMA - ' + (product?.name || 'محصول'),
+              text: 'تصویر پردازش شده از HOMA',
+            });
+
+            // Show success feedback
+            setIsSaved(true);
+            console.log('[App] Image shared successfully via Web Share API');
+          } catch (shareError: any) {
+            // User cancelled share or sharing failed
+            if (shareError.name === 'AbortError') {
+              console.log('[App] Share cancelled by user');
+              // Don't show error, user intentionally cancelled
+            } else {
+              console.error('[App] Share failed:', shareError);
+              // Fallback to traditional download
+              downloadImage(blob, filename);
+              setIsSaved(true);
+            }
+          }
+        } else {
+          // Desktop or Web Share not supported: Use traditional download
+          downloadImage(blob, filename);
+          setIsSaved(true);
+        }
       } catch (error) {
-        console.error('Download failed:', error);
+        console.error('[App] Download failed:', error);
         alert('خطا در دانلود تصویر');
       }
+    }
+
+    // Helper function for traditional anchor tag download
+    function downloadImage(blob: Blob, filename: string) {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     }
 
     // اگه از feedback اومده، برگرد به visualization

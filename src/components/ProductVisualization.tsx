@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Download, RotateCcw, AlertTriangle, Store, Check, X } from "lucide-react";
 import { ProductChip } from "./ProductChip";
 import { Header } from "./Header";
+import { isMobileDevice } from "../utils/deviceDetection";
 import type { Product } from "../types/product";
 import type { User } from "../types/auth";
 import roomImage from "figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png";
@@ -50,6 +51,7 @@ export function ProductVisualization({
   onLogout
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isMobile = isMobileDevice();
 
   const handleSave = () => {
     onSave();
@@ -165,7 +167,7 @@ export function ProductVisualization({
                     className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl flex items-center justify-center gap-2 mb-4"
                   >
                     <Download className="w-5 h-5" />
-                    ذخیره عکس
+                    {isMobile ? 'ذخیره در گالری' : 'ذخیره عکس'}
                   </Button>
                 ) : (
                   <motion.div
@@ -174,7 +176,7 @@ export function ProductVisualization({
                     className="w-full h-14 bg-green-600 text-white rounded-2xl flex items-center justify-center gap-2 mb-4"
                   >
                     <Check className="w-5 h-5" />
-                    ذخیره شد
+                    {isMobile ? 'در گالری ذخیره شد' : 'ذخیره شد'}
                   </motion.div>
                 )}
 
