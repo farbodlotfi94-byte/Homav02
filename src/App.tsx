@@ -529,13 +529,13 @@ export default function App() {
           return;
         }
 
-        if (result.success && result.visualizedImageUrl) {
+        if (result.success && result.visualizedImageUrl && result.visualizedImageUrl.length > 0) {
           setVisualizedImageUrl(result.visualizedImageUrl);
           setApiStatus('success');
           setPlacementSuccess(true);
 
           // Store processed image_id for vote API
-          if (result.imageId) {
+          if (result.imageId !== undefined && result.imageId !== null) {
             setProcessedImageId(result.imageId);
             console.log('[App] Stored processed image_id:', result.imageId);
           }
@@ -569,7 +569,15 @@ export default function App() {
         } else {
           setApiStatus('failure');
           setPlacementSuccess(false);
-          console.error('[App] Image processing failed:', result.error || 'No visualized image URL received');
+          console.error('[App] Image processing failed:', {
+            error: result.error,
+            hasVisualizedUrl: !!result.visualizedImageUrl,
+            visualizedUrlLength: result.visualizedImageUrl?.length,
+            hasImageId: result.imageId !== undefined,
+            imageId: result.imageId,
+            resultSuccess: result.success,
+            fullResult: result,
+          });
           trackEvent({
             eventType: "upload_error",
             productId: product.id,

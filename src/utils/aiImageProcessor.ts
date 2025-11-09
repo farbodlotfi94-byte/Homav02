@@ -194,7 +194,12 @@ export async function processImageWithAI(
       status: response.status,
       error: response.error,
       hasData: !!response.data,
-      hasHeaders: !!response.headers
+      hasHeaders: !!response.headers,
+      dataFields: response.data ? Object.keys(response.data) : [],
+      backendStatus: response.data?.status,
+      imageUrl: response.data?.image_url,
+      imageUrlLength: response.data?.image_url?.length,
+      imageId: response.data?.image_id,
     });
 
     const processingTime = Date.now() - startTime;
@@ -216,7 +221,9 @@ export async function processImageWithAI(
 
     if (response.success && response.data) {
       // Handle new backend response format
-      const isNewFormat = response.data.status === "success" && response.data.image_url;
+      const isNewFormat = response.data.status === "success" &&
+                         typeof response.data.image_url === "string" &&
+                         response.data.image_url.length > 0;
 
       let visualizedImageUrl: string;
       let originalImageUrl: string;
@@ -224,6 +231,11 @@ export async function processImageWithAI(
       if (isNewFormat) {
         // New format: direct image_url from backend
         visualizedImageUrl = response.data.image_url;
+
+        if (!visualizedImageUrl || visualizedImageUrl.length === 0) {
+          console.warn('[AI Processing] image_url is empty despite success status');
+        }
+
         // For original image, we don't have it in the new format, so use empty string or placeholder
         // The backend should ideally return both URLs
         originalImageUrl = response.data.customer_image_path
@@ -235,7 +247,7 @@ export async function processImageWithAI(
         visualizedImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.processed_image_path || '')}`;
       }
 
-      const processedImageId = response.data.image_id || response.data.id;
+      const processedImageId = response.data.image_id ?? response.data.id;
       
       console.log('[AI Processing] تصویر با موفقیت پردازش شد:', {
         productId: request.productId,
