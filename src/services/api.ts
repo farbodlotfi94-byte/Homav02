@@ -1,21 +1,38 @@
 /**
  * API Service Layer
  * Reusable functions for making API calls with proper error handling
+ *
+ * ENHANCED WITH:
+ * - Auto-injection of user auth headers
+ * - 401 handling with token refresh and retry
+ * - 429 rate limit error handling
+ * - Response headers exposure for rate limit tracking
  */
 
 import { API_CONFIG } from '../config/api';
+import { userAuthService } from './userAuthService';
 
 export interface ApiResponse<T = any> {
   data: T;
   success: boolean;
   error?: string;
   status: number;
+  headers?: Headers;         // NEW: Expose response headers
+  requiresLogin?: boolean;   // NEW: Flag for 401 after refresh failed
+  retryAfter?: number;       // NEW: Seconds for 429 errors
 }
 
 export interface ApiError {
   message: string;
   status: number;
   details?: any;
+}
+
+/**
+ * Get user authorization headers if authenticated
+ */
+function getUserAuthHeaders(): HeadersInit {
+  return userAuthService.getAuthHeaders();
 }
 
 /**
@@ -54,6 +71,7 @@ async function apiRequest<T = any>(
       signal: controller.signal,
       headers: {
         ...headers,
+        ...getUserAuthHeaders(),  // AUTO-INJECT auth headers
         ...options.headers,
       },
     });
@@ -64,16 +82,67 @@ async function apiRequest<T = any>(
       timeoutId = null;
     }
 
-    console.log('[API] Response received:', { 
-      url, 
-      status: response.status, 
+    console.log('[API] Response received:', {
+      url,
+      status: response.status,
       ok: response.ok,
-      statusText: response.statusText 
+      statusText: response.statusText
     });
+
+    // Handle 401 Unauthorized - try to refresh token and retry
+    if (response.status === 401) {
+      console.log('[API] 401 Unauthorized - attempting token refresh');
+
+      const refreshed = await userAuthService.refreshAccessToken();
+
+      if (refreshed) {
+        console.log('[API] Token refreshed successfully, retrying request');
+        // Retry the request with new token (recursive call)
+        return apiRequest<T>(url, options);
+      } else {
+        console.error('[API] Token refresh failed, user must login');
+        // Logout user
+        userAuthService.logout();
+
+        return {
+          data: null as T,
+          success: false,
+          error: 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید',
+          status: 401,
+          requiresLogin: true,
+        };
+      }
+    }
+
+    // Handle 429 Rate Limit Exceeded
+    if (response.status === 429) {
+      console.log('[API] 429 Rate Limit Exceeded');
+
+      const retryAfter = response.headers.get('Retry-After');
+      let errorMessage = 'محدودیت روزانه به پایان رسید';
+      let detail = '';
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+        detail = errorData.detail || '5 per 1 hour';
+      } catch (jsonError) {
+        // Ignore JSON parsing errors
+      }
+
+      return {
+        data: null as T,
+        success: false,
+        error: errorMessage,
+        status: 429,
+        retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        headers: response.headers,
+      };
+    }
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      
+
       try {
         const errorData = await response.json();
         errorMessage = errorData.detail || errorData.message || errorMessage;
@@ -97,6 +166,7 @@ async function apiRequest<T = any>(
       data,
       success: true,
       status: response.status,
+      headers: response.headers,  // EXPOSE headers for rate limit tracking
     };
   } catch (error) {
     // Clean up timeout
@@ -253,6 +323,7 @@ export async function apiPostWithTimeout<T = any>(
       signal: controller.signal,
       headers: {
         ...headers,
+        ...getUserAuthHeaders(),  // AUTO-INJECT auth headers
       },
       body: body instanceof FormData ? body : (body ? JSON.stringify(body) : undefined),
     });
@@ -263,16 +334,65 @@ export async function apiPostWithTimeout<T = any>(
       timeoutId = null;
     }
 
-    console.log('[API] Custom timeout response received:', { 
-      url, 
-      status: response.status, 
+    console.log('[API] Custom timeout response received:', {
+      url,
+      status: response.status,
       ok: response.ok,
-      statusText: response.statusText 
+      statusText: response.statusText
     });
+
+    // Handle 401 Unauthorized - try to refresh token and retry
+    if (response.status === 401) {
+      console.log('[API] 401 Unauthorized - attempting token refresh');
+
+      const refreshed = await userAuthService.refreshAccessToken();
+
+      if (refreshed) {
+        console.log('[API] Token refreshed successfully, retrying request');
+        // Retry the request with new token (recursive call)
+        return apiPostWithTimeout<T>(endpoint, body, timeout);
+      } else {
+        console.error('[API] Token refresh failed, user must login');
+        // Logout user
+        userAuthService.logout();
+
+        return {
+          data: null as T,
+          success: false,
+          error: 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید',
+          status: 401,
+          requiresLogin: true,
+        };
+      }
+    }
+
+    // Handle 429 Rate Limit Exceeded
+    if (response.status === 429) {
+      console.log('[API] 429 Rate Limit Exceeded');
+
+      const retryAfter = response.headers.get('Retry-After');
+      let errorMessage = 'محدودیت روزانه به پایان رسید';
+
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (jsonError) {
+        // Ignore JSON parsing errors
+      }
+
+      return {
+        data: null as T,
+        success: false,
+        error: errorMessage,
+        status: 429,
+        retryAfter: retryAfter ? parseInt(retryAfter, 10) : null,
+        headers: response.headers,
+      };
+    }
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      
+
       try {
         const errorData = await response.json();
         errorMessage = errorData.detail || errorData.message || errorMessage;
@@ -296,6 +416,7 @@ export async function apiPostWithTimeout<T = any>(
       data,
       success: true,
       status: response.status,
+      headers: response.headers,  // EXPOSE headers for rate limit tracking
     };
   } catch (error) {
     // Clean up timeout
@@ -381,4 +502,39 @@ export async function checkApiHealth(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Vote on a processed image
+ * POST /api/products/vote
+ * 
+ * @param imageId - ID of the processed image to vote on
+ * @param vote - Vote value: 1=GOOD, 2=NEUTRAL, 3=BAD
+ * @returns API response with vote status
+ */
+export interface VoteResponse {
+  status: string;
+  image_id: number;
+  score: number;
+  message: string;
+}
+
+export async function submitVote(
+  imageId: number,
+  vote: 1 | 2 | 3
+): Promise<ApiResponse<VoteResponse>> {
+  console.log('[Vote API] Submitting vote:', { imageId, vote });
+  
+  const response = await apiPost<VoteResponse>(API_CONFIG.ENDPOINTS.VOTE, {
+    image_id: imageId,
+    vote: vote,
+  });
+
+  if (response.success) {
+    console.log('[Vote API] Vote submitted successfully:', response.data);
+  } else {
+    console.error('[Vote API] Vote submission failed:', response.error);
+  }
+
+  return response;
 }

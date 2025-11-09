@@ -289,6 +289,7 @@ export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct }:
                   <TableHead>تصویر</TableHead>
                   <TableHead>نام محصول</TableHead>
                   <TableHead>دسته‌بندی</TableHead>
+                  <TableHead>قیمت</TableHead>
                   <TableHead>نوع</TableHead>
                   <TableHead>تاریخ ایجاد</TableHead>
                   <TableHead className="text-center">عملیات</TableHead>
@@ -297,7 +298,7 @@ export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct }:
               <TableBody>
               {filteredProducts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     هیچ محصولی یافت نشد
                   </TableCell>
                 </TableRow>
@@ -328,8 +329,11 @@ export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct }:
                     <TableCell>
                       <Badge variant="secondary">{product.category}</Badge>
                     </TableCell>
+                    <TableCell className="text-sm text-gray-700">
+                      {product.price ? `${product.price.toLocaleString('fa-IR')} ریال` : '-'}
+                    </TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={product.is_predefined === 1 ? "default" : "outline"}
                       >
                         {product.is_predefined === 1 ? 'پیش‌تعریف شده' : 'سفارشی'}

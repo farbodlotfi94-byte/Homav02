@@ -10,6 +10,7 @@ export const API_CONFIG = {
     PRODUCT_DETAILS: (uniqueLink: string) => `/api/products/${uniqueLink}`,
     PROCESS_IMAGE: (uniqueLink: string) => `/api/products/${uniqueLink}/process`,
     IMAGE_SERVE: (objectPath: string) => `/api/products/images/${objectPath}`,
+    VOTE: '/api/products/vote',
     HEALTH: '/health',
   },
   TIMEOUT: Number(import.meta.env.VITE_API_TIMEOUT) || 300000, // 5 minutes - increased for image processing

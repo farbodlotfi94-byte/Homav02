@@ -49,6 +49,7 @@ export function ProductForm({
     name: '',
     description: '',
     category: '',
+    price: 0,
     is_predefined: 0,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -64,6 +65,7 @@ export function ProductForm({
         name: product.name,
         description: product.description,
         category: product.category,
+        price: product.price || 0,
         is_predefined: product.is_predefined,
       });
       setPreviewUrl(adminService.getProductImageUrl(product.image_path));
@@ -72,6 +74,7 @@ export function ProductForm({
         name: '',
         description: '',
         category: '',
+        price: 0,
         is_predefined: 0,
       });
       setPreviewUrl('');
@@ -82,6 +85,11 @@ export function ProductForm({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    // Validate price (required and must be > 0)
+    if (!formData.price || formData.price <= 0) {
+      newErrors.price = 'قیمت باید بیشتر از صفر باشد';
+    }
 
     // Note: name, description, and category are optional per API spec
     // Only validate if file is required (create mode)
@@ -264,8 +272,8 @@ export function ProductForm({
               <Label className="text-sm font-medium text-gray-700">
                 دسته‌بندی
               </Label>
-              <Select 
-                value={formData.category} 
+              <Select
+                value={formData.category}
                 onValueChange={(value) => handleInputChange('category', value)}
                 disabled={isSubmitting}
               >
@@ -282,6 +290,27 @@ export function ProductForm({
               </Select>
               {errors.category && (
                 <p className="text-sm text-red-600">{errors.category}</p>
+              )}
+            </div>
+
+            {/* Price */}
+            <div className="space-y-2">
+              <Label htmlFor="price" className="text-sm font-medium text-gray-700">
+                قیمت (ریال) *
+              </Label>
+              <Input
+                id="price"
+                type="number"
+                value={formData.price}
+                onChange={(e) => handleInputChange('price', parseInt(e.target.value) || 0)}
+                placeholder="قیمت را به ریال وارد کنید"
+                className={errors.price ? 'border-red-500' : ''}
+                disabled={isSubmitting}
+                min="1"
+                step="1000"
+              />
+              {errors.price && (
+                <p className="text-sm text-red-600">{errors.price}</p>
               )}
             </div>
 

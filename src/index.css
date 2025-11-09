@@ -2846,6 +2846,7 @@
   --input-background: #fff;
   --ring: #08f;
   --elevation-sm: 0px 15px 75px 0px #0000002e;
+  --elevation-md: 0px 20px 100px 0px rgba(0, 0, 0, 0.25);
   --chart-1: #08f;
   --chart-2: #34c759;
   --chart-3: #fc0;
@@ -2854,6 +2855,8 @@
   --radius: 26px;
   --radius-button: 100px;
   --radius-card: 20px;
+  --radius-md: 16px;
+  --radius-sm: 8px;
   --sidebar: #fafafab3;
   --sidebar-foreground: #333;
   --sidebar-primary: #08f;

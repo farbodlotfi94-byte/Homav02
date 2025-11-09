@@ -169,6 +169,11 @@ export function ProductSelection({ onProductSelect, onBack }: ProductSelectionPr
                         <p className="text-sm text-gray-600 mb-2 line-clamp-2">
                           {product.description}
                         </p>
+                        {product.price && (
+                          <p className="text-sm font-semibold text-[#E31E24] mb-2">
+                            {product.price.toLocaleString('fa-IR')} ریال
+                          </p>
+                        )}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                             {product.category}

@@ -13,8 +13,16 @@ import { TermsModal } from "./components/TermsModal";
 import { FeedbackSurvey } from "./components/FeedbackSurvey";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { BrandColors } from "./components/BrandColors";
+import { UserLogin } from "./components/UserLogin";
+import { RateLimitExceededModal } from "./components/RateLimitExceededModal";
+import { AuthStatusBadge } from "./components/AuthStatusBadge";
 import { AnimatePresence, motion } from "motion/react";
 import type { Product } from "./types/product";
+import type { User, AuthResponse } from "./types/auth";
+import type { RateLimitState } from "./types/rateLimit";
+import { userAuthService } from "./services/userAuthService";
+import { rateLimitService } from "./services/rateLimitService";
+import { submitVote } from "./services/api";
 import {
   parseEntryParams,
   fetchProduct,
@@ -37,6 +45,7 @@ type Step =
   | "product-selection" // Product selection from list
   | "product-landing" // Product-aware landing with CTA
   | "product-fallback" // Invalid/unavailable product
+  | "user-auth" // User authentication (login/register) - NEW
   | "upload" // File picker/camera
   | "precheck" // Quality validation
   | "staged-upload" // 3-stage upload progress
@@ -104,6 +113,41 @@ export default function App() {
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [apiProcessingPromise, setApiProcessingPromise] = useState<Promise<ProcessImageResponse> | null>(null);
   const [apiStartTime, setApiStartTime] = useState<number>(0);
+  const [apiStatus, setApiStatus] = useState<'idle' | 'pending' | 'success' | 'failure'>('idle');
+  const [processedImageId, setProcessedImageId] = useState<number | null>(null);
+
+  // NEW: User authentication state
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // NEW: Rate limit state
+  const [rateLimit, setRateLimit] = useState<RateLimitState>(
+    rateLimitService.createDefault()
+  );
+  const [showRateLimitModal, setShowRateLimitModal] = useState(false);
+
+  // Initialize: Load auth state and rate limit from storage
+  useEffect(() => {
+    // Check if user is authenticated
+    const isAuth = userAuthService.isAuthenticated();
+    setIsAuthenticated(isAuth);
+
+    if (isAuth) {
+      const userData = userAuthService.getUser();
+      setUser(userData);
+
+      // Load rate limit from storage
+      const storedRateLimit = rateLimitService.load();
+      if (storedRateLimit) {
+        setRateLimit(storedRateLimit);
+        console.log('[App] Loaded rate limit from storage:', storedRateLimit);
+      }
+
+      console.log('[App] Auth initialized:', { isAuthenticated: isAuth, user: userData?.phone_number });
+    } else {
+      console.log('[App] Auth initialized: Not authenticated');
+    }
+  }, []);
 
   // Initialize: Parse URL and determine entry flow
   useEffect(() => {
@@ -244,13 +288,103 @@ export default function App() {
     }
   };
 
-  // Product Landing → Upload
+  // NEW: Auth success handler (login or register)
+  const handleAuthSuccess = (authResponse: AuthResponse) => {
+    setUser(authResponse.user);
+    setIsAuthenticated(true);
+
+    // Initialize rate limit for new user
+    setRateLimit(rateLimitService.createDefault());
+
+    trackKPI('user_authenticated', {
+      userId: authResponse.user.id,
+      phone: authResponse.user.phone_number,
+      source: 'upload_attempt',
+    });
+
+    console.log('[App] User authenticated successfully:', authResponse.user.phone_number);
+
+    // Proceed to upload
+    setCurrentStep('upload');
+  };
+
+  // NEW: Logout handler
+  const handleLogout = async () => {
+    await userAuthService.logout();
+
+    setUser(null);
+    setIsAuthenticated(false);
+    setRateLimit(rateLimitService.createDefault());
+
+    // Clear any ongoing processing
+    setApiProcessingPromise(null);
+    setApiStartTime(0);
+    setApiStatus('idle');
+    setSelectedFile(null);
+    setProcessedImageId(null);
+
+    trackKPI('user_logout', {
+      productId: product?.id,
+    });
+
+    console.log('[App] User logged out');
+
+    // Redirect to product landing
+    setCurrentStep('product-landing');
+  };
+
+  // NEW: Rate limit update handler
+  const handleRateLimitUpdate = (newRateLimit: RateLimitState) => {
+    setRateLimit(newRateLimit);
+    rateLimitService.save(newRateLimit);
+
+    console.log('[App] Rate limit updated:', newRateLimit);
+
+    trackKPI('rate_limit_update', {
+      userId: user?.id,
+      remaining: newRateLimit.remaining,
+      limit: newRateLimit.limit,
+    });
+  };
+
+  // NEW: Rate limit exceeded handler
+  const handleRateLimitExceeded = () => {
+    setShowRateLimitModal(true);
+
+    trackKPI('rate_limit_exceeded', {
+      userId: user?.id,
+      productId: product?.id,
+      resetAt: rateLimit.resetAt,
+      resetIn: rateLimit.resetIn,
+    });
+  };
+
+  // Product Landing → Check Auth → Upload
   const handleStartUpload = () => {
     trackKPI("upload_start", {
       source: "product_landing",
       productId: product?.id,
       productName: product?.name,
+      isAuthenticated,
     });
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      console.log('[App] User not authenticated, redirecting to auth');
+      trackKPI('auth_required', {
+        source: 'upload_attempt',
+        productId: product?.id,
+      });
+      setCurrentStep('user-auth');
+      return;
+    }
+
+    // Check rate limit
+    if (rateLimit.isExceeded) {
+      console.log('[App] Rate limit exceeded');
+      handleRateLimitExceeded();
+      return;
+    }
 
     if (product) {
       trackEvent({
@@ -286,6 +420,7 @@ export default function App() {
       });
       setApiProcessingPromise(apiPromise);
       setApiStartTime(Date.now());
+      setApiStatus('pending');
     } else {
       console.warn('[App] Product or uniqueLink not available, cannot start API processing');
     }
@@ -311,9 +446,11 @@ export default function App() {
       productId: product?.id,
     });
     setSelectedFile(null);
+    setProcessedImageId(null); // Clear processed image_id for retake
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
+    setApiStatus('idle');
     setCurrentStep("upload");
   };
 
@@ -336,6 +473,7 @@ export default function App() {
       ttfuSeconds: (ttfu / 1000).toFixed(2),
       guardRail: ttfu < 10000 ? "pass" : "fail",
       productId: product?.id,
+      userId: user?.id,
     });
 
     // Track upload success event
@@ -369,9 +507,41 @@ export default function App() {
         const totalApiTime = Date.now() - apiStartTime;
         console.log(`[App] API processing completed in ${(totalApiTime / 1000).toFixed(1)}s`);
 
-        if (result.success) {
+        // Extract and update rate limit from response
+        if (result.rateLimit) {
+          handleRateLimitUpdate(result.rateLimit);
+        }
+
+        // Handle 401 error (token expired and refresh failed)
+        if (result.status === 401 && result.requiresLogin) {
+          console.error('[App] Session expired, user logged out');
+          await handleLogout();
+          setApiStatus('failure');
+          setPlacementSuccess(false);
+          setCurrentStep('visualization');
+          return;
+        }
+
+        // Handle 429 error (rate limit exceeded)
+        if (result.status === 429) {
+          console.error('[App] Rate limit exceeded');
+          handleRateLimitExceeded();
+          setApiStatus('failure');
+          setPlacementSuccess(false);
+          setCurrentStep('visualization');
+          return;
+        }
+
+        if (result.success && result.visualizedImageUrl) {
           setVisualizedImageUrl(result.visualizedImageUrl);
+          setApiStatus('success');
           setPlacementSuccess(true);
+
+          // Store processed image_id for vote API
+          if (result.imageId) {
+            setProcessedImageId(result.imageId);
+            console.log('[App] Stored processed image_id:', result.imageId);
+          }
 
           // Save visualization
           const entryContext = parseEntryParams(
@@ -400,19 +570,21 @@ export default function App() {
           // Wait a moment to show completion state before transitioning
           await new Promise(resolve => setTimeout(resolve, 1500));
         } else {
+          setApiStatus('failure');
           setPlacementSuccess(false);
-          console.error('[App] Image processing failed:', result.error);
+          console.error('[App] Image processing failed:', result.error || 'No visualized image URL received');
           trackEvent({
             eventType: "upload_error",
             productId: product.id,
             sessionId,
-            metadata: { error: result.error },
+            metadata: { error: result.error || 'No visualized image URL' },
           });
         }
 
         setCurrentStep("visualization");
       } catch (error) {
         console.error("[App] خطا در پردازش تصویر:", error);
+        setApiStatus('failure');
         setPlacementSuccess(false);
 
         // Track the error
@@ -436,6 +608,7 @@ export default function App() {
       }
     } else if (!apiProcessingPromise) {
       console.error('[App] No API promise available - this should not happen');
+      setApiStatus('failure');
       setPlacementSuccess(false);
       setCurrentStep("visualization");
     }
@@ -569,9 +742,11 @@ export default function App() {
     setPlacementSuccess(true);
     setVisualizedImageUrl("");
     setHasFeedbackForCurrentImage(false); // Reset برای عکس جدید
+    setProcessedImageId(null); // Clear processed image_id for new upload
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
+    setApiStatus('idle');
     setCurrentStep("upload");
   };
 
@@ -684,6 +859,7 @@ export default function App() {
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
+    setApiStatus('idle');
     setCurrentStep("upload");
   };
 
@@ -694,6 +870,7 @@ export default function App() {
       errorType,
       productId: product?.id,
     });
+    setApiStatus('idle');
     setCurrentStep("staged-upload");
   };
 
@@ -704,11 +881,13 @@ export default function App() {
       productId: product?.id,
     });
     setSelectedFile(null);
+    setProcessedImageId(null); // Clear processed image_id on error cancel
+    setApiStatus('idle');
     setCurrentStep("product-landing");
   };
 
   // Feedback Survey
-  const handleFeedbackSubmit = (feedback: FeedbackType) => {
+  const handleFeedbackSubmit = async (feedback: FeedbackType) => {
     trackKPI("Feedback Survey Submitted", {
       feedback,
       productId: product?.id,
@@ -726,6 +905,75 @@ export default function App() {
     setUserFeedback(feedback);
     setHasFeedbackForCurrentImage(true);
 
+    // Submit vote to backend API if we have processedImageId and feedback
+    if (processedImageId && feedback) {
+      // Convert feedback to vote value: satisfied=1 (GOOD), neutral=2 (NEUTRAL), dissatisfied=3 (BAD)
+      const voteValue: 1 | 2 | 3 = feedback === 'satisfied' ? 1 : feedback === 'neutral' ? 2 : 3;
+
+      try {
+        console.log('[App] Submitting vote for image:', { imageId: processedImageId, vote: voteValue });
+        const voteResponse = await submitVote(processedImageId, voteValue);
+
+        if (voteResponse.success) {
+          console.log('[App] Vote submitted successfully:', voteResponse.data);
+          trackKPI("Vote Submitted", {
+            imageId: processedImageId,
+            vote: voteValue,
+            productId: product?.id,
+          });
+        } else {
+          // Handle errors without blocking user flow
+          const errorStatus = voteResponse.status;
+          let errorMessage = 'خطا در ثبت رأی';
+
+          if (errorStatus === 400) {
+            errorMessage = 'مقدار رأی نامعتبر است';
+          } else if (errorStatus === 401) {
+            // Already handled by api.ts (auto-refresh), but log if refresh failed
+            errorMessage = 'نیاز به ورود مجدد';
+          } else if (errorStatus === 403) {
+            errorMessage = 'شما دسترسی به این تصویر ندارید';
+          } else if (errorStatus === 404) {
+            errorMessage = 'تصویر پردازش‌شده یافت نشد';
+          } else {
+            errorMessage = voteResponse.error || 'خطا در ثبت رأی';
+          }
+
+          console.error('[App] Vote submission failed:', {
+            status: errorStatus,
+            error: voteResponse.error,
+            message: errorMessage,
+          });
+
+          // Log error but don't block user flow (vote is non-critical)
+          trackKPI("Vote Submission Failed", {
+            imageId: processedImageId,
+            vote: voteValue,
+            status: errorStatus,
+            error: errorMessage,
+            productId: product?.id,
+          });
+        }
+      } catch (error) {
+        // Network or unexpected errors
+        console.error('[App] Vote submission error:', error);
+        trackKPI("Vote Submission Error", {
+          imageId: processedImageId,
+          vote: voteValue,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          productId: product?.id,
+        });
+        // Don't block user flow on vote errors
+      }
+    } else if (processedImageId && !feedback) {
+      // User skipped feedback - don't submit vote
+      console.log('[App] Feedback skipped, not submitting vote');
+    } else if (!processedImageId) {
+      // No processed image_id available
+      console.warn('[App] No processed image_id available for vote submission');
+    }
+
+    // Continue with existing flow (execute pending action)
     if (pendingAction) {
       switch (pendingAction) {
         case "save":
@@ -784,9 +1032,20 @@ export default function App() {
           <ProductAwareLanding
             key="product-landing"
             product={product}
+            rateLimit={rateLimit}
             onUploadStart={handleStartUpload}
             onShowProductDetails={handleShowProductDetails}
             onShowTerms={() => setShowTerms(true)}
+          />
+        )}
+
+        {/* User Auth (Login/Register) - NEW */}
+        {currentStep === "user-auth" && (
+          <UserLogin
+            key="user-auth"
+            isOpen={true}
+            onClose={() => setCurrentStep("product-landing")}
+            onSuccess={handleAuthSuccess}
           />
         )}
 
@@ -805,6 +1064,7 @@ export default function App() {
         {currentStep === "upload" && (
           <PhotoUpload
             key="upload"
+            rateLimit={rateLimit}
             onUploadComplete={handleFileSelected}
             onBack={() => setCurrentStep("product-landing")}
           />
@@ -922,10 +1182,8 @@ export default function App() {
             <ProductVisualization
               key="visualization"
               product={product}
-              userImage={
-                visualizedImageUrl ||
-                URL.createObjectURL(selectedFile)
-              }
+              userImage={visualizedImageUrl}
+              apiStatus={apiStatus}
               fileName={selectedFile.name}
               placementSuccess={placementSuccess}
               isSaved={isSaved}
@@ -974,6 +1232,22 @@ export default function App() {
         open={showTerms}
         onClose={() => setShowTerms(false)}
       />
+
+      {/* Rate Limit Exceeded Modal - NEW */}
+      {showRateLimitModal && rateLimit.resetAt && (
+        <RateLimitExceededModal
+          open={showRateLimitModal}
+          onClose={() => setShowRateLimitModal(false)}
+          resetAt={rateLimit.resetAt}
+        />
+      )}
+
+      {/* Auth Status Badge - NEW (shown when authenticated) */}
+      {isAuthenticated && user && (
+        <div className="fixed top-4 left-4 z-40">
+          <AuthStatusBadge user={user} onLogout={handleLogout} />
+        </div>
+      )}
 
       {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
       <BrandColors />

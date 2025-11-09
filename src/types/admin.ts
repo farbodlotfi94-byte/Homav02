@@ -22,6 +22,7 @@ export interface AdminProduct {
   name: string;
   description: string;
   category: string;
+  price?: number;
   is_predefined: number;
   image_path: string;
   unique_link: string;
@@ -32,6 +33,7 @@ export interface AdminProductFormData {
   name: string;
   description: string;
   category: string;
+  price: number;
   is_predefined: number;
   file?: File;
 }

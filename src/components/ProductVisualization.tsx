@@ -10,6 +10,7 @@ import roomImage from "figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png"
 interface ProductVisualizationProps {
   product: Product;
   userImage: string;
+  apiStatus: 'idle' | 'pending' | 'success' | 'failure';
   fileName: string;
   placementSuccess: boolean;
   isSaved?: boolean;
@@ -25,6 +26,7 @@ interface ProductVisualizationProps {
 export function ProductVisualization({
   product,
   userImage,
+  apiStatus,
   fileName,
   placementSuccess,
   isSaved = false,
@@ -43,7 +45,10 @@ export function ProductVisualization({
   };
 
   const openFullscreen = () => {
-    setIsFullscreen(true);
+    // Only allow fullscreen if image is successfully loaded
+    if (apiStatus === 'success' && userImage) {
+      setIsFullscreen(true);
+    }
   };
 
   const closeFullscreen = () => {
@@ -74,41 +79,52 @@ export function ProductVisualization({
 
           {/* Preview Image */}
           <div className="relative mb-6">
-            <div 
-              className="w-full aspect-square rounded-3xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:shadow-lg"
-              onClick={openFullscreen}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  openFullscreen();
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label="کلیک کنید برای مشاهده تمام صفحه"
-            >
-              {/* Room Image - Clean, no overlays */}
-              <img 
-                src={userImage} 
-                alt="تصویر نهایی اتاق شما"
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  // Show error message instead of fallback image
-                  target.style.display = 'none';
-                  const errorDiv = document.createElement('div');
-                  errorDiv.className = 'absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center';
-                  errorDiv.innerHTML = `
-                    <div>
-                      <div class="text-2xl mb-2">⚠️</div>
-                      <div class="font-medium">خطا در بارگذاری تصویر</div>
-                      <div class="text-sm mt-1">لطفاً دوباره تلاش کنید</div>
-                    </div>
-                  `;
-                  target.parentNode?.appendChild(errorDiv);
+            {apiStatus === 'success' && userImage ? (
+              // Show processed image on success
+              <div
+                className="w-full aspect-square rounded-3xl overflow-hidden relative cursor-pointer transition-all duration-300 hover:shadow-lg"
+                onClick={openFullscreen}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openFullscreen();
+                  }
                 }}
-              />
-            </div>
+                role="button"
+                tabIndex={0}
+                aria-label="کلیک کنید برای مشاهده تمام صفحه"
+              >
+                <img
+                  src={userImage}
+                  alt="تصویر نهایی اتاق شما"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    // Show error message instead of fallback image
+                    target.style.display = 'none';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 p-4 text-center';
+                    errorDiv.innerHTML = `
+                      <div>
+                        <div class="text-2xl mb-2">⚠️</div>
+                        <div class="font-medium">خطا در بارگذاری تصویر</div>
+                        <div class="text-sm mt-1">لطفاً دوباره تلاش کنید</div>
+                      </div>
+                    `;
+                    target.parentNode?.appendChild(errorDiv);
+                  }}
+                />
+              </div>
+            ) : (
+              // Show error state on failure or empty
+              <div className="w-full aspect-square rounded-3xl overflow-hidden bg-red-50 flex items-center justify-center">
+                <div className="text-center p-6">
+                  <div className="text-4xl mb-4">⚠️</div>
+                  <div className="font-medium text-red-900 mb-2">خطا در پردازش تصویر</div>
+                  <div className="text-sm text-red-700">تصویر پردازش‌شده دریافت نشد</div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Product Info Compact */}

@@ -59,6 +59,8 @@ export interface BackendProduct {
   name: string;
   description: string;
   category: string;
+  price?: number;
+  currency?: string;
   is_predefined: number;
   image_path: string;
   unique_link: string;
@@ -78,9 +80,10 @@ export interface BackendProductResponse {
 }
 
 export interface BackendProcessResponse {
-  id: number;
-  product_id: number;
-  customer_image_path: string;
-  processed_image_path: string;
-  created_at: string;
+  status: string;           // "success" or "error"
+  image_url: string;        // Direct URL to the processed image
+  image_id: number;         // ID of the processed image record
+  message: string;          // Success/error message
+  customer_image_path?: string;  // Optional: original image path (legacy)
+  processed_image_path?: string; // Optional: processed image path (legacy)
 }

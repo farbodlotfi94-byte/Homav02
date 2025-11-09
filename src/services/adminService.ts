@@ -343,6 +343,10 @@ class AdminService {
     if (productData.category && productData.category.trim()) {
       productDataObj.category = productData.category.trim();
     }
+    if (productData.price !== undefined && productData.price > 0) {
+      productDataObj.price = productData.price;
+      productDataObj.currency = 'ریال';
+    }
 
     // Send product_data as JSON string
     formData.append('product_data', JSON.stringify(productDataObj));
@@ -375,6 +379,10 @@ class AdminService {
     }
     if (productData.category !== undefined && productData.category.trim()) {
       productDataObj.category = productData.category.trim();
+    }
+    if (productData.price !== undefined && productData.price > 0) {
+      productDataObj.price = productData.price;
+      productDataObj.currency = 'ریال';
     }
     if (productData.is_predefined !== undefined) {
       productDataObj.is_predefined = productData.is_predefined;

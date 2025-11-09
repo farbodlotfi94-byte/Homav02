@@ -2,20 +2,23 @@ import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
 import { Upload, Info, X, Check } from "lucide-react";
 import type { Product } from "../types/product";
+import type { RateLimitState } from "../types/rateLimit";
 import { Header } from "./Header";
 import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-an2xierte7";
 
 interface ProductAwareLandingProps {
   product: Product;
+  rateLimit: RateLimitState;
   onUploadStart: () => void;
   onShowProductDetails: () => void;
   onShowTerms: () => void;
 }
 
-export function ProductAwareLanding({ 
-  product, 
-  onUploadStart, 
+export function ProductAwareLanding({
+  product,
+  rateLimit,
+  onUploadStart,
   onShowProductDetails
 }: ProductAwareLandingProps) {
   const [showSnackbar, setShowSnackbar] = useState(true);
@@ -243,6 +246,29 @@ export function ProductAwareLanding({
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
         <div className="max-w-lg mx-auto px-6 py-4">
           <div className="flex flex-col gap-3">
+            {/* Rate Limit Badge */}
+            {rateLimit && (
+              <div className="flex items-center justify-center gap-2 text-sm">
+                <span className="text-gray-600">
+                  استفاده امروز:
+                </span>
+                <span className={`font-semibold ${
+                  rateLimit.remaining === 0
+                    ? 'text-red-600'
+                    : rateLimit.remaining <= 2
+                    ? 'text-yellow-600'
+                    : 'text-green-600'
+                }`}>
+                  {rateLimit.remaining} از {rateLimit.limit}
+                </span>
+                {rateLimit.isExceeded && rateLimit.resetIn && (
+                  <span className="text-gray-500 text-xs">
+                    (بازنشانی در {rateLimit.resetIn})
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Top Row: Try in Your Space Button */}
             <Button
               onClick={onUploadStart}

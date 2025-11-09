@@ -2,13 +2,15 @@ import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
+import type { RateLimitState } from "../types/rateLimit";
 
 interface PhotoUploadProps {
+  rateLimit: RateLimitState;
   onUploadComplete: (file: File) => void;
   onBack: () => void;
 }
 
-export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
+export function PhotoUpload({ rateLimit, onUploadComplete, onBack }: PhotoUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -97,6 +99,31 @@ export function PhotoUpload({ onUploadComplete, onBack }: PhotoUploadProps) {
               فایل JPG یا PNG خود را بارگذاری کنید. هوش مصنوعی ما تصویر شما را پردازش و تبدیل‌های شگفت‌انگیز ایجاد می‌کند.
             </p>
           </div>
+
+          {/* Rate Limit Badge */}
+          {rateLimit && (
+            <div className="mb-6 bg-gray-50 rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 text-sm">
+                  استفاده امروز
+                </span>
+                <span className={`font-semibold text-sm ${
+                  rateLimit.remaining === 0
+                    ? 'text-red-600'
+                    : rateLimit.remaining <= 2
+                    ? 'text-yellow-600'
+                    : 'text-green-600'
+                }`}>
+                  {rateLimit.remaining} از {rateLimit.limit}
+                </span>
+              </div>
+              {rateLimit.isExceeded && rateLimit.resetIn && (
+                <p className="text-gray-500 text-xs mt-2 text-center">
+                  بازنشانی در {rateLimit.resetIn}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="space-y-3">

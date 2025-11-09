@@ -1,12 +1,19 @@
 /**
  * AI Image Processing Service
  * Connects to real backend API for image processing
+ *
+ * ENHANCED WITH:
+ * - Auth token auto-injection (via api.ts)
+ * - Rate limit tracking from headers
+ * - 401/429 error handling
  */
 
 import { apiPost, apiPostWithTimeout } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProcessResponse } from "../types/product";
+import type { RateLimitState } from "../types/rateLimit";
 import { stripExifData } from "./stripExif";
+import { rateLimitService } from "../services/rateLimitService";
 
 export interface ProcessImageRequest {
   imageFile: File;
@@ -22,7 +29,11 @@ export interface ProcessImageResponse {
   originalImageUrl: string;
   processingTime: number;
   confidence: number;
+  imageId?: number;          // ID of the processed image record
   error?: string;
+  status?: number;           // HTTP status code
+  requiresLogin?: boolean;   // 401 error flag
+  rateLimit?: RateLimitState | null;  // Rate limit info from headers
 }
 
 /**
@@ -186,20 +197,84 @@ export async function processImageWithAI(
       success: response.success,
       status: response.status,
       error: response.error,
-      hasData: !!response.data
+      hasData: !!response.data,
+      hasHeaders: !!response.headers
     });
 
     const processingTime = Date.now() - startTime;
 
-    if (response.success && response.data) {
-      // Create URLs for the processed images
-      const originalImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.customer_image_path)}`;
-      const visualizedImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.processed_image_path)}`;
+    // Extract rate limit info from headers (if available)
+    let rateLimitInfo: RateLimitState | null = null;
+    if (response.headers) {
+      rateLimitInfo = rateLimitService.extractFromHeaders(response.headers);
+      if (rateLimitInfo) {
+        // Save to localStorage for persistence
+        rateLimitService.save(rateLimitInfo);
+        console.log('[AI Processing] محدودیت استفاده به‌روز شد:', rateLimitInfo);
+      }
+    }
 
+    // Handle 401 error (token expired, already handled by api.ts but might fail)
+    if (response.status === 401 && response.requiresLogin) {
+      console.error('[AI Processing] نیاز به ورود مجدد');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: Math.round(processingTime),
+        confidence: 0,
+        error: response.error || 'نشست شما منقضی شده است',
+        status: 401,
+        requiresLogin: true,
+        rateLimit: rateLimitInfo,
+      };
+    }
+
+    // Handle 429 error (rate limit exceeded)
+    if (response.status === 429) {
+      console.error('[AI Processing] محدودیت روزانه به پایان رسید');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: Math.round(processingTime),
+        confidence: 0,
+        error: response.error || 'محدودیت روزانه به پایان رسید',
+        status: 429,
+        rateLimit: rateLimitInfo,
+      };
+    }
+
+    if (response.success && response.data) {
+      // Handle new backend response format
+      const isNewFormat = response.data.status === "success" && response.data.image_url;
+
+      let visualizedImageUrl: string;
+      let originalImageUrl: string;
+
+      if (isNewFormat) {
+        // New format: direct image_url from backend
+        visualizedImageUrl = response.data.image_url;
+        // For original image, we don't have it in the new format, so use empty string or placeholder
+        // The backend should ideally return both URLs
+        originalImageUrl = response.data.customer_image_path
+          ? `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.customer_image_path)}`
+          : '';
+      } else {
+        // Legacy format: customer_image_path and processed_image_path
+        originalImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.customer_image_path || '')}`;
+        visualizedImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.processed_image_path || '')}`;
+      }
+
+      const processedImageId = response.data.image_id || response.data.id;
+      
       console.log('[AI Processing] تصویر با موفقیت پردازش شد:', {
         productId: request.productId,
         processingTime: Math.round(processingTime),
-        processedImageId: response.data.id,
+        processedImageId,
+        imageUrl: visualizedImageUrl,
+        format: isNewFormat ? 'new' : 'legacy',
+        rateLimit: rateLimitInfo
       });
 
       return {
@@ -208,6 +283,8 @@ export async function processImageWithAI(
         originalImageUrl,
         processingTime: Math.round(processingTime),
         confidence: 0.95, // High confidence for successful processing
+        imageId: processedImageId, // Include processed image ID for vote API
+        rateLimit: rateLimitInfo,  // Include rate limit info
       };
     } else {
       console.error('[AI Processing] خطا در پردازش:', response.error);
@@ -218,6 +295,8 @@ export async function processImageWithAI(
         processingTime: Math.round(processingTime),
         confidence: 0,
         error: response.error || 'خطا در پردازش تصویر توسط سرور',
+        status: response.status,
+        rateLimit: rateLimitInfo,
       };
     }
   } catch (error) {
