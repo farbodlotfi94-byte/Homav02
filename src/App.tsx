@@ -145,7 +145,7 @@ export default function App() {
       if (entryContext) {
         // URL-based entry with specific product
         console.log("[App] URL-based entry with product:", entryContext.productId);
-        
+
         // Track entry
         trackKPI("Entry", {
           productId: entryContext.productId,
@@ -201,6 +201,66 @@ export default function App() {
 
     initializeApp();
   }, []);
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      console.log("[App] Browser navigation detected:", window.location.href);
+      console.log("[App] PopState event state:", event.state);
+
+      // Parse the current URL to determine what to show
+      const entryContext = parseEntryParams(window.location.href);
+
+      if (entryContext) {
+        // URL has productId - should show product landing
+        console.log("[App] Navigated to product:", entryContext.productId);
+        // Don't fetch again if it's the same product
+        if (product && event.state?.productId === `prod_${product.id}`) {
+          console.log("[App] Same product, just updating step");
+          setCurrentStep("product-landing");
+        } else {
+          // Different product or no product loaded yet
+          console.log("[App] Loading product for navigation");
+          setCurrentStep("loading");
+          fetchProduct(entryContext.productId).then((productData) => {
+            if (productData) {
+              const validation = validateProduct(productData);
+              if (validation.isValid) {
+                setProduct(productData);
+                setProductUniqueLink(productData.unique_link);
+                setProductVariant({
+                  color: productData.selectedVariant?.color,
+                  size: productData.selectedVariant?.size,
+                });
+                setCurrentStep("product-landing");
+              }
+            }
+          });
+        }
+      } else {
+        // No URL parameters - show product selection
+        console.log("[App] Navigated back to product selection");
+        setCurrentStep("product-selection");
+        // Clear product state when going back to selection
+        setProduct(null);
+        setProductUniqueLink("");
+        setSelectedFile(null);
+        setVisualizedImageUrl("");
+        setApiProcessingPromise(null);
+        setApiStartTime(0);
+        setApiStatus('idle');
+        setProcessedImageId(null);
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('popstate', handlePopState);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [product]);
 
   // KPI Tracking
   const trackKPI = (
