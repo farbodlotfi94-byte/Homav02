@@ -19,6 +19,7 @@ import type {
   AUTH_STORAGE_KEYS,
 } from '../types/auth';
 import { validateAndNormalizePhone, validatePassword } from '../utils/phoneValidator';
+import { normalizePersianDigits } from '../utils/normalizeDigits';
 
 const STORAGE_KEYS = {
   ACCESS_TOKEN: 'homa_user_access_token',
@@ -171,55 +172,51 @@ class UserAuthService {
    * Login user
    */
   async login(credentials: LoginCredentials): Promise<{ success: boolean; data?: AuthResponse; error?: string }> {
-    try {
-      console.log('[UserAuth] Attempting login:', credentials.phone_number);
+      try {
+          // 🔹 Normalize Persian/Arabic digits before validation
+          const normalizedPhone = normalizePersianDigits(credentials.phone_number);
+          console.log('[UserAuth] Attempting login with normalized phone:', normalizedPhone);
 
-      // Validate phone number
-      const phoneValidation = validateAndNormalizePhone(credentials.phone_number);
-      if (!phoneValidation.isValid) {
-        return {
-          success: false,
-          error: phoneValidation.error || 'شماره موبایل معتبر نیست',
-        };
+          // Validate phone number
+          const phoneValidation = validateAndNormalizePhone(normalizedPhone);
+          if (!phoneValidation.isValid) {
+              return {
+                  success: false,
+                  error: phoneValidation.error || 'شماره موبایل معتبر نیست',
+              };
+          }
+
+          // Make API request
+          const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  phone_number: phoneValidation.normalized, // English digits only
+                  password: credentials.password,
+              }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+              console.error('[UserAuth] Login failed:', data);
+              return {
+                  success: false,
+                  error: data.detail || 'شماره موبایل یا رمز عبور اشتباه است',
+              };
+          }
+
+          this.saveToStorage(data);
+          console.log('[UserAuth] Login successful:', data.user.phone_number);
+
+          return { success: true, data };
+      } catch (error) {
+          console.error('[UserAuth] Login error:', error);
+          return {
+              success: false,
+              error: 'خطا در اتصال به سرور',
+          };
       }
-
-      // Make API request
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone_number: phoneValidation.normalized, // Use normalized phone
-          password: credentials.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('[UserAuth] Login failed:', data);
-        return {
-          success: false,
-          error: data.detail || 'شماره موبایل یا رمز عبور اشتباه است',
-        };
-      }
-
-      // Save tokens
-      this.saveToStorage(data);
-
-      console.log('[UserAuth] Login successful:', data.user.phone_number);
-      return {
-        success: true,
-        data,
-      };
-    } catch (error) {
-      console.error('[UserAuth] Login error:', error);
-      return {
-        success: false,
-        error: 'خطا در اتصال به سرور',
-      };
-    }
   }
 
   /**

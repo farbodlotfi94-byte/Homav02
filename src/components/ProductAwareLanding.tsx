@@ -42,7 +42,7 @@ export function ProductAwareLanding({
   }, [showSnackbar]);
   
   const displayPrice = product.price && product.price > 0
-    ? `${product.price.toLocaleString('fa-IR')} ${product.currency || 'تومان'}`
+    ? `${product.price.toLocaleString('fa-IR')} ${product.currency || 'ریال'}`
     : product.priceRange
     ? `${product.priceRange.min.toLocaleString('fa-IR')} - ${product.priceRange.max.toLocaleString('fa-IR')} ${product.currency || 'تومان'}`
     : null;

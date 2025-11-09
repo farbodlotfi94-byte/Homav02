@@ -141,7 +141,7 @@ function ProductList() {
               <div key={product.id} className="card-interactive">
                 <img src={product.images[0]} alt={product.name} />
                 <h3>{product.name}</h3>
-                <p>{product.price.toLocaleString('fa-IR')} تومان</p>
+                <p>{product.price.toLocaleString('fa-IR')} ریال</p>
               </div>
             ))}
           </div>
