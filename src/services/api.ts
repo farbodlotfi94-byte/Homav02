@@ -231,6 +231,67 @@ export async function apiGet<T = any>(endpoint: string): Promise<ApiResponse<T>>
 }
 
 /**
+ * GET request helper for images, returns a Blob URL
+ */
+export async function apiGetImageBlob(endpoint: string): Promise<string | null> {
+  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  let controller: AbortController | null = null;
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  try {
+    controller = new AbortController();
+    timeoutId = setTimeout(() => {
+      console.warn('[API] Image request timeout, aborting:', url);
+      controller?.abort();
+    }, API_CONFIG.TIMEOUT);
+
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        ...getUserAuthHeaders(), // AUTO-INJECT auth headers
+      },
+    });
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+
+    if (response.status === 401) {
+      console.log('[API] 401 Unauthorized for image - attempting token refresh');
+      const refreshed = await userAuthService.refreshAccessToken();
+      if (refreshed) {
+        console.log('[API] Token refreshed, retrying image request');
+        return apiGetImageBlob(endpoint); // Retry with new token
+      } else {
+        console.error('[API] Token refresh failed for image, user must login');
+        userAuthService.logout();
+        return null;
+      }
+    }
+
+    if (!response.ok) {
+      console.error('[API] Failed to fetch image:', response.status, response.statusText);
+      return null;
+    }
+
+    const imageBlob = await response.blob();
+    return URL.createObjectURL(imageBlob);
+  } catch (error) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    console.error('[API] Image request failed:', error);
+    return null;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+/**
  * POST request helper
  */
 export async function apiPost<T = any>(

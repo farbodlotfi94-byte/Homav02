@@ -7,10 +7,11 @@
  * - 401 error handling
  */
 
-import { apiPost, apiPostWithTimeout } from "../services/api";
+import { apiPost, apiPostWithTimeout, apiGetImageBlob } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProcessResponse } from "../types/product";
 import { stripExifData } from "./stripExif";
+import { userAuthService } from "../services/userAuthService";
 
 export interface ProcessImageRequest {
   imageFile: File;
@@ -197,8 +198,8 @@ export async function processImageWithAI(
       hasHeaders: !!response.headers,
       dataFields: response.data ? Object.keys(response.data) : [],
       backendStatus: response.data?.status,
-      imageUrl: response.data?.image_url,
-      imageUrlLength: response.data?.image_url?.length,
+      imagePath: response.data?.image_path,
+      imagePathLength: response.data?.image_path?.length,
       imageId: response.data?.image_id,
     });
 
@@ -222,18 +223,19 @@ export async function processImageWithAI(
     if (response.success && response.data) {
       // Handle new backend response format
       const isNewFormat = response.data.status === "success" &&
-                         typeof response.data.image_url === "string" &&
-                         response.data.image_url.length > 0;
+                         typeof response.data.image_path === "string" &&
+                         response.data.image_path.length > 0;
 
       let visualizedImageUrl: string;
       let originalImageUrl: string;
 
       if (isNewFormat) {
-        // New format: direct image_url from backend
-        visualizedImageUrl = response.data.image_url;
+        // New format: relative image_path from backend, construct full URL
+        const imageEndpoint = API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.image_path);
+        visualizedImageUrl = await apiGetImageBlob(imageEndpoint) || '';
 
-        if (!visualizedImageUrl || visualizedImageUrl.length === 0) {
-          console.warn('[AI Processing] image_url is empty despite success status');
+        if (!response.data.image_path || response.data.image_path.length === 0) {
+          console.warn('[AI Processing] image_path is empty despite success status');
         }
 
         // For original image, we don't have it in the new format, so use empty string or placeholder

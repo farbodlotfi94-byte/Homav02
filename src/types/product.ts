@@ -81,7 +81,7 @@ export interface BackendProductResponse {
 
 export interface BackendProcessResponse {
   status: string;           // "success" or "error"
-  image_url: string;        // Direct URL to the processed image
+  image_path: string;       // Relative path to the processed image in MinIO
   image_id: number;         // ID of the processed image record
   message?: string;         // Success/error message (optional)
   customer_image_path?: string;  // Optional: original image path (legacy)
