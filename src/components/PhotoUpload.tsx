@@ -4,6 +4,7 @@ import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+import { optimizeImage } from "../utils/imageOptimizer";
 
 interface PhotoUploadProps {
   onUploadComplete: (file: File) => void;
@@ -41,22 +42,24 @@ export function PhotoUpload({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && (droppedFile.type === "image/jpeg" || droppedFile.type === "image/png")) {
-      // Immediately pass to parent for precheck
-      onUploadComplete(droppedFile);
+      // Optimize image before passing to parent for precheck
+      const optimizedFile = await optimizeImage(droppedFile);
+      onUploadComplete(optimizedFile);
     }
   }, [onUploadComplete]);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Immediately pass to parent for precheck
-      onUploadComplete(selectedFile);
+      // Optimize image before passing to parent for precheck
+      const optimizedFile = await optimizeImage(selectedFile);
+      onUploadComplete(optimizedFile);
     }
   }, [onUploadComplete]);
 
