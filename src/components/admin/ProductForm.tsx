@@ -21,12 +21,13 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { adminService } from '../../services/adminService';
-import type { 
-  AdminProduct, 
-  AdminProductFormData, 
+import type {
+  AdminProduct,
+  AdminProductFormData,
   AdminError
 } from '../../types/admin';
 import { ADMIN_CATEGORIES } from '../../types/admin';
+import { optimizeImage } from '../../utils/imageOptimizer';
 
 interface ProductFormProps {
   isOpen: boolean;
@@ -57,6 +58,7 @@ export function ProductForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dragActive, setDragActive] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   // Initialize form data when product changes
   useEffect(() => {
@@ -157,16 +159,31 @@ export function ProductForm({
     }
   };
 
-  const handleFileSelect = (file: File) => {
+  const handleFileSelect = async (file: File) => {
     const validation = adminService.validateFile(file);
     if (!validation.isValid) {
       setErrors(prev => ({ ...prev, file: validation.error || 'فایل نامعتبر است' }));
       return;
     }
 
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setErrors(prev => ({ ...prev, file: '' }));
+    try {
+      setIsOptimizing(true);
+      setErrors(prev => ({ ...prev, file: '' }));
+
+      // Optimize image (convert to WebP if needed and compress)
+      const optimizedFile = await optimizeImage(file);
+
+      setSelectedFile(optimizedFile);
+      setPreviewUrl(URL.createObjectURL(optimizedFile));
+    } catch (error) {
+      console.error('[ProductForm] Image optimization error:', error);
+      setErrors(prev => ({
+        ...prev,
+        file: error instanceof Error ? error.message : 'خطا در بهینه‌سازی تصویر'
+      }));
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,7 +297,7 @@ export function ProductForm({
                 <SelectTrigger className={errors.category ? 'border-red-500' : ''}>
                   <SelectValue placeholder="دسته‌بندی را انتخاب کنید" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="start" sideOffset={4}>
                   {ADMIN_CATEGORIES.map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
@@ -307,7 +324,6 @@ export function ProductForm({
                 className={errors.price ? 'border-red-500' : ''}
                 disabled={isSubmitting}
                 min="1"
-                step="1000"
               />
               {errors.price && (
                 <p className="text-sm text-red-600">{errors.price}</p>
@@ -319,13 +335,13 @@ export function ProductForm({
               <Label className="text-sm font-medium text-gray-700">
                 نوع محصول
               </Label>
-              <Select 
-                value={formData.is_predefined.toString()} 
+              <Select
+                value={formData.is_predefined.toString()}
                 onValueChange={(value) => handleInputChange('is_predefined', parseInt(value))}
                 disabled={isSubmitting}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="نوع محصول را انتخاب کنید" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">سفارشی</SelectItem>
@@ -339,8 +355,18 @@ export function ProductForm({
               <Label className="text-sm font-medium text-gray-700">
                 تصویر محصول {mode === 'create' && '*'}
               </Label>
-              
-              {previewUrl ? (
+
+              {isOptimizing ? (
+                <div className="w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-gray-50">
+                  <Loader2 className="w-12 h-12 text-[#E31E24] animate-spin mb-4" />
+                  <p className="text-gray-600 mb-2">
+                    در حال بهینه‌سازی تصویر...
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    لطفاً صبر کنید
+                  </p>
+                </div>
+              ) : previewUrl ? (
                 <div className="relative">
                   <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
                     <img
@@ -363,8 +389,8 @@ export function ProductForm({
               ) : (
                 <div
                   className={`w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                    dragActive 
-                      ? 'border-[#E31E24] bg-red-50' 
+                    dragActive
+                      ? 'border-[#E31E24] bg-red-50'
                       : 'border-gray-300 hover:border-gray-400'
                   } ${errors.file ? 'border-red-500' : ''}`}
                   onDrop={handleDrop}
@@ -388,7 +414,7 @@ export function ProductForm({
                 accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleFileChange}
                 className="hidden"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isOptimizing}
               />
 
               {errors.file && (
