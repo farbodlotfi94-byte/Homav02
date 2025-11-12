@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ProductAwareLanding } from "./components/ProductAwareLanding";
 import { ProductSelection } from "./components/ProductSelection";
@@ -7,14 +7,19 @@ import { FilePrecheck } from "./components/FilePrecheck";
 import { StagedUpload } from "./components/StagedUpload";
 import { ProductVisualization } from "./components/ProductVisualization";
 import { ProductFallback } from "./components/ProductFallback";
-import { ProductDetailsModal } from "./components/ProductDetailsModal";
 import { ErrorRecovery } from "./components/ErrorRecovery";
-import { TermsModal } from "./components/TermsModal";
-import { FeedbackSurvey } from "./components/FeedbackSurvey";
-import { AdminDashboard } from "./components/AdminDashboard";
-import { BrandColors } from "./components/BrandColors";
 import { UserLogin } from "./components/UserLogin";
 import { AnimatePresence, motion } from "motion/react";
+
+// Lazy load modals and admin components
+const ProductDetailsModal = lazy(() => import("./components/ProductDetailsModal").then(m => ({ default: m.ProductDetailsModal })));
+const TermsModal = lazy(() => import("./components/TermsModal").then(m => ({ default: m.TermsModal })));
+const FeedbackSurvey = lazy(() => import("./components/FeedbackSurvey").then(m => ({ default: m.FeedbackSurvey })));
+const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
+const BrandColors = lazy(() => import("./components/BrandColors").then(m => ({ default: m.BrandColors })));
+
+// Loading fallback component
+const ModalLoadingFallback = () => null;
 import type { Product } from "./types/product";
 import type { User, AuthResponse } from "./types/auth";
 import { userAuthService } from "./services/userAuthService";
@@ -1270,11 +1275,13 @@ export default function App() {
 
         {/* Feedback Survey */}
         {currentStep === "feedback" && (
-          <FeedbackSurvey
-            key="feedback"
-            productId={product?.id}
-            onFeedbackSubmit={handleFeedbackSubmit}
-          />
+          <Suspense fallback={<ModalLoadingFallback />}>
+            <FeedbackSurvey
+              key="feedback"
+              productId={product?.id}
+              onFeedbackSubmit={handleFeedbackSubmit}
+            />
+          </Suspense>
         )}
 
         {/* Error Recovery */}
@@ -1290,22 +1297,28 @@ export default function App() {
 
       {/* Product Details Modal - Can appear over any step */}
       {product && (
-        <ProductDetailsModal
-          open={showProductDetails}
-          onClose={() => setShowProductDetails(false)}
-          product={product}
-          onUploadSticky={handleDetailsUploadCTA}
-        />
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <ProductDetailsModal
+            open={showProductDetails}
+            onClose={() => setShowProductDetails(false)}
+            product={product}
+            onUploadSticky={handleDetailsUploadCTA}
+          />
+        </Suspense>
       )}
 
       {/* Privacy/Consent Modal - Can appear over any step */}
-      <TermsModal
-        open={showTerms}
-        onClose={() => setShowTerms(false)}
-      />
+      <Suspense fallback={<ModalLoadingFallback />}>
+        <TermsModal
+          open={showTerms}
+          onClose={() => setShowTerms(false)}
+        />
+      </Suspense>
 
       {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
-      <BrandColors />
+      <Suspense fallback={null}>
+        <BrandColors />
+      </Suspense>
         </>
       } />
     </Routes>

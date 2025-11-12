@@ -1,10 +1,15 @@
 
   import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
+  import compression from 'vite-plugin-compression';
   import path from 'path';
 
   export default defineConfig({
-    plugins: [react()],
+    plugins: [
+      react(),
+      compression({ algorithm: 'gzip', ext: '.gz' }),
+      compression({ algorithm: 'brotliCompress', ext: '.br' }),
+    ],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
@@ -17,9 +22,9 @@
         'next-themes@0.4.6': 'next-themes',
         'lucide-react@0.487.0': 'lucide-react',
         'input-otp@1.4.2': 'input-otp',
-        'figma:asset/ecdea148753a026b4eb9077903a5700290607184.png': path.resolve(__dirname, './src/assets/ecdea148753a026b4eb9077903a5700290607184.png'),
-        'figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png': path.resolve(__dirname, './src/assets/2dcfa98ed64c38bd654f16130835649de4da1a8f.png'),
-        'figma:asset/13e86ead7883d0975051ca1d917031988ea7cdd0.png': path.resolve(__dirname, './src/assets/13e86ead7883d0975051ca1d917031988ea7cdd0.png'),
+        'figma:asset/ecdea148753a026b4eb9077903a5700290607184.png': path.resolve(__dirname, './src/assets/ecdea148753a026b4eb9077903a5700290607184.webp'),
+        'figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png': path.resolve(__dirname, './src/assets/2dcfa98ed64c38bd654f16130835649de4da1a8f.webp'),
+        'figma:asset/13e86ead7883d0975051ca1d917031988ea7cdd0.png': path.resolve(__dirname, './src/assets/13e86ead7883d0975051ca1d917031988ea7cdd0.webp'),
         'embla-carousel-react@8.6.0': 'embla-carousel-react',
         'cmdk@1.1.1': 'cmdk',
         'class-variance-authority@0.7.1': 'class-variance-authority',
@@ -53,8 +58,48 @@
       },
     },
     build: {
-      target: 'esnext',
+      target: 'es2020',
       outDir: 'build',
+      minify: 'esbuild',
+      sourcemap: false,
+      chunkSizeWarningLimit: 500,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-motion': ['motion'],
+            'vendor-radix': [
+              '@radix-ui/react-accordion',
+              '@radix-ui/react-alert-dialog',
+              '@radix-ui/react-aspect-ratio',
+              '@radix-ui/react-avatar',
+              '@radix-ui/react-checkbox',
+              '@radix-ui/react-collapsible',
+              '@radix-ui/react-context-menu',
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-hover-card',
+              '@radix-ui/react-label',
+              '@radix-ui/react-menubar',
+              '@radix-ui/react-navigation-menu',
+              '@radix-ui/react-popover',
+              '@radix-ui/react-progress',
+              '@radix-ui/react-radio-group',
+              '@radix-ui/react-scroll-area',
+              '@radix-ui/react-select',
+              '@radix-ui/react-separator',
+              '@radix-ui/react-slider',
+              '@radix-ui/react-slot',
+              '@radix-ui/react-switch',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-toggle',
+              '@radix-ui/react-toggle-group',
+              '@radix-ui/react-tooltip',
+            ],
+            'vendor-ui': ['recharts', 'vaul', 'sonner', 'cmdk'],
+          },
+        },
+      },
     },
     server: {
       port: 3000,

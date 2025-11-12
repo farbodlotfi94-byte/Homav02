@@ -175,6 +175,8 @@ export function ProductSelection({
                           src={getImageUrl(product.image_path)}
                           alt={product.name}
                           className="w-full h-full object-contain"
+                          width={96}
+                          height={96}
                           loading="lazy"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;

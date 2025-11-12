@@ -97,10 +97,13 @@ export function ProductAwareLanding({
           >
             {/* Product Image */}
             <div className="aspect-square bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
-              <img 
+              <img
                 src={product.thumbnail}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                width={400}
+                height={400}
+                fetchPriority="high"
               />
             </div>
 

@@ -118,6 +118,8 @@ export function ProductVisualization({
                   src={userImage}
                   alt="تصویر نهایی اتاق شما"
                   className="absolute inset-0 w-full h-full object-cover"
+                  width={400}
+                  height={400}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     // Show error message instead of fallback image
@@ -271,6 +273,8 @@ export function ProductVisualization({
                 src={userImage}
                 alt="تصویر نهایی اتاق شما - نمای تمام صفحه"
                 className="max-w-full max-h-full object-contain"
+                width={800}
+                height={800}
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   // Show error message instead of fallback image

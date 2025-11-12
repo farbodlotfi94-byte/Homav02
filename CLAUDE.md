@@ -130,7 +130,8 @@ See `DEPLOYMENT.md` for detailed Dokploy deployment instructions.
 
 ### Persian/Farsi Language
 - All UI text is in Persian (RTL support with Tailwind)
-- Font: IRANSans (loaded via Google Fonts)
+- Font: Vazirmatn (loaded locally from `src/assets/fonts/vazirmatn/fonts/webfonts/Vazirmatn[wght].woff2`)
+- Font declarations in `src/styles/fonts.css` with @font-face
 - Error messages in Persian for user-facing errors
 - Console logs can be in English or Persian
 
@@ -156,6 +157,7 @@ When working on specific features:
 - **Admin features**: `src/components/AdminDashboard.tsx`, `src/components/admin/*`
 - **API configuration**: `src/config/api.ts`
 - **Type definitions**: `src/types/product.ts`, `src/types/admin.ts`
+- **Font configuration**: `src/styles/fonts.css`, `src/assets/fonts/vazirmatn/`
 
 ## Testing and Debugging
 
@@ -201,3 +203,6 @@ Backend uses PostgreSQL with these key tables:
 - Lazy loading not currently implemented (all routes in main bundle)
 - Production build output to `build/` directory
 - Nginx serves static files with caching headers
+- Vazirmatn font loaded locally (not from CDN) for improved performance
+- Font file: Variable font supports all weights (100-900) in single WOFF2 file (~111 KB)
+- Font-display: swap for optimal Largest Contentful Paint (LCP)

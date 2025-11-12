@@ -1,7 +1,7 @@
 /* Import system fonts - SF Pro is Apple's system font, not available on Google Fonts */
 /* Using system font fallbacks for cross-platform compatibility */
 /* Import Vazirmatn font for Persian/Farsi text */
-@import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css');
+@import './fonts.css';
 
 @custom-variant dark (&:is(.dark *));
 
