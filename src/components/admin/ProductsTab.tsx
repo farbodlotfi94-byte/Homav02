@@ -30,9 +30,10 @@ interface ProductsTabProps {
   onEditProduct: (product: AdminProduct) => void;
   onDeleteProduct: (productId: number) => void;
   onCreateProduct: () => void;
+  refreshTrigger?: number;
 }
 
-export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct }: ProductsTabProps) {
+export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct, refreshTrigger }: ProductsTabProps) {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<AdminError | null>(null);
@@ -52,12 +53,13 @@ export function ProductsTab({ onEditProduct, onDeleteProduct, onCreateProduct }:
 
   const totalPages = Math.ceil(pagination.totalItems / pagination.itemsPerPage);
 
-  // Load products on component mount and when filters/pagination change
+  // Load products on component mount, when filters/pagination change, or when refreshTrigger changes
   useEffect(() => {
     loadProducts();
-  }, [filters, pagination.currentPage]);
+  }, [filters, pagination.currentPage, refreshTrigger]);
 
   const loadProducts = async () => {
+    console.log('[ProductsTab] Loading products... (refreshTrigger:', refreshTrigger, ')');
     setIsLoading(true);
     setError(null);
 

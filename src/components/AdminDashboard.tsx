@@ -40,6 +40,8 @@ export function AdminDashboard() {
     error: null,
   });
 
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   const [productForm, setProductForm] = useState<ProductFormState>({
     isOpen: false,
     mode: 'create',
@@ -119,16 +121,24 @@ export function AdminDashboard() {
   };
 
   const handleDeleteProduct = async (productId: number) => {
+    console.log('[AdminDashboard] Delete button clicked for product:', productId);
+
     if (!confirm('آیا از حذف این محصول اطمینان دارید؟')) {
+      console.log('[AdminDashboard] Delete cancelled by user');
       return;
     }
 
+    console.log('[AdminDashboard] Delete confirmed, calling API...');
     try {
       const response = await adminService.deleteProduct(productId);
+      console.log('[AdminDashboard] Delete response:', response);
+
       if (response.success) {
-        // Refresh products list by triggering a re-render
-        setState(prev => ({ ...prev }));
+        console.log('[AdminDashboard] Product deleted successfully');
+        // Refresh products list by calling the API
+        setRefreshTrigger(prev => prev + 1);
       } else {
+        console.error('[AdminDashboard] Delete failed:', response.error);
         const error: AdminError = {
           message: response.error || 'خطا در حذف محصول',
           statusCode: response.statusCode,
@@ -137,6 +147,7 @@ export function AdminDashboard() {
         setState(prev => ({ ...prev, error }));
       }
     } catch (error) {
+      console.error('[AdminDashboard] Delete error:', error);
       const adminError: AdminError = {
         message: 'خطای شبکه. لطفاً اتصال اینترنت خود را بررسی کنید.',
         statusCode: 0,
@@ -149,8 +160,8 @@ export function AdminDashboard() {
   const handleProductFormSuccess = () => {
     setProductForm(prev => ({ ...prev, isOpen: false }));
     setEditingProduct(null);
-    // Trigger refresh by updating state
-    setState(prev => ({ ...prev }));
+    // Trigger refresh by calling the API
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleProductFormError = (error: AdminError) => {
@@ -281,6 +292,7 @@ export function AdminDashboard() {
                   onEditProduct={handleEditProduct}
                   onDeleteProduct={handleDeleteProduct}
                   onCreateProduct={handleCreateProduct}
+                  refreshTrigger={refreshTrigger}
                 />
               </TabsContent>
 
