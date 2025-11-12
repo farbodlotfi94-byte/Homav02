@@ -6,6 +6,7 @@ import type { User } from "../types/auth";
 import { Header } from "./Header";
 import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-an2xierte7";
+import { useAnimationPreference } from "../hooks/useAnimationPreference";
 
 interface ProductAwareLandingProps {
   product: Product;
@@ -27,6 +28,7 @@ export function ProductAwareLanding({
   onLogin,
   onLogout
 }: ProductAwareLandingProps) {
+  const shouldAnimate = useAnimationPreference();
   const [showSnackbar, setShowSnackbar] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   
@@ -61,10 +63,10 @@ export function ProductAwareLanding({
       <AnimatePresence>
         {showSnackbar && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
+            initial={shouldAnimate ? { opacity: 0, y: -20 } : false}
+            animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+            exit={shouldAnimate ? { opacity: 0, y: -20 } : false}
+            transition={shouldAnimate ? { duration: 0.3 } : undefined}
             className="fixed top-14 left-0 right-0 z-40"
           >
             <div className="max-w-lg mx-auto px-6 pt-4">
@@ -91,9 +93,9 @@ export function ProductAwareLanding({
       <main className="pt-14 pb-32">
         <div className="max-w-lg mx-auto px-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
+            animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+            transition={shouldAnimate ? { duration: 0.4 } : undefined}
           >
             {/* Product Image */}
             <div className="aspect-square bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
@@ -136,8 +138,8 @@ export function ProductAwareLanding({
                 className="w-full bg-gray-100 h-12 rounded-[16px] flex items-center justify-center gap-2 px-4 py-2 transition-colors hover:bg-gray-200"
               >
                 <motion.svg
-                  animate={{ rotate: isDetailsOpen ? 180 : 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  animate={shouldAnimate ? { rotate: isDetailsOpen ? 180 : 0 } : false}
+                  transition={shouldAnimate ? { duration: 0.3, ease: "easeInOut" } : undefined}
                   className="block size-6 shrink-0"
                   fill="none"
                   preserveAspectRatio="none"
@@ -154,10 +156,10 @@ export function ProductAwareLanding({
               <AnimatePresence>
                 {isDetailsOpen && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    initial={shouldAnimate ? { height: 0, opacity: 0 } : false}
+                    animate={shouldAnimate ? { height: "auto", opacity: 1 } : false}
+                    exit={shouldAnimate ? { height: 0, opacity: 0 } : false}
+                    transition={shouldAnimate ? { duration: 0.3, ease: "easeInOut" } : undefined}
                     className="overflow-hidden"
                   >
                     <div className="px-6 py-6 space-y-6" style={{ fontFamily: 'var(--font-family-vazirmatn)' }}>

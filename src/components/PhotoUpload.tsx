@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
 import type { User } from "../types/auth";
+import { useAnimationPreference } from "../hooks/useAnimationPreference";
 
 interface PhotoUploadProps {
   onUploadComplete: (file: File) => void;
@@ -21,6 +22,7 @@ export function PhotoUpload({
   onLogin,
   onLogout
 }: PhotoUploadProps) {
+  const shouldAnimate = useAnimationPreference();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -85,9 +87,9 @@ export function PhotoUpload({
 
       <div className="pt-14">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
+          animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+          transition={shouldAnimate ? { duration: 0.5 } : undefined}
           className="max-w-lg mx-auto px-6 py-6"
         >
           {/* Upload Circle */}

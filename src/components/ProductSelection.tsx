@@ -7,6 +7,7 @@ import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProduct, BackendProductsResponse } from "../types/product";
 import type { User } from "../types/auth";
+import { useAnimationPreference } from "../hooks/useAnimationPreference";
 
 interface ProductSelectionProps {
   onProductSelect: (productId: string, uniqueLink: string) => void;
@@ -25,6 +26,7 @@ export function ProductSelection({
   onLogin,
   onLogout
 }: ProductSelectionProps) {
+  const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,8 +137,9 @@ export function ProductSelection({
         <div className="max-w-lg mx-auto px-6">
           {/* Header */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
+            animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+            transition={shouldAnimate ? { duration: 0.3 } : undefined}
             className="text-center mb-8"
           >
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -149,18 +152,18 @@ export function ProductSelection({
 
           {/* Products Grid */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            initial={shouldAnimate ? { opacity: 0 } : false}
+            animate={shouldAnimate ? { opacity: 1 } : false}
+            transition={shouldAnimate ? { delay: 0.2 } : undefined}
             className="space-y-4"
           >
             <AnimatePresence>
               {products.map((product, index) => (
                 <motion.div
                   key={product.unique_link}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
+                  animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+                  transition={shouldAnimate ? { delay: index * 0.05 } : undefined}
                   className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow"
                 >
                   <button
