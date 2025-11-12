@@ -21,10 +21,35 @@ import { ADMIN_STORAGE_KEYS } from '../types/admin';
 class AdminService {
   private baseUrl: string;
   private token: string | null = null;
+  private authChangeListeners: Set<(isAuthenticated: boolean) => void> = new Set();
 
   constructor() {
     this.baseUrl = API_CONFIG.BASE_URL;
     this.loadTokenFromStorage();
+  }
+
+  /**
+   * Subscribe to authentication state changes
+   */
+  onAuthChange(listener: (isAuthenticated: boolean) => void): () => void {
+    this.authChangeListeners.add(listener);
+    // Return unsubscribe function
+    return () => {
+      this.authChangeListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Notify all listeners of authentication state change
+   */
+  private notifyAuthChange(isAuthenticated: boolean): void {
+    this.authChangeListeners.forEach(listener => {
+      try {
+        listener(isAuthenticated);
+      } catch (error) {
+        console.error('[AdminService] Error in auth change listener:', error);
+      }
+    });
   }
 
   /**
@@ -58,6 +83,8 @@ class AdminService {
     try {
       localStorage.removeItem(ADMIN_STORAGE_KEYS.AUTH_TOKEN);
       this.token = null;
+      // Notify listeners that user is no longer authenticated
+      this.notifyAuthChange(false);
     } catch (error) {
       console.error('[AdminService] Failed to clear token from storage:', error);
     }
@@ -98,6 +125,7 @@ class AdminService {
     if (response) {
       switch (response.status) {
         case 401:
+          console.warn('[AdminService] 401 Unauthorized - clearing token and notifying listeners');
           this.clearTokenFromStorage();
           return {
             message: 'احراز هویت ناموفق. لطفاً دوباره وارد شوید.',
@@ -273,6 +301,8 @@ class AdminService {
 
     if (response.success && response.data) {
       this.saveTokenToStorage(response.data.access_token);
+      // Notify listeners that user is now authenticated
+      this.notifyAuthChange(true);
     }
 
     return response;
@@ -282,6 +312,7 @@ class AdminService {
    * Logout and clear token
    */
   logout(): void {
+    console.log('[AdminService] Logout called');
     this.clearTokenFromStorage();
   }
 

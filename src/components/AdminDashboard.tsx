@@ -57,10 +57,35 @@ export function AdminDashboard() {
 
   const [editingProduct, setEditingProduct] = useState<AdminProduct | null>(null);
 
-  // Check authentication status on mount
+  // Check authentication status on mount and listen for changes
   useEffect(() => {
     const isAuth = adminService.isAuthenticated();
     setState(prev => ({ ...prev, isAuthenticated: isAuth }));
+
+    // Subscribe to authentication state changes
+    const unsubscribe = adminService.onAuthChange((isAuthenticated) => {
+      console.log('[AdminDashboard] Auth state changed:', isAuthenticated);
+      setState(prev => ({
+        ...prev,
+        isAuthenticated,
+        error: isAuthenticated ? null : {
+          message: 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید.',
+          statusCode: 401,
+          type: 'auth',
+        }
+      }));
+
+      // Clear forms and editing state when logged out
+      if (!isAuthenticated) {
+        setProductForm(prev => ({ ...prev, isOpen: false }));
+        setEditingProduct(null);
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleLoginSuccess = () => {
