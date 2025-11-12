@@ -128,7 +128,7 @@ export function LoginForm({ onLoginSuccess, onError }: LoginFormProps) {
               value={credentials.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               placeholder="رمز عبور خود را وارد کنید"
-              className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+              className={errors.password ? 'border-red-500 pl-10' : 'pl-10'}
               disabled={isLoading}
               autoComplete="current-password"
             />
@@ -136,14 +136,14 @@ export function LoginForm({ onLoginSuccess, onError }: LoginFormProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              className="absolute left-0 top-0 h-full px-3 py-2 hover:bg-gray-100 z-10"
               onClick={() => setShowPassword(!showPassword)}
               disabled={isLoading}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4 text-gray-400" />
+                <EyeOff className="h-4 w-4 text-gray-700 hover:text-gray-900" />
               ) : (
-                <Eye className="h-4 w-4 text-gray-400" />
+                <Eye className="h-4 w-4 text-gray-700 hover:text-gray-900" />
               )}
             </Button>
           </div>
@@ -154,8 +154,22 @@ export function LoginForm({ onLoginSuccess, onError }: LoginFormProps) {
 
         <Button
           type="submit"
-          className="w-full bg-[#E31E24] hover:bg-[#C41E3A] text-white"
+          className="w-full text-white font-medium"
+          style={{
+            backgroundColor: '#E31E24',
+            borderColor: '#E31E24',
+          }}
           disabled={isLoading}
+          onMouseEnter={(e) => {
+            if (!isLoading) {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#C41E3A';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading) {
+              (e.target as HTMLButtonElement).style.backgroundColor = '#E31E24';
+            }
+          }}
         >
           {isLoading ? (
             <>
