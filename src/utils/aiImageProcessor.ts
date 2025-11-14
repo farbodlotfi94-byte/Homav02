@@ -31,6 +31,12 @@ export interface ProcessImageResponse {
   error?: string;
   status?: number;           // HTTP status code
   requiresLogin?: boolean;   // 401 error flag
+  isRateLimited?: boolean;   // 429 rate limit flag
+  rateLimitInfo?: {          // Rate limit details (only present if isRateLimited is true)
+    retryAfter: number;      // Seconds until retry
+    availableIn: string;     // Human-readable time
+    message: string;         // Error message
+  };
 }
 
 /**
@@ -217,6 +223,22 @@ export async function processImageWithAI(
         error: response.error || 'نشست شما منقضی شده است',
         status: 401,
         requiresLogin: true,
+      };
+    }
+
+    // Handle 429 rate limit error - DO NOT retry
+    if (response.status === 429 && response.isRateLimited) {
+      console.log('[AI Processing] محدودیت تعداد درخواست رسیده است');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: Math.round(processingTime),
+        confidence: 0,
+        error: response.error || 'محدودیت تعداد درخواست رسیده است',
+        status: 429,
+        isRateLimited: true,
+        rateLimitInfo: response.rateLimitInfo,
       };
     }
 

@@ -17,6 +17,12 @@ export interface ApiResponse<T = any> {
   status: number;
   headers?: Headers;         // Expose response headers
   requiresLogin?: boolean;   // Flag for 401 after refresh failed
+  isRateLimited?: boolean;   // Flag for 429 rate limit
+  rateLimitInfo?: {          // Rate limit details
+    retryAfter: number;      // Seconds until retry
+    availableIn: string;     // Human-readable time
+    message: string;         // Error message
+  };
 }
 
 export interface ApiError {
@@ -107,6 +113,58 @@ async function apiRequest<T = any>(
           error: 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید',
           status: 401,
           requiresLogin: true,
+        };
+      }
+    }
+
+    // Handle 429 Rate Limit - parse retry information
+    if (response.status === 429) {
+      console.log('[API] 429 Rate Limit Exceeded');
+
+      try {
+        const errorData = await response.json();
+        const retryAfterHeader = response.headers.get('Retry-After');
+
+        // Parse retry_after from response body or header
+        let retryAfter = 0;
+        if (errorData.detail?.retry_after) {
+          retryAfter = errorData.detail.retry_after;
+        } else if (retryAfterHeader) {
+          // Handle both seconds (number) and HTTP-date format
+          const parsed = parseInt(retryAfterHeader, 10);
+          retryAfter = isNaN(parsed) ? 3600 : parsed; // Default to 1 hour if parsing fails
+        }
+
+        const availableIn = errorData.detail?.available_in || `${Math.ceil(retryAfter / 60)} دقیقه`;
+        const message = errorData.message || 'محدودیت تعداد درخواست رسیده است';
+
+        console.log(`[RateLimit] Detected 429, retry after ${retryAfter}s (${availableIn})`);
+
+        return {
+          data: null as T,
+          success: false,
+          error: message,
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter,
+            availableIn,
+            message,
+          },
+        };
+      } catch (parseError) {
+        console.error('[API] Failed to parse rate limit response:', parseError);
+        return {
+          data: null as T,
+          success: false,
+          error: 'محدودیت تعداد درخواست رسیده است. لطفاً چند دقیقه دیگر تلاش کنید.',
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter: 3600, // Default to 1 hour
+            availableIn: '1 ساعت',
+            message: 'محدودیت تعداد درخواست رسیده است',
+          },
         };
       }
     }
@@ -394,6 +452,58 @@ export async function apiPostWithTimeout<T = any>(
           error: 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید',
           status: 401,
           requiresLogin: true,
+        };
+      }
+    }
+
+    // Handle 429 Rate Limit - parse retry information
+    if (response.status === 429) {
+      console.log('[API] 429 Rate Limit Exceeded (POST with timeout)');
+
+      try {
+        const errorData = await response.json();
+        const retryAfterHeader = response.headers.get('Retry-After');
+
+        // Parse retry_after from response body or header
+        let retryAfter = 0;
+        if (errorData.detail?.retry_after) {
+          retryAfter = errorData.detail.retry_after;
+        } else if (retryAfterHeader) {
+          // Handle both seconds (number) and HTTP-date format
+          const parsed = parseInt(retryAfterHeader, 10);
+          retryAfter = isNaN(parsed) ? 3600 : parsed; // Default to 1 hour if parsing fails
+        }
+
+        const availableIn = errorData.detail?.available_in || `${Math.ceil(retryAfter / 60)} دقیقه`;
+        const message = errorData.message || 'محدودیت تعداد درخواست رسیده است';
+
+        console.log(`[RateLimit] Detected 429, retry after ${retryAfter}s (${availableIn})`);
+
+        return {
+          data: null as T,
+          success: false,
+          error: message,
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter,
+            availableIn,
+            message,
+          },
+        };
+      } catch (parseError) {
+        console.error('[API] Failed to parse rate limit response:', parseError);
+        return {
+          data: null as T,
+          success: false,
+          error: 'محدودیت تعداد درخواست رسیده است. لطفاً چند دقیقه دیگر تلاش کنید.',
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter: 3600, // Default to 1 hour
+            availableIn: '1 ساعت',
+            message: 'محدودیت تعداد درخواست رسیده است',
+          },
         };
       }
     }

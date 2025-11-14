@@ -1,12 +1,13 @@
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { Upload, Info, X, Check } from "lucide-react";
+import { Upload, Info, X, Check, Clock } from "lucide-react";
 import type { Product } from "../types/product";
 import type { User } from "../types/auth";
 import { Header } from "./Header";
 import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-an2xierte7";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+import { useCountdown } from "../hooks/useCountdown";
 
 interface ProductAwareLandingProps {
   product: Product;
@@ -17,6 +18,8 @@ interface ProductAwareLandingProps {
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  rateLimitExpiry?: number | null;
+  rateLimitMessage?: string;
 }
 
 export function ProductAwareLanding({
@@ -26,11 +29,17 @@ export function ProductAwareLanding({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  rateLimitExpiry,
+  rateLimitMessage
 }: ProductAwareLandingProps) {
   const shouldAnimate = useAnimationPreference();
   const [showSnackbar, setShowSnackbar] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Rate limit countdown
+  const countdown = useCountdown(rateLimitExpiry || null);
+  const isRateLimited = rateLimitExpiry && !countdown.isExpired;
   
   // Auto-hide snackbar after 5 seconds
   useEffect(() => {
@@ -268,10 +277,20 @@ export function ProductAwareLanding({
         <div className="max-w-lg mx-auto px-6 py-4">
           <Button
             onClick={onUploadStart}
-            className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors flex items-center justify-center gap-2"
+            disabled={!!isRateLimited}
+            className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Upload className="w-5 h-5" />
-            امتحان کن تو فضای خودت
+            {isRateLimited ? (
+              <>
+                <Clock className="w-5 h-5" />
+                امکان تلاش مجدد در {countdown.formattedTime}
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                امتحان کن تو فضای خودت
+              </>
+            )}
           </Button>
         </div>
       </div>

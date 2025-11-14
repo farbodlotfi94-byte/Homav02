@@ -96,11 +96,21 @@ export interface BackendProductDetailResponse {
   data: BackendProduct;
 }
 
+// Rate limit error details from backend
+export interface RateLimitError {
+  message: string;          // User-facing error message
+  retryAfter: number;       // Time in seconds until user can retry
+  availableIn: string;      // Human-readable time (e.g., "57 minutes")
+  statusCode: 429;          // HTTP status code
+}
+
 export interface BackendProcessResponse {
   status: string;           // "success" or "error"
   image_path: string;       // Relative path to the processed image (served via /api/products/images/)
   image_id: number;         // ID of the processed image record
   message?: string;         // Success/error message (optional)
+  isRateLimited?: boolean;  // True if request was rate limited
+  rateLimitInfo?: RateLimitError; // Rate limit details (only present if isRateLimited is true)
 }
 
 export interface VoteResponse {

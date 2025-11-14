@@ -10,6 +10,7 @@ import { ProductFallback } from "./components/ProductFallback";
 import { ErrorRecovery } from "./components/ErrorRecovery";
 import { UserLogin } from "./components/UserLogin";
 import { AnimatePresence, motion } from "motion/react";
+import { toast, Toaster } from "sonner";
 
 // Lazy load modals and admin components
 const ProductDetailsModal = lazy(() => import("./components/ProductDetailsModal").then(m => ({ default: m.ProductDetailsModal })));
@@ -44,6 +45,8 @@ import {
   type ProcessImageResponse,
 } from "./utils/aiImageProcessor";
 import { trackEvent as trackAnalytics } from "./utils/analytics";
+import { getRateLimitState, saveRateLimitState, clearRateLimitState } from "./utils/rateLimitStorage";
+import { useCountdown } from "./hooks/useCountdown";
 import "./utils/mockUrl"; // Load mock URL helper
 import "./utils/testHelpers"; // Load test helpers for console
 
@@ -127,6 +130,20 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Rate limit state
+  const [rateLimitExpiry, setRateLimitExpiry] = useState<number | null>(null);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string>('');
+
+  // Rate limit countdown with auto-clear on expiry
+  const rateLimitCountdown = useCountdown(rateLimitExpiry, () => {
+    console.log('[App] Rate limit expired, clearing state');
+    if (product?.shop_id) {
+      clearRateLimitState(product.shop_id);
+    }
+    setRateLimitExpiry(null);
+    setRateLimitMessage('');
+  });
+
   // Initialize: Load auth state from storage
   useEffect(() => {
     // Check if user is authenticated
@@ -194,6 +211,15 @@ export default function App() {
             color: productData.selectedVariant?.color,
             size: productData.selectedVariant?.size,
           });
+
+          // Check for existing rate limit from localStorage
+          const existingRateLimit = getRateLimitState(productData.shop_id);
+          if (existingRateLimit) {
+            console.log('[App] Restored rate limit from localStorage:', existingRateLimit);
+            setRateLimitExpiry(existingRateLimit.expiryTimestamp);
+            setRateLimitMessage(existingRateLimit.message);
+          }
+
           setCurrentStep("product-landing");
         } catch (error) {
           console.error("[App] Error fetching product:", error);
@@ -631,6 +657,49 @@ export default function App() {
           setApiStatus('failure');
           setPlacementSuccess(false);
           // Don't set to visualization - handleLogout will redirect to user-auth
+          return;
+        }
+
+        // Handle 429 rate limit error
+        if (result.status === 429 && result.isRateLimited && result.rateLimitInfo) {
+          console.log('[App] محدودیت تعداد درخواست رسیده است');
+          setApiStatus('failure');
+          setPlacementSuccess(false);
+
+          // Calculate expiry timestamp
+          const expiryTimestamp = Date.now() + (result.rateLimitInfo.retryAfter * 1000);
+          setRateLimitExpiry(expiryTimestamp);
+          setRateLimitMessage(result.rateLimitInfo.message);
+
+          // Save to localStorage for persistence
+          if (product?.shop_id) {
+            saveRateLimitState(
+              product.shop_id,
+              expiryTimestamp,
+              result.rateLimitInfo.message,
+              result.rateLimitInfo.availableIn
+            );
+          }
+
+          // Show toast notification
+          toast.error(result.rateLimitInfo.message, {
+            description: `لطفاً ${result.rateLimitInfo.availableIn} دیگر تلاش کنید.\n\nتوجه: محدودیت فقط برای این فروشگاه است. می‌توانید محصولات فروشگاه‌های دیگر را امتحان کنید.`,
+            duration: 8000,
+          });
+
+          // Track rate limit event
+          trackEvent({
+            eventType: "rate_limit_hit",
+            productId: product.id,
+            sessionId,
+            metadata: {
+              retryAfter: result.rateLimitInfo.retryAfter,
+              availableIn: result.rateLimitInfo.availableIn,
+              shopId: product.shop_id,
+            },
+          });
+
+          setCurrentStep("visualization");
           return;
         }
 
@@ -1198,6 +1267,8 @@ export default function App() {
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            rateLimitExpiry={rateLimitExpiry}
+            rateLimitMessage={rateLimitMessage}
           />
         )}
 
@@ -1421,6 +1492,14 @@ export default function App() {
       <Suspense fallback={null}>
         <BrandColors />
       </Suspense>
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        dir="rtl"
+      />
         </>
       } />
     </Routes>
