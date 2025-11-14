@@ -163,23 +163,21 @@ export function ProductAwareLanding({
                     className="overflow-hidden"
                   >
                     <div className="px-6 py-6 space-y-6" style={{ fontFamily: 'var(--font-family-vazirmatn)' }}>
-                      {/* Price */}
-                      {displayPrice && (
-                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                          <p className="text-gray-600 mb-1 text-start" style={{ fontSize: '14px' }}>قیمت</p>
-                          <p className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>{displayPrice}</p>
-                        </div>
-                      )}
-
                       {/* Description */}
                       {product.description && (
                         <div className="space-y-2">
-                          <h3 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
-                            {product.name}
-                          </h3>
-                          <p className="text-gray-600 text-start leading-relaxed" style={{ fontSize: '14px' }}>
-                            {product.description}
-                          </p>
+                            {(product.category_display || product.category) && (
+                                <p className="text-gray-700 text-start" style={{ fontSize: '14px' }}>
+                                    دسته‌بندی:  {product.category_display}
+                                </p>
+                            )}
+                            <p className="text-gray-700 font-medium" style={{ fontSize: '14px' }}>
+                                توضیحات:
+                            </p>
+
+                            <p className="text-gray-600 leading-relaxed" style={{ fontSize: '14px', paddingRight: '2rem', direction: 'rtl' }}>
+                                {product.description}
+                            </p>
                           {product.brand && (
                             <p className="text-gray-500 text-start" style={{ fontSize: '14px' }}>
                               برند: {product.brand}
@@ -188,18 +186,18 @@ export function ProductAwareLanding({
                         </div>
                       )}
 
-                      {/* Features */}
-                      {product.features && product.features.length > 0 && (
+                      {/* Extra Details */}
+                      {product.extra_details && Object.keys(product.extra_details).length > 0 && (
                         <div className="space-y-3">
                           <h4 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
                             توضیحات
                           </h4>
                           <div className="space-y-2">
-                            {product.features.map((feature, index) => (
-                              <div key={index} className="flex items-start gap-2 text-start">
+                            {Object.entries(product.extra_details).map(([key, value]) => (
+                              <div key={key} className="flex items-start gap-2 text-start">
                                 <Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                                 <span className="text-gray-700" style={{ fontSize: '14px' }}>
-                                  {feature}
+                                  {key}: {value}
                                 </span>
                               </div>
                             ))}

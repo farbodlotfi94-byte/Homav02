@@ -10,12 +10,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, LogIn, UserPlus, Phone, Lock, User } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
 import { validateAndNormalizePhone, validatePassword } from '../utils/phoneValidator';
-import type { AuthResponse } from '../types/auth';
+import type { AuthData } from '../types/auth';
 
 interface UserLoginProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (authResponse: AuthResponse) => void;
+  onSuccess: (authData: AuthData) => void;
 }
 
 type TabType = 'login' | 'register';

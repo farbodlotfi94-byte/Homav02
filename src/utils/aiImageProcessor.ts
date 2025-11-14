@@ -132,7 +132,7 @@ export async function processImageWithAI(
 
     // Create FormData for multipart upload
     const formData = new FormData();
-    formData.append('file', imageFileWithoutExif);
+    formData.append('customer_image', imageFileWithoutExif);  // Changed from 'file' to 'customer_image'
 
     // Debug FormData contents
     console.log('[AI Processing] FormData contents:');
@@ -141,7 +141,7 @@ export async function processImageWithAI(
     }
 
     // Verify file was appended to FormData
-    const fileInFormData = formData.get('file') as File | null;
+    const fileInFormData = formData.get('customer_image') as File | null;
     if (!fileInFormData || fileInFormData.size === 0) {
       console.error('[AI Processing] فایل به FormData اضافه نشد یا خالی است');
       return {
@@ -221,42 +221,51 @@ export async function processImageWithAI(
     }
 
     if (response.success && response.data) {
-      // Handle new backend response format
-      const isNewFormat = response.data.status === "success" &&
-                         typeof response.data.image_path === "string" &&
-                         response.data.image_path.length > 0;
+      // Backend returns image_path (relative path)
+      const imagePath = response.data.image_path;
 
-      let visualizedImageUrl: string;
-      let originalImageUrl: string;
-
-      if (isNewFormat) {
-        // New format: relative image_path from backend, construct full URL
-        const imageEndpoint = API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.image_path);
-        visualizedImageUrl = await apiGetImageBlob(imageEndpoint) || '';
-
-        if (!response.data.image_path || response.data.image_path.length === 0) {
-          console.warn('[AI Processing] image_path is empty despite success status');
-        }
-
-        // For original image, we don't have it in the new format, so use empty string or placeholder
-        // The backend should ideally return both URLs
-        originalImageUrl = response.data.customer_image_path
-          ? `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.customer_image_path)}`
-          : '';
-      } else {
-        // Legacy format: customer_image_path and processed_image_path
-        originalImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.customer_image_path || '')}`;
-        visualizedImageUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(response.data.processed_image_path || '')}`;
+      if (!imagePath || imagePath.length === 0) {
+        console.error('[AI Processing] image_path is empty despite success status');
+        return {
+          success: false,
+          visualizedImageUrl: '',
+          originalImageUrl: '',
+          processingTime: Math.round(processingTime),
+          confidence: 0,
+          error: 'سرور مسیر تصویر را برنگرداند',
+        };
       }
 
-      const processedImageId = response.data.image_id ?? response.data.id;
-      
+      // Construct full URL using backend endpoint for serving images
+      const imageEndpoint = API_CONFIG.ENDPOINTS.IMAGE_SERVE(imagePath);
+      console.log('[AI Processing] Fetching image from endpoint:', imageEndpoint);
+
+      // Fetch image as blob URL through backend
+      const visualizedImageUrl = await apiGetImageBlob(imageEndpoint) || '';
+
+      if (!visualizedImageUrl) {
+        console.error('[AI Processing] Failed to fetch image blob');
+        return {
+          success: false,
+          visualizedImageUrl: '',
+          originalImageUrl: '',
+          processingTime: Math.round(processingTime),
+          confidence: 0,
+          error: 'خطا در دریافت تصویر از سرور',
+        };
+      }
+
+      // Original image URL - we don't need it anymore (backend deletes customer image after processing)
+      const originalImageUrl = '';
+
+      const processedImageId = response.data.image_id;
+
       console.log('[AI Processing] تصویر با موفقیت پردازش شد:', {
         productId: request.productId,
         processingTime: Math.round(processingTime),
         processedImageId,
-        imageUrl: visualizedImageUrl,
-        format: isNewFormat ? 'new' : 'legacy',
+        imagePath: imagePath,
+        blobUrl: visualizedImageUrl,
       });
 
       return {

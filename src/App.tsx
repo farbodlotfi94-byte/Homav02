@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ProductAwareLanding } from "./components/ProductAwareLanding";
 import { ProductSelection } from "./components/ProductSelection";
 import { PhotoUpload } from "./components/PhotoUpload";
@@ -21,11 +21,12 @@ const BrandColors = lazy(() => import("./components/BrandColors").then(m => ({ d
 // Loading fallback component
 const ModalLoadingFallback = () => null;
 import type { Product } from "./types/product";
-import type { User, AuthResponse } from "./types/auth";
+import type { User, AuthData } from "./types/auth";
 import { userAuthService } from "./services/userAuthService";
 import { submitVote } from "./services/api";
 import {
   parseEntryParams,
+  parseUniqueLinkFromPath,
   fetchProduct,
   fetchProductByUniqueLink,
   validateProduct,
@@ -148,26 +149,23 @@ export default function App() {
       console.log("[App] Initializing...");
       console.log("[App] Current URL:", window.location.href);
 
-      // Parse entry parameters from URL
-      const entryContext = parseEntryParams(window.location.href);
-      console.log("[App] Parsed entry context:", entryContext);
+      // Try path-based routing first (new format: /unique_link/)
+      const uniqueLinkFromPath = parseUniqueLinkFromPath(window.location.href);
+      console.log("[App] Unique link from path:", uniqueLinkFromPath);
 
-      if (entryContext) {
-        // URL-based entry with specific product
-        console.log("[App] URL-based entry with product:", entryContext.productId);
+      if (uniqueLinkFromPath) {
+        // Path-based entry with unique_link
+        console.log("[App] Path-based entry with unique_link:", uniqueLinkFromPath);
 
         // Track entry
         trackKPI("Entry", {
-          productId: entryContext.productId,
-          utm_source: entryContext.utm.source,
-          utm_medium: entryContext.utm.medium,
-          utm_campaign: entryContext.utm.campaign,
-          seller: entryContext.seller,
+          uniqueLink: uniqueLinkFromPath,
+          entryType: 'path',
         });
 
         try {
-          // Fetch product data
-          const productData = await fetchProduct(entryContext.productId);
+          // Fetch product data using unique_link
+          const productData = await fetchProductByUniqueLink(uniqueLinkFromPath);
 
           if (!productData) {
             console.log("[App] Product not found");
@@ -203,9 +201,66 @@ export default function App() {
           setCurrentStep("product-fallback");
         }
       } else {
-        // No URL parameters - show product selection
-        console.log("[App] No product context found, showing product selection");
-        setCurrentStep("product-selection");
+        // Fallback: Try old query param format (backward compatibility)
+        const entryContext = parseEntryParams(window.location.href);
+        console.log("[App] Parsed entry context (legacy):", entryContext);
+
+        if (entryContext) {
+          // URL-based entry with specific product (legacy)
+          console.log("[App] URL-based entry with product (legacy):", entryContext.productId);
+
+          // Track entry
+          trackKPI("Entry", {
+            productId: entryContext.productId,
+            utm_source: entryContext.utm.source,
+            utm_medium: entryContext.utm.medium,
+            utm_campaign: entryContext.utm.campaign,
+            seller: entryContext.seller,
+            entryType: 'query_param_legacy',
+          });
+
+          try {
+            // Fetch product data
+            const productData = await fetchProduct(entryContext.productId);
+
+            if (!productData) {
+              console.log("[App] Product not found");
+              setFallbackReason("not_found");
+              setSuggestedProducts(await getSuggestedProducts("all", 3));
+              setCurrentStep("product-fallback");
+              return;
+            }
+
+            // Validate product
+            const validation = validateProduct(productData);
+
+            if (!validation.isValid) {
+              console.log("[App] Product invalid:", validation.reason);
+              setFallbackReason(validation.reason!);
+              setSuggestedProducts(await getSuggestedProducts(productData.category, 3));
+              setCurrentStep("product-fallback");
+              return;
+            }
+
+            // Product is valid, show landing
+            console.log("[App] Product loaded successfully:", productData.name);
+            setProduct(productData);
+            setProductUniqueLink(productData.unique_link);
+            setProductVariant({
+              color: productData.selectedVariant?.color,
+              size: productData.selectedVariant?.size,
+            });
+            setCurrentStep("product-landing");
+          } catch (error) {
+            console.error("[App] Error fetching product:", error);
+            setFallbackReason("error");
+            setCurrentStep("product-fallback");
+          }
+        } else {
+          // No URL parameters - show product selection
+          console.log("[App] No product context found, showing product selection");
+          setCurrentStep("product-selection");
+        }
       }
     };
 
@@ -292,27 +347,62 @@ export default function App() {
   };
 
   // Product Selection Handler
-  const handleProductSelect = async (productId: string, uniqueLink: string) => {
+  const handleProductSelect = async (productId: string, uniqueLink: string, backendProduct?: any) => {
     trackKPI("Product Selected", {
       productId,
       uniqueLink,
     });
 
-    // Update URL for sharing
-    const newUrl = `${window.location.origin}${window.location.pathname}?productId=${productId}`;
-    window.history.pushState({ productId }, '', newUrl);
+    // Update URL for sharing - use uniqueLink as path parameter
+    const newUrl = `${window.location.origin}/${uniqueLink}`;
+    window.history.pushState({ uniqueLink, productId }, '', newUrl);
 
     try {
-      setCurrentStep("loading");
-      
-      // Fetch product data using uniqueLink directly
-      const productData = await fetchProductByUniqueLink(uniqueLink);
+      let productData;
 
-      if (!productData) {
-        console.log("[App] Product not found after selection");
-        setFallbackReason("not_found");
-        setCurrentStep("product-fallback");
-        return;
+      // If product data was passed from ProductSelection, use it directly (faster)
+      if (backendProduct) {
+        console.log("[App] Using cached product data from selection");
+        // Transform backend product to internal format
+        const { API_CONFIG } = await import('./config/api');
+        productData = {
+          id: productId,
+          unique_link: backendProduct.unique_link,
+          name: backendProduct.name,
+          thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
+          price: backendProduct.price,
+          currency: backendProduct.currency || "ریال",
+          seller: {
+            name: "فرش هریس",
+            verified: true
+          },
+          category: backendProduct.category,
+          status: "active" as const,
+          images: [`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`],
+          description: backendProduct.description,
+          features: [
+            "محصول از پیش تعریف شده",
+            "قابل تست در فضای شما",
+            `دسته‌بندی: ${backendProduct.category}`,
+            `تاریخ ایجاد: ${new Date(backendProduct.created_at).toLocaleDateString('fa-IR')}`
+          ],
+          shop_id: backendProduct.shop_id,
+          is_predefined: backendProduct.is_predefined,
+          image_path: backendProduct.image_path,
+          created_at: backendProduct.created_at
+        };
+      } else {
+        // Fallback: Fetch product data (for URL-based navigation)
+        setCurrentStep("loading");
+        console.log("[App] Fetching product data from API");
+        productData = await fetchProductByUniqueLink(uniqueLink);
+
+        if (!productData) {
+          console.log("[App] Product not found after selection");
+          setFallbackReason("not_found");
+          setCurrentStep("product-fallback");
+          return;
+        }
       }
 
       // Validate product
@@ -342,24 +432,24 @@ export default function App() {
   };
 
   // NEW: Auth success handler (login or register)
-  const handleAuthSuccess = (authResponse: AuthResponse) => {
-    setUser(authResponse.user);
+  const handleAuthSuccess = (authData: AuthData) => {
+    setUser(authData.user);
     setIsAuthenticated(true);
 
     trackKPI('user_authenticated', {
-      userId: authResponse.user.id,
-      phone: authResponse.user.phone_number,
+      userId: authData.user.id,
+      phone: authData.user.phone_number,
       source: 'upload_attempt',
     });
 
-    console.log('[App] User authenticated successfully:', authResponse.user.phone_number);
+    console.log('[App] User authenticated successfully:', authData.user.phone_number);
 
     // Proceed to upload
     setCurrentStep('upload');
   };
 
   // NEW: Logout handler
-  const handleLogout = async () => {
+  const handleLogout = async (redirectToAuth: boolean = false) => {
     await userAuthService.logout();
 
     setUser(null);
@@ -374,12 +464,17 @@ export default function App() {
 
     trackKPI('user_logout', {
       productId: product?.id,
+      redirectToAuth,
     });
 
-    console.log('[App] User logged out');
+    console.log('[App] User logged out', { redirectToAuth });
 
-    // Redirect to product landing
-    setCurrentStep('product-landing');
+    // Redirect to auth page if session expired during upload, otherwise go to product landing
+    if (redirectToAuth) {
+      setCurrentStep('user-auth');
+    } else {
+      setCurrentStep('product-landing');
+    }
   };
 
   // NEW: Login button handler (opens auth modal)
@@ -531,11 +626,11 @@ export default function App() {
 
         // Handle 401 error (token expired and refresh failed)
         if (result.status === 401 && result.requiresLogin) {
-          console.error('[App] Session expired, user logged out');
-          await handleLogout();
+          console.error('[App] Session expired during upload, redirecting to login');
+          await handleLogout(true); // Pass true to redirect to auth page
           setApiStatus('failure');
           setPlacementSuccess(false);
-          setCurrentStep('visualization');
+          // Don't set to visualization - handleLogout will redirect to user-auth
           return;
         }
 
@@ -858,6 +953,7 @@ export default function App() {
       productName: product?.name,
       variant: productVariant,
       placementSuccess,
+      hasLink: !!product?.link,
     });
 
     if (product) {
@@ -868,11 +964,17 @@ export default function App() {
         metadata: {
           variant: productVariant,
           placementSuccess,
+          link: product.link,
         },
       });
-    }
 
-    alert(`خرید ${product?.name} - به زودی! 🛒`);
+      // Redirect to product link if available
+      if (product.link) {
+        window.open(product.link, '_blank', 'noopener,noreferrer');
+      } else {
+        alert(`خرید ${product?.name} - به زودی! 🛒`);
+      }
+    }
   };
 
   // Product Details Modal
@@ -1050,8 +1152,8 @@ export default function App() {
       {/* Admin Route */}
       <Route path="/admin" element={<AdminDashboard />} />
 
-      {/* Main App Route */}
-      <Route path="/" element={
+      {/* Main App Route - handles both / and /:uniqueLink */}
+      <Route path="/*" element={
         <>
           <AnimatePresence mode="wait">
         {/* Loading State */}

@@ -11,6 +11,7 @@
 import { API_CONFIG } from '../config/api';
 import type {
   User,
+  AuthData,
   AuthResponse,
   LoginCredentials,
   RegisterCredentials,
@@ -64,20 +65,20 @@ class UserAuthService {
   /**
    * Save tokens and user data to localStorage
    */
-  private saveToStorage(authResponse: AuthResponse): void {
+  private saveToStorage(authData: AuthData): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, authResponse.access_token);
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authResponse.refresh_token);
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(authResponse.user));
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, authData.access_token);
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, authData.refresh_token);
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(authData.user));
 
-      this.accessToken = authResponse.access_token;
-      this.refreshToken = authResponse.refresh_token;
-      this.user = authResponse.user;
+      this.accessToken = authData.access_token;
+      this.refreshToken = authData.refresh_token;
+      this.user = authData.user;
 
       console.log('[UserAuth] Saved to storage:', {
-        userId: authResponse.user.id,
-        phone: authResponse.user.phone_number,
-        expiresIn: authResponse.expires_in,
+        userId: authData.user.id,
+        phone: authData.user.phone_number,
+        expiresIn: authData.expires_in,
       });
     } catch (error) {
       console.error('[UserAuth] Failed to save to storage:', error);
@@ -106,7 +107,7 @@ class UserAuthService {
   /**
    * Register new user
    */
-  async register(credentials: RegisterCredentials): Promise<{ success: boolean; data?: AuthResponse; error?: string }> {
+  async register(credentials: RegisterCredentials): Promise<{ success: boolean; data?: AuthData; error?: string }> {
     try {
       console.log('[UserAuth] Attempting register:', credentials.phone_number);
 
@@ -129,7 +130,7 @@ class UserAuthService {
       }
 
       // Make API request
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/register`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/register/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -147,11 +148,11 @@ class UserAuthService {
         console.error('[UserAuth] Register failed:', data);
         return {
           success: false,
-          error: data.detail || 'خطا در ثبت نام',
+          error: data.message || data.detail || 'خطا در ثبت نام',
         };
       }
 
-      // Save tokens
+      // API returns AuthData directly (not wrapped)
       this.saveToStorage(data);
 
       console.log('[UserAuth] Register successful:', data.user.phone_number);
@@ -171,7 +172,7 @@ class UserAuthService {
   /**
    * Login user
    */
-  async login(credentials: LoginCredentials): Promise<{ success: boolean; data?: AuthResponse; error?: string }> {
+  async login(credentials: LoginCredentials): Promise<{ success: boolean; data?: AuthData; error?: string }> {
       try {
           // 🔹 Normalize Persian/Arabic digits before validation
           const normalizedPhone = normalizePersianDigits(credentials.phone_number);
@@ -187,7 +188,7 @@ class UserAuthService {
           }
 
           // Make API request
-          const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/login`, {
+          const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/login/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -202,10 +203,11 @@ class UserAuthService {
               console.error('[UserAuth] Login failed:', data);
               return {
                   success: false,
-                  error: data.detail || 'شماره موبایل یا رمز عبور اشتباه است',
+                  error: data.message || data.detail || 'شماره موبایل یا رمز عبور اشتباه است',
               };
           }
 
+          // API returns AuthData directly (not wrapped)
           this.saveToStorage(data);
           console.log('[UserAuth] Login successful:', data.user.phone_number);
 
@@ -255,13 +257,13 @@ class UserAuthService {
 
       console.log('[UserAuth] Refreshing access token...');
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/refresh`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/refresh/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          refresh_token: this.refreshToken,
+          refresh: this.refreshToken,  // Changed from refresh_token to refresh
         }),
       });
 
@@ -274,10 +276,13 @@ class UserAuthService {
         return false;
       }
 
-      // Save new tokens (old refresh token is revoked by backend)
-      this.saveToStorage(data);
+      // API now returns only new access token: { access: string }
+      // Keep existing refresh token (it's still valid)
+      const newAccessToken = data.access;
+      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+      this.accessToken = newAccessToken;
 
-      console.log('[UserAuth] Refresh successful, new tokens saved');
+      console.log('[UserAuth] Refresh successful, new access token saved');
       return true;
     } catch (error) {
       console.error('[UserAuth] Refresh error:', error);
@@ -301,19 +306,22 @@ class UserAuthService {
       console.log('[UserAuth] Logging out...');
 
       // Call logout API (revoke refresh token)
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/logout`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/logout/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.accessToken}`,
         },
         body: JSON.stringify({
-          refresh_token: this.refreshToken, // Logout current device only
+          refresh_token: this.refreshToken,
+          all_devices: false,  // Logout current device only
         }),
       });
 
-      if (response.ok) {
-        console.log('[UserAuth] Logout successful');
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        console.log('[UserAuth] Logout successful:', data.message);
       } else {
         console.warn('[UserAuth] Logout API failed, clearing local storage anyway');
       }

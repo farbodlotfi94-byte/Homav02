@@ -63,51 +63,24 @@ export function ProductDetailsModal({
 
         {/* Product Info */}
         <div className="space-y-4">
-          <div>
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <h2 className="text-gray-900">{product.name}</h2>
-              {product.seller.verified && (
-                <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
-              )}
-            </div>
-            
-            <p className="text-gray-600">
-              فروشنده: {product.seller.name}
-            </p>
-            
-            {product.brand && (
-              <p className="text-gray-600">
-                برند: {product.brand}
-              </p>
-            )}
-          </div>
-
-          {displayPrice && (
-            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-              <p className="text-gray-600 mb-1">قیمت</p>
-              <p className="text-gray-900">{displayPrice}</p>
-            </div>
-          )}
-
           {/* Description */}
           {product.description && (
             <div>
-              <h3 className="text-gray-900 mb-2">توضیحات</h3>
               <p className="text-gray-600 leading-relaxed">
                 {product.description}
               </p>
             </div>
           )}
 
-          {/* Features */}
-          {product.features && product.features.length > 0 && (
+          {/* Extra Details (Product Features) */}
+          {product.extra_details && Object.keys(product.extra_details).length > 0 && (
             <div>
-              <h3 className="text-gray-900 mb-2">ویژگی‌ها</h3>
+              <h3 className="text-gray-900 mb-2">جزئیات محصول</h3>
               <ul className="space-y-2">
-                {product.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-gray-600">
-                    <span className="text-green-500 mt-1">✓</span>
-                    <span>{feature}</span>
+                {Object.entries(product.extra_details).map(([key, value]) => (
+                  <li key={key} className="flex items-start gap-2 text-gray-600">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>{key}: {value}</span>
                   </li>
                 ))}
               </ul>

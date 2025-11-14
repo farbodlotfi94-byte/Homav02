@@ -10,7 +10,7 @@ import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 
 interface ProductSelectionProps {
-  onProductSelect: (productId: string, uniqueLink: string) => void;
+  onProductSelect: (productId: string, uniqueLink: string, productData?: BackendProduct) => void;
   onBack?: () => void;
   isAuthenticated?: boolean;
   user?: User | null;
@@ -48,8 +48,19 @@ export function ProductSelection({
       console.log('[ProductSelection] API response:', response);
       
       if (response.success && response.data) {
-        console.log('[ProductSelection] Products loaded:', response.data.products.length);
-        setProducts(response.data.products);
+        // Backend returns paginated: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
+        const backendResponse = response.data as BackendProductsResponse;
+        const paginatedData = backendResponse.data;
+        const productsArray = paginatedData?.results || [];
+
+        console.log('[ProductSelection] Products loaded:', {
+          total: paginatedData?.count || 0,
+          loaded: productsArray.length,
+          hasNext: !!paginatedData?.next,
+          hasPrevious: !!paginatedData?.previous
+        });
+        setProducts(productsArray);
       } else {
         console.error('[ProductSelection] API error:', response.error);
         setError(response.error || 'خطا در بارگذاری محصولات');
@@ -68,7 +79,8 @@ export function ProductSelection({
     // Generate internal productId for URL compatibility
     const productId = `prod_${product.id}`;
     console.log('[ProductSelection] Calling onProductSelect with:', { productId, uniqueLink: product.unique_link });
-    onProductSelect(productId, product.unique_link);
+    // Pass the product data to avoid refetching
+    onProductSelect(productId, product.unique_link, product);
   };
 
   const getImageUrl = (imagePath: string) => {

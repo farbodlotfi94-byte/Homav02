@@ -1,9 +1,9 @@
-import type { 
-  Product, 
-  UTMParams, 
-  EntryContext, 
-  BackendProduct, 
-  BackendProductResponse 
+import type {
+  Product,
+  UTMParams,
+  EntryContext,
+  BackendProduct,
+  BackendProductDetailResponse
 } from "../types/product";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
@@ -23,24 +23,21 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
   return {
     id: productId,
     unique_link: backendProduct.unique_link,
-    name: backendProduct.name, // Use real product name from backend
+    name: backendProduct.name,
     thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
-    price: backendProduct.price, // Include price from backend
-    currency: backendProduct.currency || "ریال", // Use backend currency or default to تومان
+    price: backendProduct.price,
+    currency: backendProduct.currency || "ریال",
     seller: {
-      name: "فرش هریس",
-      verified: true
+      name: backendProduct.shop_name || "فروشگاه",
+      verified: false
     },
-    category: backendProduct.category, // Use real category from backend
+    category: backendProduct.category,
+    category_display: backendProduct.category_display,
     status: "active",
     images: [`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`],
-    description: backendProduct.description, // Use real description from backend
-    features: [
-      "محصول از پیش تعریف شده",
-      "قابل تست در فضای شما",
-      `دسته‌بندی: ${backendProduct.category}`,
-      `تاریخ ایجاد: ${new Date(backendProduct.created_at).toLocaleDateString('fa-IR')}`
-    ],
+    description: backendProduct.description,
+    link: backendProduct.link,
+    extra_details: backendProduct.extra_details,
     // Backend-specific fields
     shop_id: backendProduct.shop_id,
     is_predefined: backendProduct.is_predefined,
@@ -50,13 +47,50 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
 }
 
 /**
- * Parse URL parameters to extract product ID and UTM data
+ * Extract unique_link from URL path
+ * Returns unique_link if found in path (e.g., /550e8400-e29b-41d4-a716-446655440000/)
+ * Returns null if home page or invalid format
+ */
+export function parseUniqueLinkFromPath(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/').filter(p => p);
+
+    // Check if path has a segment (not homepage)
+    if (pathParts.length === 0) {
+      return null;
+    }
+
+    // Check if first path segment is admin or other reserved routes
+    if (pathParts[0] === 'admin') {
+      return null;
+    }
+
+    // First path segment should be the unique_link (UUID format)
+    const uniqueLink = pathParts[0];
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(uniqueLink)) {
+      return uniqueLink;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('[parseUniqueLinkFromPath] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * Parse URL parameters to extract product ID and UTM data (LEGACY - for backward compatibility)
+ * @deprecated Use parseUniqueLinkFromPath for new path-based routing
  */
 export function parseEntryParams(url: string): EntryContext | null {
   try {
     const urlObj = new URL(url);
     const params = new URLSearchParams(urlObj.search);
-    
+
     const productId = params.get('productId');
     if (!productId) return null;
 
@@ -94,18 +128,24 @@ export async function fetchProduct(productId: string): Promise<Product | null> {
     console.log('[fetchProduct] API response:', response);
     
     if (response.success && response.data) {
+      // Backend returns paginated: { success: true, message: "...", data: { count, next, previous, results } }
+      // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
+      const backendResponse = response.data as BackendProductsResponse;
+      const paginatedData = backendResponse.data;
+      const productsArray = paginatedData?.results || [];
+
       let backendProduct: BackendProduct | undefined;
-      
+
       // Check if productId has the prod_ prefix (e.g., prod_18)
       if (productId.startsWith('prod_')) {
         const numericId = parseInt(productId.replace('prod_', ''));
         console.log('[fetchProduct] Looking for numeric ID:', numericId);
-        backendProduct = response.data.products.find(p => p.id === numericId);
+        backendProduct = productsArray.find(p => p.id === numericId);
       } else {
         // Check if we have a mapping, otherwise assume productId is unique_link
         const uniqueLink = productIdToUniqueLink[productId] || productId;
         console.log('[fetchProduct] Looking for unique_link:', uniqueLink);
-        backendProduct = response.data.products.find(p => p.unique_link === uniqueLink);
+        backendProduct = productsArray.find(p => p.unique_link === uniqueLink);
       }
       
       if (backendProduct) {
@@ -127,33 +167,37 @@ export async function fetchProduct(productId: string): Promise<Product | null> {
 }
 
 /**
- * Fetch product by unique_link directly
+ * Fetch product by unique_link directly using detail API
  * This is used when we have the unique_link from product selection
  */
 export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Product | null> {
   try {
     console.log('[fetchProductByUniqueLink] Fetching product by unique_link:', uniqueLink);
-    
-    // Fetch all products and find the one with matching unique_link
-    const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
-    
+
+    // Use the detail API endpoint for single product
+    const response = await apiGet<BackendProductDetailResponse>(
+      API_CONFIG.ENDPOINTS.PRODUCT_DETAILS(uniqueLink)
+    );
+
     console.log('[fetchProductByUniqueLink] API response:', response);
-    
+
     if (response.success && response.data) {
-      // Find the product with matching unique_link
-      const backendProduct = response.data.products.find(p => p.unique_link === uniqueLink);
-      
+      // Backend returns: { success: true, message: "...", data: BackendProduct }
+      // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
+      const backendResponse = response.data as BackendProductDetailResponse;
+      const backendProduct = backendResponse.data;
+
       if (backendProduct) {
         console.log('[fetchProductByUniqueLink] Found product:', backendProduct);
         // Transform using the full product data
         return transformBackendProduct(backendProduct);
       } else {
-        console.log('[fetchProductByUniqueLink] Product not found in products list');
+        console.log('[fetchProductByUniqueLink] Product not found');
         return null;
       }
     }
-    
-    console.log('[fetchProductByUniqueLink] Products API error');
+
+    console.log('[fetchProductByUniqueLink] Product detail API error');
     return null;
   } catch (error) {
     console.error('[fetchProductByUniqueLink] Error:', error);
@@ -167,17 +211,23 @@ export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Prod
  */
 export async function getSuggestedProducts(category: string, limit: number = 3): Promise<Product[]> {
   try {
-    const response = await apiGet<{ products: BackendProduct[] }>(API_CONFIG.ENDPOINTS.PRODUCTS);
-    
+    const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
+
     if (response.success && response.data) {
-      const filteredProducts = response.data.products
+      // Backend returns paginated: { success: true, message: "...", data: { count, next, previous, results } }
+      // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
+      const backendResponse = response.data as BackendProductsResponse;
+      const paginatedData = backendResponse.data;
+      const productsArray = paginatedData?.results || [];
+
+      const filteredProducts = productsArray
         .filter(product => product.category === category || category === 'all')
         .slice(0, limit)
         .map(transformBackendProduct);
-      
+
       return filteredProducts;
     }
-    
+
     return [];
   } catch (error) {
     console.error('[getSuggestedProducts] Error:', error);
