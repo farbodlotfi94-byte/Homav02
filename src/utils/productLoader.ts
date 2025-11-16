@@ -3,7 +3,7 @@ import type {
   UTMParams,
   EntryContext,
   BackendProduct,
-  BackendProductDetailResponse
+  PaginatedResponse
 } from "../types/product";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
@@ -123,15 +123,14 @@ export async function fetchProduct(productId: string): Promise<Product | null> {
     console.log('[fetchProduct] Fetching product:', { productId });
     
     // Use the same approach as fetchProductByUniqueLink for consistency
-    const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
+    const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS);
     
     console.log('[fetchProduct] API response:', response);
     
     if (response.success && response.data) {
-      // Backend returns paginated: { success: true, message: "...", data: { count, next, previous, results } }
-      // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
-      const backendResponse = response.data as BackendProductsResponse;
-      const paginatedData = backendResponse.data;
+      // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+      // apiGet extracts: response.data = { count, next, previous, results }
+      const paginatedData = response.data;
       const productsArray = paginatedData?.results || [];
 
       let backendProduct: BackendProduct | undefined;
@@ -182,10 +181,9 @@ export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Prod
     console.log('[fetchProductByUniqueLink] API response:', response);
 
     if (response.success && response.data) {
-      // Backend returns: { success: true, message: "...", data: BackendProduct }
-      // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
-      const backendResponse = response.data as BackendProductDetailResponse;
-      const backendProduct = backendResponse.data;
+      // API returns: { success: true, message: "...", data: BackendProduct }
+      // apiGet extracts: response.data = BackendProduct
+      const backendProduct = response.data as BackendProduct;
 
       if (backendProduct) {
         console.log('[fetchProductByUniqueLink] Found product:', backendProduct);
@@ -211,13 +209,12 @@ export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Prod
  */
 export async function getSuggestedProducts(category: string, limit: number = 3): Promise<Product[]> {
   try {
-    const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
+    const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS);
 
     if (response.success && response.data) {
-      // Backend returns paginated: { success: true, message: "...", data: { count, next, previous, results } }
-      // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
-      const backendResponse = response.data as BackendProductsResponse;
-      const paginatedData = backendResponse.data;
+      // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+      // apiGet extracts: response.data = { count, next, previous, results }
+      const paginatedData = response.data;
       const productsArray = paginatedData?.results || [];
 
       const filteredProducts = productsArray

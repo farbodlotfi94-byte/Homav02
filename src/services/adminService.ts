@@ -205,10 +205,20 @@ class AdminService {
 
       clearTimeout(timeoutId);
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        const error = this.handleApiError(data, response);
+        // Standard format: {success: false, message, data}
+        // Check for specific error details in data.error
+        let errorMessage = responseData.message || `HTTP ${response.status}`;
+        if (responseData.data?.error) {
+          if (Array.isArray(responseData.data.error)) {
+            errorMessage = responseData.data.error.join(', ');
+          } else {
+            errorMessage = responseData.data.error;
+          }
+        }
+        const error = this.handleApiError({ message: errorMessage }, response);
         return {
           success: false,
           error: error.message,
@@ -216,9 +226,11 @@ class AdminService {
         };
       }
 
+      // Standard format: {success: true, message, data}
+      // Extract actual payload from data.data
       return {
         success: true,
-        data: data.data || data,
+        data: responseData.data !== undefined ? responseData.data : responseData,
         statusCode: response.status,
       };
     } catch (error) {
@@ -256,12 +268,22 @@ class AdminService {
 
       clearTimeout(timeoutId);
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
         console.error('[AdminService] Multipart request failed with status:', response.status);
-        console.error('[AdminService] Error response data:', JSON.stringify(data, null, 2));
-        const error = this.handleApiError(data, response);
+        console.error('[AdminService] Error response data:', JSON.stringify(responseData, null, 2));
+        // Standard format: {success: false, message, data}
+        // Check for specific error details in data.error
+        let errorMessage = responseData.message || `HTTP ${response.status}`;
+        if (responseData.data?.error) {
+          if (Array.isArray(responseData.data.error)) {
+            errorMessage = responseData.data.error.join(', ');
+          } else {
+            errorMessage = responseData.data.error;
+          }
+        }
+        const error = this.handleApiError({ message: errorMessage }, response);
         return {
           success: false,
           error: error.message,
@@ -270,11 +292,13 @@ class AdminService {
       }
 
       console.log('[AdminService] Multipart request successful:', response.status);
-      console.log('[AdminService] Response data:', JSON.stringify(data, null, 2));
+      console.log('[AdminService] Response data:', JSON.stringify(responseData, null, 2));
 
+      // Standard format: {success: true, message, data}
+      // Extract actual payload from data.data
       return {
         success: true,
-        data: data.data || data,
+        data: responseData.data !== undefined ? responseData.data : responseData,
         statusCode: response.status,
       };
     } catch (error) {

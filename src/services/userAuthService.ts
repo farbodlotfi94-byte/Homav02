@@ -142,23 +142,34 @@ class UserAuthService {
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (!response.ok) {
-        console.error('[UserAuth] Register failed:', data);
+        console.error('[UserAuth] Register failed:', responseData);
+        // Standard format: {success: false, message, data}
+        // Check for specific error details in data.error
+        let errorMessage = responseData.message || 'خطا در ثبت نام';
+        if (responseData.data?.error) {
+          if (Array.isArray(responseData.data.error)) {
+            errorMessage = responseData.data.error.join(', ');
+          } else {
+            errorMessage = responseData.data.error;
+          }
+        }
         return {
           success: false,
-          error: data.message || data.detail || 'خطا در ثبت نام',
+          error: errorMessage,
         };
       }
 
-      // API returns AuthData directly (not wrapped)
-      this.saveToStorage(data);
+      // Standard format: {success: true, message, data: {access_token, refresh_token, token_type, expires_in, user}}
+      const authData = responseData.data;
+      this.saveToStorage(authData);
 
-      console.log('[UserAuth] Register successful:', data.user.phone_number);
+      console.log('[UserAuth] Register successful:', authData.user.phone_number);
       return {
         success: true,
-        data,
+        data: authData,
       };
     } catch (error) {
       console.error('[UserAuth] Register error:', error);
@@ -197,21 +208,32 @@ class UserAuthService {
               }),
           });
 
-          const data = await response.json();
+          const responseData = await response.json();
 
           if (!response.ok) {
-              console.error('[UserAuth] Login failed:', data);
+              console.error('[UserAuth] Login failed:', responseData);
+              // Standard format: {success: false, message, data}
+              // Check for specific error details in data.error
+              let errorMessage = responseData.message || 'شماره موبایل یا رمز عبور اشتباه است';
+              if (responseData.data?.error) {
+                if (Array.isArray(responseData.data.error)) {
+                  errorMessage = responseData.data.error.join(', ');
+                } else {
+                  errorMessage = responseData.data.error;
+                }
+              }
               return {
                   success: false,
-                  error: data.message || data.detail || 'شماره موبایل یا رمز عبور اشتباه است',
+                  error: errorMessage,
               };
           }
 
-          // API returns AuthData directly (not wrapped)
-          this.saveToStorage(data);
-          console.log('[UserAuth] Login successful:', data.user.phone_number);
+          // Standard format: {success: true, message, data: {access_token, refresh_token, token_type, expires_in, user}}
+          const authData = responseData.data;
+          this.saveToStorage(authData);
+          console.log('[UserAuth] Login successful:', authData.user.phone_number);
 
-          return { success: true, data };
+          return { success: true, data: authData };
       } catch (error) {
           console.error('[UserAuth] Login error:', error);
           return {
@@ -318,10 +340,11 @@ class UserAuthService {
         }),
       });
 
-      const data = await response.json();
+      const responseData = await response.json();
 
-      if (response.ok && data.success) {
-        console.log('[UserAuth] Logout successful:', data.message);
+      if (response.ok && responseData.success) {
+        // Standard format: {success: true, message, data: {}}
+        console.log('[UserAuth] Logout successful:', responseData.message);
       } else {
         console.warn('[UserAuth] Logout API failed, clearing local storage anyway');
       }
@@ -365,6 +388,145 @@ class UserAuthService {
     return {
       'Authorization': `Bearer ${this.accessToken}`,
     };
+  }
+
+  /**
+   * Get user profile
+   * GET /api/users/profile/
+   */
+  async getProfile(): Promise<{ success: boolean; data?: User; error?: string }> {
+    try {
+      if (!this.accessToken) {
+        return {
+          success: false,
+          error: 'نیاز به ورود',
+        };
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/profile/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: responseData.message || 'خطا در دریافت پروفایل',
+        };
+      }
+
+      // Standard format: {success: true, message, data: {user}}
+      const user = responseData.data;
+      this.user = user;
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+
+      return {
+        success: true,
+        data: user,
+      };
+    } catch (error) {
+      console.error('[UserAuth] Get profile error:', error);
+      return {
+        success: false,
+        error: 'خطا در اتصال به سرور',
+      };
+    }
+  }
+
+  /**
+   * Update user profile (name only)
+   * PUT /api/users/profile/
+   */
+  async updateProfile(name: string): Promise<{ success: boolean; data?: User; error?: string }> {
+    try {
+      if (!this.accessToken) {
+        return {
+          success: false,
+          error: 'نیاز به ورود',
+        };
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/profile/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: responseData.message || 'خطا در به‌روزرسانی پروفایل',
+        };
+      }
+
+      // Standard format: {success: true, message, data: {user}}
+      const user = responseData.data;
+      this.user = user;
+      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+
+      return {
+        success: true,
+        data: user,
+      };
+    } catch (error) {
+      console.error('[UserAuth] Update profile error:', error);
+      return {
+        success: false,
+        error: 'خطا در اتصال به سرور',
+      };
+    }
+  }
+
+  /**
+   * Get user gallery (processed images)
+   * GET /api/users/gallery/
+   */
+  async getGallery(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      if (!this.accessToken) {
+        return {
+          success: false,
+          error: 'نیاز به ورود',
+        };
+      }
+
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/gallery/`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+        },
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: responseData.message || 'خطا در دریافت گالری',
+        };
+      }
+
+      // Standard format: {success: true, message, data: [{processed images}]}
+      return {
+        success: true,
+        data: responseData.data || [],
+      };
+    } catch (error) {
+      console.error('[UserAuth] Get gallery error:', error);
+      return {
+        success: false,
+        error: 'خطا در اتصال به سرور',
+      };
+    }
   }
 }
 

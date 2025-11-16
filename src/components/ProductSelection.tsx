@@ -5,7 +5,7 @@ import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { Header } from "./Header";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
-import type { BackendProduct, BackendProductsResponse } from "../types/product";
+import type { BackendProduct, PaginatedResponse } from "../types/product";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 
@@ -56,7 +56,7 @@ export function ProductSelection({
 
       console.log('[ProductSelection] Loading products from:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.PRODUCTS);
 
-      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
         limit: PAGE_SIZE,
         offset: 0
       });
@@ -64,8 +64,9 @@ export function ProductSelection({
       console.log('[ProductSelection] API response (initial):', response);
 
       if (response.success && response.data) {
-        const backendResponse = response.data as BackendProductsResponse;
-        const paginatedData = backendResponse.data;
+        // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet extracts: response.data = { count, next, previous, results }
+        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
         const productsArray = paginatedData?.results || [];
 
         console.log('[ProductSelection] Products loaded:', {
@@ -103,14 +104,15 @@ export function ProductSelection({
         return;
       }
 
-      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
         limit: PAGE_SIZE,
         offset: nextOffset
       });
 
       if (response.success && response.data) {
-        const backendResponse = response.data as BackendProductsResponse;
-        const paginatedData = backendResponse.data;
+        // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet extracts: response.data = { count, next, previous, results }
+        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
         const nextResults = paginatedData?.results || [];
 
         let newProducts = [...products, ...nextResults];
@@ -142,14 +144,15 @@ export function ProductSelection({
     try {
       const prevOffset = Math.max(0, windowStartOffset - PAGE_SIZE);
 
-      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
         limit: PAGE_SIZE,
         offset: prevOffset
       });
 
       if (response.success && response.data) {
-        const backendResponse = response.data as BackendProductsResponse;
-        const paginatedData = backendResponse.data;
+        // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet extracts: response.data = { count, next, previous, results }
+        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
         const prevResults = paginatedData?.results || [];
 
         let newProducts = [...prevResults, ...products];

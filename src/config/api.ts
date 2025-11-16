@@ -9,7 +9,7 @@ export const API_CONFIG = {
     PRODUCTS: '/api/products/',
     PRODUCT_DETAILS: (uniqueLink: string) => `/api/products/${uniqueLink}/`,
     PROCESS_IMAGE: (uniqueLink: string) => `/api/products/${uniqueLink}/process/`,
-    IMAGE_SERVE: (objectPath: string) => `/api/products/images/${objectPath}  `,
+    IMAGE_SERVE: (objectPath: string) => `/api/products/images/${objectPath}`,
     VOTE: '/api/products/vote/',
     HEALTH: '/health/',
   },
