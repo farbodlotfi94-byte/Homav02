@@ -141,6 +141,12 @@ See `DEPLOYMENT.md` for detailed Dokploy deployment instructions.
 - Framer Motion for animations with `AnimatePresence`
 - Event handlers prefixed with `handle` (e.g., `handleStartUpload`)
 
+### Display Field Convention
+- When both a raw backend field and a user-facing display variant exist (e.g., `category` and `category_display`):
+  - Always render the `*_display` value in the UI (e.g., show `category_display`).
+  - Always use the raw field for programmatic operations (API calls, filters, comparisons), e.g., send `category` in queries and filters.
+- Apply this convention consistently across the project for any similar pairs: `name`/`name_display`, `brand`/`brand_display`, etc.
+
 ### Error Handling
 - API errors handled with Persian user messages
 - Console logging for debugging with `[ComponentName]` prefixes

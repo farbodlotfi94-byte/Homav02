@@ -470,8 +470,16 @@ export default function App() {
 
     console.log('[App] User authenticated successfully:', authData.user.phone_number);
 
-    // Proceed to upload
-    setCurrentStep('upload');
+    // Determine where to navigate after successful authentication
+    if (product && productUniqueLink) {
+      // User has a product selected, proceed to upload
+      console.log('[App] Product exists, navigating to upload');
+      setCurrentStep('upload');
+    } else {
+      // No product selected, go to product selection
+      console.log('[App] No product selected, navigating to product-selection');
+      setCurrentStep('product-selection');
+    }
   };
 
   // NEW: Logout handler
@@ -1277,7 +1285,15 @@ export default function App() {
           <UserLogin
             key="user-auth"
             isOpen={true}
-            onClose={() => setCurrentStep("product-landing")}
+            onClose={() => {
+              // If user closes without logging in, go back to product selection
+              // (or product-landing if we have a product)
+              if (product && productUniqueLink) {
+                setCurrentStep("product-landing");
+              } else {
+                setCurrentStep("product-selection");
+              }
+            }}
             onSuccess={handleAuthSuccess}
           />
         )}

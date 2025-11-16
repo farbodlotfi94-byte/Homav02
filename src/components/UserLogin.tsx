@@ -79,7 +79,8 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
 
       if (result.success && result.data) {
         onSuccess(result.data);
-        handleClose();
+        // Don't call handleClose here - let handleAuthSuccess handle navigation
+        resetForms();
       } else {
         setError(result.error || 'خطا در ورود');
       }
@@ -121,7 +122,8 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
 
       if (result.success && result.data) {
         onSuccess(result.data);
-        handleClose();
+        // Don't call handleClose here - let handleAuthSuccess handle navigation
+        resetForms();
       } else {
         setError(result.error || 'خطا در ثبت نام');
       }

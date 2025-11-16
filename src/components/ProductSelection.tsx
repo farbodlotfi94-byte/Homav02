@@ -31,25 +31,39 @@ export function ProductSelection({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingPrev, setIsLoadingPrev] = useState(false);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [windowStartOffset, setWindowStartOffset] = useState<number>(0); // backend offset of first item in products
+
+  const PAGE_SIZE = 20;
+  const MAX_CACHE = 50;
+  const BOTTOM_THRESHOLD_PX = 300;
+  const TOP_THRESHOLD_PX = 200;
 
   useEffect(() => {
-    loadProducts();
+    // Initial load
+    (async () => {
+      await loadInitialProducts();
+    })();
   }, []);
 
-  const loadProducts = async () => {
+  const loadInitialProducts = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('[ProductSelection] Loading products from:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.PRODUCTS);
-      
-      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
-      
-      console.log('[ProductSelection] API response:', response);
-      
+
+      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+        limit: PAGE_SIZE,
+        offset: 0
+      });
+
+      console.log('[ProductSelection] API response (initial):', response);
+
       if (response.success && response.data) {
-        // Backend returns paginated: { success: true, message: "...", data: { count, next, previous, results } }
-        // apiGet wraps it: { data: { success, message, data }, success: true, status: 200 }
         const backendResponse = response.data as BackendProductsResponse;
         const paginatedData = backendResponse.data;
         const productsArray = paginatedData?.results || [];
@@ -61,6 +75,12 @@ export function ProductSelection({
           hasPrevious: !!paginatedData?.previous
         });
         setProducts(productsArray);
+        setTotalCount(paginatedData?.count || productsArray.length);
+        setHasMore((productsArray.length || 0) < (paginatedData?.count || 0));
+        setWindowStartOffset(0);
+
+        // Attach scroll listener
+        attachScrollListener();
       } else {
         console.error('[ProductSelection] API error:', response.error);
         setError(response.error || 'خطا در بارگذاری محصولات');
@@ -72,6 +92,109 @@ export function ProductSelection({
       setLoading(false);
     }
   };
+
+  const loadNextPage = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const nextOffset = windowStartOffset + products.length;
+      if (totalCount && nextOffset >= totalCount) {
+        setHasMore(false);
+        return;
+      }
+
+      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+        limit: PAGE_SIZE,
+        offset: nextOffset
+      });
+
+      if (response.success && response.data) {
+        const backendResponse = response.data as BackendProductsResponse;
+        const paginatedData = backendResponse.data;
+        const nextResults = paginatedData?.results || [];
+
+        let newProducts = [...products, ...nextResults];
+        let newWindowStart = windowStartOffset;
+
+        if (newProducts.length > MAX_CACHE) {
+          const toDrop = newProducts.length - MAX_CACHE;
+          newProducts = newProducts.slice(toDrop);
+          newWindowStart = windowStartOffset + toDrop;
+        }
+
+        setProducts(newProducts);
+        setWindowStartOffset(newWindowStart);
+        const loadedSoFar = newWindowStart + newProducts.length;
+        setHasMore(loadedSoFar < (paginatedData?.count || totalCount || loadedSoFar));
+        if (!totalCount) setTotalCount(paginatedData?.count || loadedSoFar);
+      }
+    } catch (err) {
+      console.error('[ProductSelection] Error loading next page:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const loadPrevPage = async () => {
+    if (isLoadingPrev) return;
+    if (windowStartOffset <= 0) return; // nothing earlier
+    setIsLoadingPrev(true);
+    try {
+      const prevOffset = Math.max(0, windowStartOffset - PAGE_SIZE);
+
+      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+        limit: PAGE_SIZE,
+        offset: prevOffset
+      });
+
+      if (response.success && response.data) {
+        const backendResponse = response.data as BackendProductsResponse;
+        const paginatedData = backendResponse.data;
+        const prevResults = paginatedData?.results || [];
+
+        let newProducts = [...prevResults, ...products];
+        let newWindowStart = prevOffset;
+
+        if (newProducts.length > MAX_CACHE) {
+          // When prepending, drop from end to keep earlier items visible
+          newProducts = newProducts.slice(0, MAX_CACHE);
+        }
+
+        setProducts(newProducts);
+        setWindowStartOffset(newWindowStart);
+      }
+    } catch (err) {
+      console.error('[ProductSelection] Error loading previous page:', err);
+    } finally {
+      setIsLoadingPrev(false);
+    }
+  };
+
+  const onScroll = () => {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+
+    // Near bottom -> load next
+    if (fullHeight - (scrollTop + viewportHeight) < BOTTOM_THRESHOLD_PX) {
+      void loadNextPage();
+    }
+
+    // Near top -> try load previous (if we dropped)
+    if (scrollTop < TOP_THRESHOLD_PX) {
+      void loadPrevPage();
+    }
+  };
+
+  const attachScrollListener = () => {
+    window.addEventListener('scroll', onScroll, { passive: true });
+  };
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
 
   const handleProductSelect = (product: BackendProduct) => {
     console.log('[ProductSelection] Product selected:', product);
@@ -125,7 +248,7 @@ export function ProductSelection({
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">خطا در بارگذاری</h2>
             <p className="text-gray-600 mb-6">{error}</p>
-            <Button onClick={loadProducts} className="w-full">
+            <Button onClick={loadInitialProducts} className="w-full">
               تلاش مجدد
             </Button>
           </div>
@@ -226,7 +349,7 @@ export function ProductSelection({
                         )}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {product.category}
+                            {product.category_display || product.category}
                           </span>
                           <ArrowRight className="w-4 h-4 text-gray-400" />
                         </div>
