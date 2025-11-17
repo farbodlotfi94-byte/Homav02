@@ -963,6 +963,18 @@ export default function App() {
       productId: product?.id,
       feedback: userFeedback,
     });
+
+    // Check if user is authenticated before going to upload
+    if (!isAuthenticated) {
+      console.log('[App] User not authenticated for try another, redirecting to auth');
+      trackKPI('auth_required', {
+        source: 'try_another',
+        productId: product?.id,
+      });
+      setCurrentStep('user-auth');
+      return;
+    }
+
     setSelectedFile(null);
     setPlacementSuccess(true);
     setVisualizedImageUrl("");
@@ -1068,6 +1080,18 @@ export default function App() {
       productId: product?.id,
     });
     setShowProductDetails(false);
+
+    // Check if user is authenticated before going to upload
+    if (!isAuthenticated) {
+      console.log('[App] User not authenticated for details upload CTA, redirecting to auth');
+      trackKPI('auth_required', {
+        source: 'details_modal_upload',
+        productId: product?.id,
+      });
+      setCurrentStep('user-auth');
+      return;
+    }
+
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
@@ -1088,6 +1112,18 @@ export default function App() {
     trackKPI("Fallback Upload", {
       reason: fallbackReason,
     });
+
+    // Check if user is authenticated before going to upload
+    if (!isAuthenticated) {
+      console.log('[App] User not authenticated for fallback upload, redirecting to auth');
+      trackKPI('auth_required', {
+        source: 'fallback_upload',
+        reason: fallbackReason,
+      });
+      setCurrentStep('user-auth');
+      return;
+    }
+
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
@@ -1309,17 +1345,36 @@ export default function App() {
           />
         )}
 
-        {/* Upload */}
+        {/* Upload - Guard: Only allow authenticated users */}
         {currentStep === "upload" && (
-          <PhotoUpload
-            key="upload"
-            onUploadComplete={handleFileSelected}
-            onBack={() => setCurrentStep("product-landing")}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-          />
+          <>
+            {!isAuthenticated ? (
+              // Redirect to auth if not authenticated
+              <UserLogin
+                key="upload-auth-guard"
+                isOpen={true}
+                onClose={() => {
+                  // If user closes without logging in, go back to product landing
+                  if (product && productUniqueLink) {
+                    setCurrentStep("product-landing");
+                  } else {
+                    setCurrentStep("product-selection");
+                  }
+                }}
+                onSuccess={handleAuthSuccess}
+              />
+            ) : (
+              <PhotoUpload
+                key="upload"
+                onUploadComplete={handleFileSelected}
+                onBack={() => setCurrentStep("product-landing")}
+                isAuthenticated={isAuthenticated}
+                user={user}
+                onLogin={handleLoginClick}
+                onLogout={handleLogout}
+              />
+            )}
+          </>
         )}
 
         {/* Precheck */}
