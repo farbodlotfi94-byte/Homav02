@@ -49,7 +49,8 @@ export function ProductSelection({
     })();
   }, []);
 
-  const loadInitialProducts = async () => {
+  const loadInitialProducts = async (options?: { allowGuestRetry?: boolean }) => {
+    const allowGuestRetry = options?.allowGuestRetry ?? true;
     try {
       setLoading(true);
       setError(null);
@@ -60,6 +61,19 @@ export function ProductSelection({
         limit: PAGE_SIZE,
         offset: 0
       });
+
+      if (response.requiresLogin) {
+        console.warn('[ProductSelection] Auth expired on public feed, retrying as guest:', {
+          allowGuestRetry,
+        });
+
+        if (allowGuestRetry) {
+          return await loadInitialProducts({ allowGuestRetry: false });
+        }
+
+        setError(response.error || 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید');
+        return;
+      }
 
       console.log('[ProductSelection] API response (initial):', response);
 
@@ -251,7 +265,7 @@ export function ProductSelection({
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">خطا در بارگذاری</h2>
             <p className="text-gray-600 mb-6">{error}</p>
-            <Button onClick={loadInitialProducts} className="w-full">
+            <Button onClick={() => void loadInitialProducts()} className="w-full">
               تلاش مجدد
             </Button>
           </div>

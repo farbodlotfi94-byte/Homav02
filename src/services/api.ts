@@ -104,8 +104,8 @@ async function apiRequest<T = any>(
         return apiRequest<T>(url, options);
       } else {
         console.error('[API] Token refresh failed, user must login');
-        // Logout user
-        userAuthService.logout();
+        // Logout user (await to ensure headers cleared before next call)
+        await userAuthService.logout();
 
         return {
           data: null as T,
@@ -457,8 +457,8 @@ export async function apiPostWithTimeout<T = any>(
         return apiPostWithTimeout<T>(endpoint, body, timeout);
       } else {
         console.error('[API] Token refresh failed, user must login');
-        // Logout user
-        userAuthService.logout();
+        // Logout user (await to ensure headers cleared before next call)
+        await userAuthService.logout();
 
         return {
           data: null as T,
