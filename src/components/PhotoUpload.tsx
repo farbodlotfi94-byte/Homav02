@@ -4,7 +4,7 @@ import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
-import { optimizeImage } from "../utils/imageOptimizer";
+// import { optimizeImage } from "../utils/imageOptimizer";
 
 interface PhotoUploadProps {
   onUploadComplete: (file: File) => void;
@@ -49,8 +49,9 @@ export function PhotoUpload({
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile && (droppedFile.type === "image/jpeg" || droppedFile.type === "image/png")) {
       // Optimize image before passing to parent for precheck
-      const optimizedFile = await optimizeImage(droppedFile);
-      onUploadComplete(optimizedFile);
+      // const optimizedFile = await optimizeImage(droppedFile);
+      // onUploadComplete(optimizedFile);
+      onUploadComplete(droppedFile);
     }
   }, [onUploadComplete]);
 
@@ -58,8 +59,9 @@ export function PhotoUpload({
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       // Optimize image before passing to parent for precheck
-      const optimizedFile = await optimizeImage(selectedFile);
-      onUploadComplete(optimizedFile);
+      // const optimizedFile = await optimizeImage(selectedFile);
+      // onUploadComplete(optimizedFile);
+      onUploadComplete(selectedFile);
     }
   }, [onUploadComplete]);
 
