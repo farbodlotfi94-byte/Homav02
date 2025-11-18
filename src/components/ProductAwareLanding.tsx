@@ -113,7 +113,7 @@ export function ProductAwareLanding({
             transition={shouldAnimate ? { duration: 0.4 } : undefined}
           >
             {/* Product Image */}
-            <div className="aspect-square bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
+            <div className="aspect-[4/5] bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
               <img
                 src={product.thumbnail}
                 alt={product.name}
