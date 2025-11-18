@@ -9,6 +9,7 @@ import { ProductVisualization } from "./components/ProductVisualization";
 import { ProductFallback } from "./components/ProductFallback";
 import { ErrorRecovery } from "./components/ErrorRecovery";
 import { UserLogin } from "./components/UserLogin";
+import { AboutUs } from "./components/AboutUs";
 import { AnimatePresence, motion } from "motion/react";
 import { toast, Toaster } from "sonner";
 
@@ -129,6 +130,9 @@ export default function App() {
   // NEW: User authentication state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // About Us modal state
+  const [showAboutUs, setShowAboutUs] = useState(false);
 
   // Rate limit state
   const [rateLimitExpiry, setRateLimitExpiry] = useState<number | null>(null);
@@ -515,6 +519,12 @@ export default function App() {
   const handleLoginClick = () => {
     console.log('[App] Login button clicked');
     setCurrentStep('user-auth');
+  };
+
+  // About Us button handler (opens About Us modal)
+  const handleAboutUsClick = () => {
+    console.log('[App] About Us button clicked');
+    setShowAboutUs(true);
   };
 
   // Product Landing → Check Auth → Upload
@@ -1296,6 +1306,7 @@ export default function App() {
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
           />
         )}
 
@@ -1307,10 +1318,12 @@ export default function App() {
             onUploadStart={handleStartUpload}
             onShowProductDetails={handleShowProductDetails}
             onShowTerms={() => setShowTerms(true)}
+            onBack={() => setCurrentStep("product-selection")}
             isAuthenticated={isAuthenticated}
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
             rateLimitExpiry={rateLimitExpiry}
             rateLimitMessage={rateLimitMessage}
           />
@@ -1372,6 +1385,7 @@ export default function App() {
                 user={user}
                 onLogin={handleLoginClick}
                 onLogout={handleLogout}
+                onAboutClick={handleAboutUsClick}
               />
             )}
           </>
@@ -1389,6 +1403,7 @@ export default function App() {
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
           />
         )}
 
@@ -1403,6 +1418,7 @@ export default function App() {
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
           />
         )}
 
@@ -1514,6 +1530,7 @@ export default function App() {
               user={user}
               onLogin={handleLoginClick}
               onLogout={handleLogout}
+              onAboutClick={handleAboutUsClick}
             />
           )}
 
@@ -1558,6 +1575,12 @@ export default function App() {
           onClose={() => setShowTerms(false)}
         />
       </Suspense>
+
+      {/* About Us Modal - Accessible from hamburger menu */}
+      <AboutUs
+        open={showAboutUs}
+        onOpenChange={setShowAboutUs}
+      />
 
       {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
       <Suspense fallback={null}>

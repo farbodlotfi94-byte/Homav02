@@ -14,10 +14,12 @@ interface ProductAwareLandingProps {
   onUploadStart: () => void;
   onShowProductDetails: () => void;
   onShowTerms: () => void;
+  onBack?: () => void;
   isAuthenticated?: boolean;
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
   rateLimitExpiry?: number | null;
   rateLimitMessage?: string;
 }
@@ -26,10 +28,12 @@ export function ProductAwareLanding({
   product,
   onUploadStart,
   onShowProductDetails,
+  onBack,
   isAuthenticated,
   user,
   onLogin,
   onLogout,
+  onAboutClick,
   rateLimitExpiry,
   rateLimitMessage
 }: ProductAwareLandingProps) {
@@ -61,11 +65,13 @@ export function ProductAwareLanding({
   return (
     <div className="min-h-screen bg-white">
       <Header
-        showBackButton={false}
+        showBackButton={true}
+        onBack={onBack}
         isAuthenticated={isAuthenticated}
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
 
       {/* Snackbar */}
@@ -115,6 +121,19 @@ export function ProductAwareLanding({
                 width={400}
                 height={400}
                 fetchPriority="high"
+                onError={(e) => {
+                  console.error('[ProductAwareLanding] Image load error:', {
+                    src: product.thumbnail,
+                    productId: product.id,
+                    imagePath: product.image_path
+                  });
+                  // Set a placeholder or retry
+                  const target = e.target as HTMLImageElement;
+                  target.style.backgroundColor = '#f3f4f6';
+                }}
+                onLoad={() => {
+                  console.log('[ProductAwareLanding] Image loaded successfully:', product.thumbnail);
+                }}
               />
             </div>
 

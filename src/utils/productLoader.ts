@@ -16,15 +16,29 @@ const productIdToUniqueLink: Record<string, string> = {};
  */
 function transformBackendProduct(backendProduct: BackendProduct): Product {
   const productId = `prod_${backendProduct.id}`;
-  
+
   // Store mapping for URL compatibility
   productIdToUniqueLink[productId] = backendProduct.unique_link;
-  
+
+  // Construct image URL with validation
+  const baseUrl = API_CONFIG.BASE_URL || 'https://104.234.46.187:8888';
+  const imagePath = backendProduct.image_path || '';
+  const thumbnailUrl = imagePath
+    ? `${baseUrl}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(imagePath)}`
+    : '';
+
+  console.log('[transformBackendProduct] Image URL construction:', {
+    productId,
+    baseUrl,
+    imagePath,
+    thumbnailUrl
+  });
+
   return {
     id: productId,
     unique_link: backendProduct.unique_link,
     name: backendProduct.name,
-    thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
+    thumbnail: thumbnailUrl,
     price: backendProduct.price,
     currency: backendProduct.currency || "ریال",
     seller: {
@@ -34,7 +48,7 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
     category: backendProduct.category,
     category_display: backendProduct.category_display,
     status: "active",
-    images: [`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`],
+    images: thumbnailUrl ? [thumbnailUrl] : [],
     description: backendProduct.description,
     link: backendProduct.link,
     extra_details: backendProduct.extra_details,

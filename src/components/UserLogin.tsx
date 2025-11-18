@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogIn, UserPlus, Phone, Lock, User } from 'lucide-react';
+import { X, LogIn, UserPlus, Phone, Lock, User, AlertCircle } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
 import { validateAndNormalizePhone, validatePassword } from '../utils/phoneValidator';
 import type { AuthData } from '../types/auth';
@@ -43,6 +43,20 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
     setRegisterPassword('');
     setError(null);
   };
+
+  const ErrorAlert = ({ message }: { message: string }) => (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      role="alert"
+      aria-live="polite"
+      className="flex items-start gap-3 rounded-[var(--radius-sm)] border-2 border-red-500 bg-red-50 px-4 py-3 text-red-700 shadow-md mb-4"
+    >
+      <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+      <p className="text-sm font-bold leading-relaxed">{message}</p>
+    </motion.div>
+  );
 
   const handleClose = () => {
     resetForms();
@@ -204,6 +218,11 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
             </button>
           </div>
 
+          {/* Error Banner */}
+          <AnimatePresence initial={false}>
+            {error && <ErrorAlert message={error} />}
+          </AnimatePresence>
+
           {/* Login Form */}
           {activeTab === 'login' && (
             <form onSubmit={handleLogin} className="space-y-4">
@@ -238,13 +257,10 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
                   disabled={loading}
                   className="w-full px-4 py-3 bg-input-background border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-300"
                 />
+                <p className="text-xs text-muted-foreground">
+                  رمز عبور باید حداقل ۸ کاراکتر، شامل حروف بزرگ و کوچک انگلیسی و عدد باشد
+                </p>
               </div>
-
-              {error && (
-                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-[var(--radius-sm)]">
-                  <p>{error}</p>
-                </div>
-              )}
 
               <button
                 type="submit"
@@ -307,15 +323,9 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
                   className="w-full px-4 py-3 bg-input-background border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-300"
                 />
                 <p className="text-xs text-muted-foreground">
-                  حداقل ۸ کاراکتر، شامل حروف بزرگ و کوچک انگلیسی و عدد
+                  رمز عبور باید انگلیسی، حداقل ۸ کاراکتر و شامل حروف بزرگ، کوچک و عدد باشد
                 </p>
               </div>
-
-              {error && (
-                <div className="bg-destructive/10 text-destructive px-4 py-3 rounded-[var(--radius-sm)]">
-                  <p>{error}</p>
-                </div>
-              )}
 
               <button
                 type="submit"

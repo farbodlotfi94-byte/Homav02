@@ -1,7 +1,18 @@
+/**
+ * PhotoUpload Component
+ *
+ * Allows users to upload photos for furniture visualization.
+ * Shows optional upload guidance on first view.
+ *
+ * TODO: Future enhancement - Add localStorage to auto-hide guidance for returning users
+ * TODO: Future enhancement - Add info icon (ℹ️) to re-show guidance after dismissal
+ */
+
 import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
+import { UploadGuidance } from "./UploadGuidance";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 // import { optimizeImage } from "../utils/imageOptimizer";
@@ -13,6 +24,7 @@ interface PhotoUploadProps {
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
 }
 
 export function PhotoUpload({
@@ -21,7 +33,8 @@ export function PhotoUpload({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick
 }: PhotoUploadProps) {
   const shouldAnimate = useAnimationPreference();
   const [isDragging, setIsDragging] = useState(false);
@@ -31,6 +44,9 @@ export function PhotoUpload({
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Track if user has dismissed the guidance (to hide it)
+  const [showGuidance, setShowGuidance] = useState(true);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -80,6 +96,10 @@ export function PhotoUpload({
     setIsProcessing(false);
   };
 
+  const handleGuidanceDismiss = () => {
+    setShowGuidance(false);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Header
@@ -88,6 +108,7 @@ export function PhotoUpload({
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
 
       <div className="pt-14">
@@ -97,6 +118,11 @@ export function PhotoUpload({
           transition={shouldAnimate ? { duration: 0.5 } : undefined}
           className="max-w-lg mx-auto px-6 py-6"
         >
+          {/* Upload Guidance - Optional, dismissible */}
+          {showGuidance && (
+            <UploadGuidance onDismiss={handleGuidanceDismiss} />
+          )}
+
           {/* Upload Circle */}
           <div
             onDragOver={handleDragOver}
@@ -132,7 +158,7 @@ export function PhotoUpload({
               onChange={handleFileSelect}
               className="hidden"
             />
-            <button 
+            <button
               type="button"
               onClick={handleFileButtonClick}
               className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors cursor-pointer flex items-center justify-center font-medium select-none"

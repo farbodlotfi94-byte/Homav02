@@ -14,6 +14,7 @@ interface FilePrecheckProps {
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
 }
 
 interface CheckResult {
@@ -100,7 +101,8 @@ export function FilePrecheck({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick
 }: FilePrecheckProps) {
   const [checks, setChecks] = useState<CheckResult[]>([]);
   const [isChecking, setIsChecking] = useState(true);
@@ -178,6 +180,7 @@ export function FilePrecheck({
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
       
       {/* Main Container */}

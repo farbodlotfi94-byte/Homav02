@@ -16,6 +16,7 @@ interface ProductSelectionProps {
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
 }
 
 export function ProductSelection({
@@ -24,7 +25,8 @@ export function ProductSelection({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick
 }: ProductSelectionProps) {
   const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
@@ -238,6 +240,7 @@ export function ProductSelection({
           user={user}
           onLogin={onLogin}
           onLogout={onLogout}
+          onAboutClick={onAboutClick}
         />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
@@ -259,6 +262,7 @@ export function ProductSelection({
           user={user}
           onLogin={onLogin}
           onLogout={onLogout}
+          onAboutClick={onAboutClick}
         />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-sm mx-auto px-6">
@@ -283,6 +287,7 @@ export function ProductSelection({
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
       
       <div className="pt-14 pb-6">
