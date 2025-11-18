@@ -24,7 +24,10 @@ RUN npm ci
 COPY . .
 
 # Verify public folder exists before build
-RUN ls -la public/guidance-examples/ || echo "Warning: public/guidance-examples not found in source"
+RUN echo "=== Checking public/guidance-examples/ ===" && \
+    ls -la public/guidance-examples/ || echo "Warning: public/guidance-examples not found in source" && \
+    echo "=== Files in public/guidance-examples/ ===" && \
+    find public/guidance-examples/ -type f -name "*.webp" || echo "No .webp files found"
 
 # Build the application
 # Vite automatically copies public folder contents to build output root
@@ -32,7 +35,8 @@ RUN npm run build
 
 # Verify that guidance-examples are in build output
 # If not found, manually copy them (fallback)
-RUN if [ ! -d "build/guidance-examples" ]; then \
+RUN echo "=== Checking build/guidance-examples/ ===" && \
+    if [ ! -d "build/guidance-examples" ]; then \
       echo "Warning: guidance-examples not in build output, copying manually..." && \
       mkdir -p build/guidance-examples && \
       cp -r public/guidance-examples/* build/guidance-examples/ 2>/dev/null || true && \
@@ -40,7 +44,10 @@ RUN if [ ! -d "build/guidance-examples" ]; then \
     else \
       echo "✓ guidance-examples found in build output"; \
     fi && \
-    ls -la build/guidance-examples/ || echo "✗ Failed to copy guidance-examples"
+    echo "=== Files in build/guidance-examples/ ===" && \
+    ls -lah build/guidance-examples/ || echo "✗ Failed to copy guidance-examples" && \
+    echo "=== Verifying correct-room-modern.webp exists ===" && \
+    test -f build/guidance-examples/correct-room-modern.webp && echo "✓ correct-room-modern.webp EXISTS" || echo "✗ correct-room-modern.webp MISSING"
 
 # Production stage with Nginx
 FROM nginx:alpine AS production
