@@ -12,7 +12,7 @@ import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
-import { UploadGuidance } from "./UploadGuidance";
+import { UploadGuidanceModal } from "./UploadGuidanceModal";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 // import { optimizeImage } from "../utils/imageOptimizer";
@@ -45,8 +45,45 @@ export function PhotoUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Track if user has dismissed the guidance (to hide it)
-  const [showGuidance, setShowGuidance] = useState(true);
+  // Track if guidance modal should be shown
+  const [showGuidanceModal, setShowGuidanceModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"file" | "camera" | null>(null);
+
+  // Check if user has seen the guidance before (within last 5 minutes)
+  const hasSeenGuidance = () => {
+    try {
+      const seenData = localStorage.getItem('homa_upload_guidance_seen');
+      if (!seenData) return false;
+      
+      const { timestamp } = JSON.parse(seenData);
+      const now = Date.now();
+      const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+      
+      // If more than 5 minutes have passed, show hint again
+      if (now - timestamp > fiveMinutes) {
+        localStorage.removeItem('homa_upload_guidance_seen');
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      // If parsing fails, treat as not seen
+      return false;
+    }
+  };
+
+  // Mark guidance as seen with current timestamp
+  const markGuidanceAsSeen = () => {
+    try {
+      const data = {
+        seen: true,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('homa_upload_guidance_seen', JSON.stringify(data));
+    } catch (e) {
+      console.warn('[PhotoUpload] Failed to save guidance status to localStorage');
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -82,22 +119,46 @@ export function PhotoUpload({
   }, [onUploadComplete]);
 
   const handleFileButtonClick = useCallback(() => {
-    fileInputRef.current?.click();
+    if (hasSeenGuidance()) {
+      // User has seen guidance before, directly open file picker
+      fileInputRef.current?.click();
+    } else {
+      // Show guidance modal for first time
+      setPendingAction("file");
+      setShowGuidanceModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCameraButtonClick = useCallback(() => {
-    cameraInputRef.current?.click();
+    if (hasSeenGuidance()) {
+      // User has seen guidance before, directly open camera
+      cameraInputRef.current?.click();
+    } else {
+      // Show guidance modal for first time
+      setPendingAction("camera");
+      setShowGuidanceModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleGuidanceConfirm = useCallback(() => {
+    // Mark guidance as seen
+    markGuidanceAsSeen();
+    
+    if (pendingAction === "file") {
+      fileInputRef.current?.click();
+    } else if (pendingAction === "camera") {
+      cameraInputRef.current?.click();
+    }
+    setPendingAction(null);
+  }, [pendingAction]);
 
   const removeFile = () => {
     setFile(null);
     setUploadProgress(0);
     setIsUploading(false);
     setIsProcessing(false);
-  };
-
-  const handleGuidanceDismiss = () => {
-    setShowGuidance(false);
   };
 
   return (
@@ -118,10 +179,15 @@ export function PhotoUpload({
           transition={shouldAnimate ? { duration: 0.5 } : undefined}
           className="max-w-lg mx-auto px-6 py-6"
         >
-          {/* Upload Guidance - Optional, dismissible */}
-          {showGuidance && (
-            <UploadGuidance onDismiss={handleGuidanceDismiss} />
-          )}
+          {/* Upload Guidance Modal */}
+          <UploadGuidanceModal
+            open={showGuidanceModal}
+            onClose={() => {
+              setShowGuidanceModal(false);
+              setPendingAction(null);
+            }}
+            onConfirm={handleGuidanceConfirm}
+          />
 
           {/* Upload Circle */}
           <div
