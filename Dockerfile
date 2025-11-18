@@ -20,11 +20,15 @@ COPY package*.json ./
 # Install all dependencies (including devDependencies for build)
 RUN npm ci
 
-# Copy source code
+# Copy source code (including public folder)
 COPY . .
 
 # Build the application
+# Vite automatically copies public folder contents to build output root
 RUN npm run build
+
+# Verify that guidance-examples are in build output
+RUN ls -la build/guidance-examples/ 2>/dev/null || (echo "Warning: guidance-examples not found in build output" && ls -la build/ | head -20)
 
 # Production stage with Nginx
 FROM nginx:alpine AS production
