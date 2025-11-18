@@ -23,12 +23,24 @@ RUN npm ci
 # Copy source code (including public folder)
 COPY . .
 
+# Verify public folder exists before build
+RUN ls -la public/guidance-examples/ || echo "Warning: public/guidance-examples not found in source"
+
 # Build the application
 # Vite automatically copies public folder contents to build output root
 RUN npm run build
 
 # Verify that guidance-examples are in build output
-RUN ls -la build/guidance-examples/ 2>/dev/null || (echo "Warning: guidance-examples not found in build output" && ls -la build/ | head -20)
+# If not found, manually copy them (fallback)
+RUN if [ ! -d "build/guidance-examples" ]; then \
+      echo "Warning: guidance-examples not in build output, copying manually..." && \
+      mkdir -p build/guidance-examples && \
+      cp -r public/guidance-examples/* build/guidance-examples/ 2>/dev/null || true && \
+      echo "Manually copied guidance-examples"; \
+    else \
+      echo "✓ guidance-examples found in build output"; \
+    fi && \
+    ls -la build/guidance-examples/ || echo "✗ Failed to copy guidance-examples"
 
 # Production stage with Nginx
 FROM nginx:alpine AS production
