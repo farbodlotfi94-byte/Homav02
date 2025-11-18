@@ -30,15 +30,52 @@ export function UploadGuidanceModal({
   const [step, setStep] = useState<1 | 2>(1); // 1: correct image, 2: incorrect image
   const [correctImageError, setCorrectImageError] = useState(false);
   const [correctImageSrc, setCorrectImageSrc] = useState("/guidance-examples/correct-room-modern.webp");
+  const [correctImageLoading, setCorrectImageLoading] = useState(true);
   const [incorrectImageError, setIncorrectImageError] = useState(false);
+  const [incorrectImageLoading, setIncorrectImageLoading] = useState(true);
 
-  // Reset state when modal opens
+  // Preload images when modal opens
   useEffect(() => {
     if (open) {
       setStep(1);
       setCorrectImageError(false);
       setCorrectImageSrc("/guidance-examples/correct-room-modern.webp");
+      setCorrectImageLoading(true);
       setIncorrectImageError(false);
+      setIncorrectImageLoading(true);
+
+      // Preload correct image
+      const correctImg = new Image();
+      correctImg.src = "/guidance-examples/correct-room-modern.webp";
+      correctImg.onload = () => {
+        setCorrectImageLoading(false);
+        console.log('[UploadGuidanceModal] Correct image preloaded');
+      };
+      correctImg.onerror = () => {
+        console.log('[UploadGuidanceModal] Primary image failed, trying fallback...');
+        const fallbackImg = new Image();
+        fallbackImg.src = "/guidance-examples/correct-room.webp";
+        fallbackImg.onload = () => {
+          setCorrectImageSrc("/guidance-examples/correct-room.webp");
+          setCorrectImageLoading(false);
+        };
+        fallbackImg.onerror = () => {
+          setCorrectImageError(true);
+          setCorrectImageLoading(false);
+        };
+      };
+
+      // Preload incorrect image
+      const incorrectImg = new Image();
+      incorrectImg.src = "/guidance-examples/incorrect-tilted.webp";
+      incorrectImg.onload = () => {
+        setIncorrectImageLoading(false);
+        console.log('[UploadGuidanceModal] Incorrect image preloaded');
+      };
+      incorrectImg.onerror = () => {
+        setIncorrectImageError(true);
+        setIncorrectImageLoading(false);
+      };
     }
   }, [open]);
 
@@ -60,16 +97,19 @@ export function UploadGuidanceModal({
     if (correctImageSrc.includes('correct-room-modern.webp')) {
       // Try fallback image
       console.log('[UploadGuidanceModal] Trying fallback image...');
+      setCorrectImageLoading(true);
       setCorrectImageSrc('/guidance-examples/correct-room.webp');
     } else {
       // Both failed, show placeholder
       console.log('[UploadGuidanceModal] Both images failed, showing placeholder');
       setCorrectImageError(true);
+      setCorrectImageLoading(false);
     }
   };
 
   const handleCorrectImageLoad = () => {
     console.log('[UploadGuidanceModal] Image loaded successfully:', correctImageSrc);
+    setCorrectImageLoading(false);
   };
 
   return (
@@ -96,6 +136,13 @@ export function UploadGuidanceModal({
                         <p className="text-xs text-green-700 font-medium">عکس مناسب</p>
                       </div>
                     </div>
+                  ) : correctImageLoading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-xs text-gray-500">در حال بارگذاری...</p>
+                      </div>
+                    </div>
                   ) : (
                     <img
                       key={correctImageSrc}
@@ -103,8 +150,13 @@ export function UploadGuidanceModal({
                       alt="مثال صحیح: عکس مناسب از اتاق نشیمن با نور کافی و نمای واضح"
                       className="w-full h-full object-cover"
                       loading="eager"
+                      fetchPriority="high"
+                      decoding="async"
                       onError={handleCorrectImageError}
-                      onLoad={handleCorrectImageLoad}
+                      onLoad={() => {
+                        setCorrectImageLoading(false);
+                        handleCorrectImageLoad();
+                      }}
                     />
                   )}
                   <div className="absolute top-2 left-2 rounded-full p-1.5 bg-green-500 z-10">
@@ -130,13 +182,26 @@ export function UploadGuidanceModal({
                         <p className="text-xs text-red-700 font-medium">عکس نامناسب</p>
                       </div>
                     </div>
+                  ) : incorrectImageLoading ? (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-xs text-gray-500">در حال بارگذاری...</p>
+                      </div>
+                    </div>
                   ) : (
                     <img
                       src="/guidance-examples/incorrect-tilted.webp"
                       alt="مثال نادرست: عکس کج و نامناسب"
                       className="w-full h-full object-cover"
                       loading="eager"
-                      onError={() => setIncorrectImageError(true)}
+                      fetchPriority="high"
+                      decoding="async"
+                      onError={() => {
+                        setIncorrectImageError(true);
+                        setIncorrectImageLoading(false);
+                      }}
+                      onLoad={() => setIncorrectImageLoading(false)}
                     />
                   )}
                   <div className="absolute top-2 left-2 rounded-full p-1.5 bg-red-500 z-10">
