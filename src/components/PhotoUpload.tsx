@@ -100,22 +100,53 @@ export function PhotoUpload({
     setIsDragging(false);
 
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.type === "image/jpeg" || droppedFile.type === "image/png")) {
-      // Optimize image before passing to parent for precheck
-      // const optimizedFile = await optimizeImage(droppedFile);
-      // onUploadComplete(optimizedFile);
-      onUploadComplete(droppedFile);
+    if (droppedFile) {
+      // Accept common image types including HEIC from iOS
+      // The stripExif utility will convert them to JPEG/PNG
+      const acceptedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/heic',
+        'image/heif',
+        'image/webp',
+        'image/jpg'
+      ];
+
+      if (acceptedTypes.includes(droppedFile.type.toLowerCase()) || droppedFile.type.startsWith('image/')) {
+        console.log('[PhotoUpload] File dropped:', {
+          name: droppedFile.name,
+          type: droppedFile.type,
+          size: droppedFile.size
+        });
+        onUploadComplete(droppedFile);
+      } else {
+        console.warn('[PhotoUpload] Unsupported file type dropped:', droppedFile.type);
+      }
     }
   }, [onUploadComplete]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Optimize image before passing to parent for precheck
-      // const optimizedFile = await optimizeImage(selectedFile);
-      // onUploadComplete(optimizedFile);
+      console.log('[PhotoUpload] File selected:', {
+        name: selectedFile.name,
+        type: selectedFile.type,
+        size: selectedFile.size
+      });
+
+      // Validate file has content
+      if (selectedFile.size === 0) {
+        console.error('[PhotoUpload] Selected file is empty');
+        return;
+      }
+
+      // iOS may not report correct MIME type for HEIC files
+      // Accept the file and let stripExif handle conversion
       onUploadComplete(selectedFile);
     }
+
+    // Reset the input value to allow re-selecting the same file
+    e.target.value = '';
   }, [onUploadComplete]);
 
   const handleFileButtonClick = useCallback(() => {
@@ -220,7 +251,7 @@ export function PhotoUpload({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png"
+              accept="image/jpeg,image/png,image/heic,image/heif,image/webp,.jpg,.jpeg,.png,.heic,.heif,.webp"
               onChange={handleFileSelect}
               className="hidden"
             />

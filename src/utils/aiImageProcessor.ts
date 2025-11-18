@@ -121,11 +121,36 @@ export async function processImageWithAI(
 
     // Strip EXIF data to prevent backend from auto-rotating the image
     console.log('[AI Processing] Stripping EXIF metadata from image...');
-    const imageFileWithoutExif = await stripExifData(request.imageFile);
+    let imageFileWithoutExif: File;
+
+    try {
+      imageFileWithoutExif = await stripExifData(request.imageFile);
+    } catch (stripError) {
+      console.error('[AI Processing] EXIF stripping failed:', stripError);
+      // If EXIF stripping fails completely, try with original file
+      console.warn('[AI Processing] Using original file as fallback');
+      imageFileWithoutExif = request.imageFile;
+    }
 
     // Validate that the file is not empty after EXIF stripping
-    if (!imageFileWithoutExif || imageFileWithoutExif.size === 0) {
-      console.error('[AI Processing] تصویر بعد از حذف EXIF خالی است');
+    if (!imageFileWithoutExif) {
+      console.error('[AI Processing] تصویر بعد از حذف EXIF null است');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: 0,
+        confidence: 0,
+        error: 'خطا در پردازش تصویر - فایل نامعتبر است',
+      };
+    }
+
+    if (imageFileWithoutExif.size === 0) {
+      console.error('[AI Processing] تصویر بعد از حذف EXIF خالی است', {
+        originalSize: request.imageFile.size,
+        originalType: request.imageFile.type,
+        originalName: request.imageFile.name
+      });
       return {
         success: false,
         visualizedImageUrl: '',
@@ -136,20 +161,30 @@ export async function processImageWithAI(
       };
     }
 
-    // Create FormData for multipart upload
-    const formData = new FormData();
-    formData.append('customer_image', imageFileWithoutExif);  // Changed from 'file' to 'customer_image'
-
-    // Debug FormData contents
-    console.log('[AI Processing] FormData contents:');
-    for (const [key, value] of formData.entries()) {
-      console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size} bytes)` : value);
+    // Validate file type - ensure it's a supported format
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validTypes.includes(imageFileWithoutExif.type)) {
+      console.warn('[AI Processing] Unexpected file type after processing:', imageFileWithoutExif.type);
+      // Don't fail, but log for debugging
     }
 
-    // Verify file was appended to FormData
-    const fileInFormData = formData.get('customer_image') as File | null;
-    if (!fileInFormData || fileInFormData.size === 0) {
-      console.error('[AI Processing] فایل به FormData اضافه نشد یا خالی است');
+    // Create FormData for multipart upload
+    const formData = new FormData();
+
+    // Ensure we're appending a proper File/Blob object
+    // Some browsers need explicit Blob construction for FormData to work correctly
+    try {
+      // For maximum compatibility, re-construct as Blob if needed
+      if (imageFileWithoutExif instanceof Blob) {
+        formData.append('customer_image', imageFileWithoutExif, imageFileWithoutExif.name || 'image.jpg');
+      } else {
+        // Last resort: convert to Blob
+        console.warn('[AI Processing] File is not a Blob instance, converting...');
+        const blob = new Blob([imageFileWithoutExif], { type: imageFileWithoutExif.type || 'image/jpeg' });
+        formData.append('customer_image', blob, imageFileWithoutExif.name || 'image.jpg');
+      }
+    } catch (formDataError) {
+      console.error('[AI Processing] Failed to append file to FormData:', formDataError);
       return {
         success: false,
         visualizedImageUrl: '',
@@ -159,6 +194,54 @@ export async function processImageWithAI(
         error: 'خطا در آماده‌سازی فایل برای ارسال',
       };
     }
+
+    // Debug FormData contents
+    console.log('[AI Processing] FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      if (value instanceof File) {
+        console.log(`  ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`);
+      } else if (value instanceof Blob) {
+        console.log(`  ${key}: Blob(${value.size} bytes, ${value.type})`);
+      } else {
+        console.log(`  ${key}:`, value);
+      }
+    }
+
+    // Verify file was appended to FormData
+    const fileInFormData = formData.get('customer_image');
+    if (!fileInFormData) {
+      console.error('[AI Processing] فایل به FormData اضافه نشد');
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: 0,
+        confidence: 0,
+        error: 'خطا در آماده‌سازی فایل برای ارسال',
+      };
+    }
+
+    // Check if it's a Blob/File and has content
+    if (fileInFormData instanceof Blob && fileInFormData.size === 0) {
+      console.error('[AI Processing] فایل در FormData خالی است', {
+        type: fileInFormData.type,
+        size: fileInFormData.size
+      });
+      return {
+        success: false,
+        visualizedImageUrl: '',
+        originalImageUrl: '',
+        processingTime: 0,
+        confidence: 0,
+        error: 'خطا در آماده‌سازی فایل برای ارسال - فایل خالی است',
+      };
+    }
+
+    console.log('[AI Processing] FormData validation passed:', {
+      hasFile: !!fileInFormData,
+      fileSize: fileInFormData instanceof Blob ? fileInFormData.size : 'unknown',
+      fileType: fileInFormData instanceof Blob ? fileInFormData.type : 'unknown'
+    });
 
     const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PROCESS_IMAGE(request.uniqueLink)}`;
     
