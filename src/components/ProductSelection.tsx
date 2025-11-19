@@ -8,6 +8,7 @@ import { API_CONFIG } from "../config/api";
 import type { BackendProduct, PaginatedResponse } from "../types/product";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+import { sanitizeShopNameForUrl } from "../utils/productLoader";
 
 interface ProductSelectionProps {
   onProductSelect: (productId: string, uniqueLink: string, productData?: BackendProduct) => void;
@@ -17,6 +18,7 @@ interface ProductSelectionProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  shopName?: string | null; // Filter products by shop name
 }
 
 export function ProductSelection({
@@ -26,7 +28,8 @@ export function ProductSelection({
   user,
   onLogin,
   onLogout,
-  onAboutClick
+  onAboutClick,
+  shopName
 }: ProductSelectionProps) {
   const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
@@ -45,11 +48,24 @@ export function ProductSelection({
   const TOP_THRESHOLD_PX = 200;
 
   useEffect(() => {
-    // Initial load
+    // Initial load or reload when shopName changes
     (async () => {
       await loadInitialProducts();
     })();
-  }, []);
+  }, [shopName]);
+
+  const filterByShop = (items: BackendProduct[]) => {
+    if (!shopName) {
+      return items;
+    }
+
+    const normalizedShopName = shopName.toLowerCase().trim();
+    return items.filter(product => {
+      const productShopName = (product.shop_name || '').toLowerCase().trim();
+      const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
+      return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
+    });
+  };
 
   const loadInitialProducts = async (options?: { allowGuestRetry?: boolean }) => {
     const allowGuestRetry = options?.allowGuestRetry ?? true;
@@ -83,16 +99,19 @@ export function ProductSelection({
         // API returns: { success: true, message: "...", data: { count, next, previous, results } }
         // apiGet extracts: response.data = { count, next, previous, results }
         const paginatedData = response.data as PaginatedResponse<BackendProduct>;
-        const productsArray = paginatedData?.results || [];
+        let productsArray = paginatedData?.results || [];
+        productsArray = filterByShop(productsArray);
 
         console.log('[ProductSelection] Products loaded:', {
+          shopName: shopName || 'all',
           total: paginatedData?.count || 0,
           loaded: productsArray.length,
+          filtered: shopName ? productsArray.length : paginatedData?.results?.length || 0,
           hasNext: !!paginatedData?.next,
           hasPrevious: !!paginatedData?.previous
         });
         setProducts(productsArray);
-        setTotalCount(paginatedData?.count || productsArray.length);
+        setTotalCount(shopName ? productsArray.length : (paginatedData?.count || productsArray.length));
         setHasMore((productsArray.length || 0) < (paginatedData?.count || 0));
         setWindowStartOffset(0);
 
@@ -129,7 +148,7 @@ export function ProductSelection({
         // API returns: { success: true, message: "...", data: { count, next, previous, results } }
         // apiGet extracts: response.data = { count, next, previous, results }
         const paginatedData = response.data as PaginatedResponse<BackendProduct>;
-        const nextResults = paginatedData?.results || [];
+        const nextResults = filterByShop(paginatedData?.results || []);
 
         let newProducts = [...products, ...nextResults];
         let newWindowStart = windowStartOffset;
@@ -169,7 +188,7 @@ export function ProductSelection({
         // API returns: { success: true, message: "...", data: { count, next, previous, results } }
         // apiGet extracts: response.data = { count, next, previous, results }
         const paginatedData = response.data as PaginatedResponse<BackendProduct>;
-        const prevResults = paginatedData?.results || [];
+        const prevResults = filterByShop(paginatedData?.results || []);
 
         let newProducts = [...prevResults, ...products];
         let newWindowStart = prevOffset;
@@ -300,10 +319,12 @@ export function ProductSelection({
             className="text-center mb-8"
           >
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              محصول مورد نظر خود را انتخاب کنید
+              {shopName ? `محصولات ${shopName}` : 'محصول مورد نظر خود را انتخاب کنید'}
             </h1>
             <p className="text-gray-600">
-              عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند
+              {shopName 
+                ? 'عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند'
+                : 'عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند'}
             </p>
           </motion.div>
 

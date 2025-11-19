@@ -14,6 +14,7 @@
   - [POST /api/users/refresh/](#post-apiusersrefresh)
   - [GET /api/users/gallery/](#get-apiusersgallery)
 - [Shop Endpoints](#shop-endpoints)
+  - [GET /api/shops/list/](#get-apishopslist)
   - [POST /api/shops/login/](#post-apishopslogin)
   - [POST /api/shops/products/](#post-apishopsproducts)
   - [GET /api/shops/products/list/](#get-apishopsproductslist)
@@ -332,7 +333,7 @@ Content-Type: application/json
 ```
 
 **Errors:**
-- `400`: Invalid or expired refresh token
+- `400`: Invalid or expired refresh token (note: if token is already blacklisted, logout is still considered successful)
 - `401`: Authentication required
 
 ---
@@ -406,6 +407,46 @@ Authorization: Bearer <access_token>
 ---
 
 ## Shop Endpoints
+
+### GET /api/shops/list/
+
+**Description:** Retrieve a list of all shops with their basic information.
+
+**Authentication:** Not required (public endpoint)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": [
+    {
+      "id": 1,
+      "username": "shop1",
+      "shop_name": "Furniture Store",
+      "role": "shop",
+      "link": "https://shop.example.com",
+      "created_at": "2024-01-15T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "username": "admin_shop",
+      "shop_name": "Admin Furniture Store",
+      "role": "admin",
+      "link": null,
+      "created_at": "2024-01-14T09:15:00Z"
+    }
+  ]
+}
+```
+
+**Notes:**
+- Returns all shops ordered by creation date (newest first)
+- Includes basic shop information: ID, username, shop name, role, link, and creation timestamp
+- Shop link may be `null` if not set
+- Role can be "shop" (regular shop) or "admin" (admin shop)
+
+---
 
 ### POST /api/shops/login/
 

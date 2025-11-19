@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { WifiOff, RefreshCcw, AlertCircle } from "lucide-react";
 
 interface ErrorRecoveryProps {
-  errorType: "network" | "timeout" | "server" | "unknown";
+  errorType: "network" | "timeout" | "server" | "unknown" | "old_url" | "invalid_shop";
   onRetry: () => void;
   onCancel: () => void;
 }
@@ -31,6 +31,20 @@ export function ErrorRecovery({ errorType, onRetry, onCancel }: ErrorRecoveryPro
           title: "خطای سرور",
           message: "مشکلی در سرور ما پیش آمده. لطفاً لحظاتی بعد تلاش کنید.",
           color: "red"
+        };
+      case "old_url":
+        return {
+          icon: AlertCircle,
+          title: "لینک قدیمی",
+          message: "لینک قدیمی است. لطفاً از صفحه اصلی شروع کنید.",
+          color: "yellow"
+        };
+      case "invalid_shop":
+        return {
+          icon: AlertCircle,
+          title: "فروشگاه یافت نشد",
+          message: "فروشگاه مورد نظر یافت نشد. لطفاً از صفحه اصلی شروع کنید.",
+          color: "yellow"
         };
       default:
         return {

@@ -3,7 +3,8 @@ import type {
   UTMParams,
   EntryContext,
   BackendProduct,
-  PaginatedResponse
+  PaginatedResponse,
+  BackendProductDetailResponse
 } from "../types/product";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
@@ -61,14 +62,94 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
 }
 
 /**
- * Extract unique_link from URL path
+ * Extract shop_name and unique_link from URL path
+ * Returns object with shopName and uniqueLink, or null for root/homepage
+ * Supports formats: /shop_name/unique_link or /shop_name
+ */
+export function parseShopAndProductFromPath(url: string): {
+  shopName: string | null;
+  uniqueLink: string | null;
+} | null {
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname
+      .split('/')
+      .filter(p => p)
+      .map(segment => {
+        try {
+          return decodeURIComponent(segment);
+        } catch {
+          return segment;
+        }
+      });
+
+    // Root path - no shop or product
+    if (pathParts.length === 0) {
+      return null;
+    }
+
+    // Reserved routes
+    if (pathParts[0] === 'admin' || pathParts[0] === 'health') {
+      return null;
+    }
+
+    // UUID regex for validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    // Case 1: /shop_name/unique_link (2 segments)
+    if (pathParts.length === 2) {
+      const shopName = pathParts[0];
+      const uniqueLink = pathParts[1];
+      
+      // Validate that second segment is UUID
+      if (uuidRegex.test(uniqueLink)) {
+        return { shopName, uniqueLink };
+      }
+      
+      // Invalid format
+      return null;
+    }
+
+    // Case 2: /shop_name (1 segment) - shop listing page
+    if (pathParts.length === 1) {
+      const firstSegment = pathParts[0];
+      
+      // If it's a UUID, this is old format (should show error)
+      if (uuidRegex.test(firstSegment)) {
+        return null; // Old format detected
+      }
+      
+      // Otherwise it's a shop name
+      return { shopName: firstSegment, uniqueLink: null };
+    }
+
+    // More than 2 segments - invalid
+    return null;
+  } catch (error) {
+    console.error('[parseShopAndProductFromPath] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * Extract unique_link from URL path (LEGACY - for backward compatibility detection)
  * Returns unique_link if found in path (e.g., /550e8400-e29b-41d4-a716-446655440000/)
  * Returns null if home page or invalid format
+ * This function is used to detect old URL formats that should show errors
  */
 export function parseUniqueLinkFromPath(url: string): string | null {
   try {
     const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/').filter(p => p);
+    const pathParts = urlObj.pathname
+      .split('/')
+      .filter(p => p)
+      .map(segment => {
+        try {
+          return decodeURIComponent(segment);
+        } catch {
+          return segment;
+        }
+      });
 
     // Check if path has a segment (not homepage)
     if (pathParts.length === 0) {
@@ -76,17 +157,17 @@ export function parseUniqueLinkFromPath(url: string): string | null {
     }
 
     // Check if first path segment is admin or other reserved routes
-    if (pathParts[0] === 'admin') {
+    if (pathParts[0] === 'admin' || pathParts[0] === 'health') {
       return null;
     }
 
-    // First path segment should be the unique_link (UUID format)
-    const uniqueLink = pathParts[0];
-
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(uniqueLink)) {
-      return uniqueLink;
+    // If path has exactly 1 segment and it's a UUID, this is old format
+    if (pathParts.length === 1) {
+      const uniqueLink = pathParts[0];
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(uniqueLink)) {
+        return uniqueLink; // Old format detected
+      }
     }
 
     return null;
@@ -218,6 +299,52 @@ export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Prod
 }
 
 /**
+ * Fetch products filtered by shop name
+ * Fetches all products and filters client-side by shop_name
+ * Handles both raw shop names and sanitized URL shop names
+ */
+export async function fetchProductsByShopName(shopName: string): Promise<Product[]> {
+  try {
+    console.log('[fetchProductsByShopName] Fetching products for shop:', shopName);
+    
+    // Fetch all products (we'll filter client-side)
+    const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS);
+    
+    if (response.success && response.data) {
+      const paginatedData = response.data;
+      const productsArray = paginatedData?.results || [];
+      
+      // Normalize shop name for comparison (case-insensitive)
+      const normalizedShopName = shopName.toLowerCase().trim();
+      
+      // Filter by shop_name - match either raw shop name or sanitized version
+      const filteredProducts = productsArray
+        .filter(product => {
+          const productShopName = (product.shop_name || '').toLowerCase().trim();
+          const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
+          
+          // Match if URL shop name matches either raw or sanitized product shop name
+          return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
+        })
+        .map(transformBackendProduct);
+      
+      console.log('[fetchProductsByShopName] Found products:', {
+        shopName,
+        total: productsArray.length,
+        filtered: filteredProducts.length
+      });
+      
+      return filteredProducts;
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('[fetchProductsByShopName] Error:', error);
+    return [];
+  }
+}
+
+/**
  * Get suggested products based on category
  * Fetches all products and filters by category
  */
@@ -244,6 +371,20 @@ export async function getSuggestedProducts(category: string, limit: number = 3):
     console.error('[getSuggestedProducts] Error:', error);
     return [];
   }
+}
+
+/**
+ * Sanitize shop name for URL usage
+ * Converts to lowercase, replaces spaces with hyphens, removes special chars
+ */
+export function sanitizeShopNameForUrl(shopName: string): string {
+  return shopName
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/[^a-z0-9\u0600-\u06FF-]/g, '') // Remove special chars, keep Persian/Arabic
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
 /**

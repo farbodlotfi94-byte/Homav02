@@ -29,10 +29,13 @@ import { submitVote } from "./services/api";
 import {
   parseEntryParams,
   parseUniqueLinkFromPath,
+  parseShopAndProductFromPath,
   fetchProduct,
   fetchProductByUniqueLink,
+  fetchProductsByShopName,
   validateProduct,
   getSuggestedProducts,
+  sanitizeShopNameForUrl,
 } from "./utils/productLoader";
 import {
   isMobileDevice,
@@ -65,7 +68,7 @@ type Step =
   | "feedback" // Feedback survey between action and execution
   | "error"; // Error recovery
 
-type ErrorType = "network" | "timeout" | "server" | "unknown";
+type ErrorType = "network" | "timeout" | "server" | "unknown" | "old_url" | "invalid_shop";
 type FallbackReason =
   | "not_found"
   | "inactive"
@@ -83,6 +86,8 @@ type FeedbackType =
   | null;
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] =
     useState<Step>("loading");
   const [product, setProduct] = useState<Product | null>(null);
@@ -138,6 +143,10 @@ export default function App() {
   const [rateLimitExpiry, setRateLimitExpiry] = useState<number | null>(null);
   const [rateLimitMessage, setRateLimitMessage] = useState<string>('');
 
+  // Shop filter state
+  const [shopFilter, setShopFilter] = useState<string | null>(null);
+  const [invalidShopError, setInvalidShopError] = useState(false);
+
   // Rate limit countdown with auto-clear on expiry
   const rateLimitCountdown = useCountdown(rateLimitExpiry, () => {
     console.log('[App] Rate limit expired, clearing state');
@@ -170,88 +179,43 @@ export default function App() {
       console.log("[App] Initializing...");
       console.log("[App] Current URL:", window.location.href);
 
-      // Try path-based routing first (new format: /unique_link/)
-      const uniqueLinkFromPath = parseUniqueLinkFromPath(window.location.href);
-      console.log("[App] Unique link from path:", uniqueLinkFromPath);
+      // Reset shop filter
+      setShopFilter(null);
+      setInvalidShopError(false);
 
-      if (uniqueLinkFromPath) {
-        // Path-based entry with unique_link
-        console.log("[App] Path-based entry with unique_link:", uniqueLinkFromPath);
+      // First, check for old URL formats (UUID at root or query params) - show error
+      const oldFormatUniqueLink = parseUniqueLinkFromPath(window.location.href);
+      const oldFormatQueryParams = parseEntryParams(window.location.href);
 
-        // Track entry
-        trackKPI("Entry", {
-          uniqueLink: uniqueLinkFromPath,
-          entryType: 'path',
-        });
+      if (oldFormatUniqueLink || oldFormatQueryParams) {
+        // Old URL format detected - show error
+        console.log("[App] Old URL format detected, showing error");
+        setErrorType("old_url");
+        setCurrentStep("error");
+        return;
+      }
 
-        try {
-          // Fetch product data using unique_link
-          const productData = await fetchProductByUniqueLink(uniqueLinkFromPath);
+      // Try new shop-based routing
+      const shopAndProduct = parseShopAndProductFromPath(window.location.href);
+      console.log("[App] Shop and product from path:", shopAndProduct);
 
-          if (!productData) {
-            console.log("[App] Product not found");
-            setFallbackReason("not_found");
-            setSuggestedProducts(await getSuggestedProducts("all", 3));
-            setCurrentStep("product-fallback");
-            return;
-          }
+      if (shopAndProduct) {
+        const { shopName, uniqueLink } = shopAndProduct;
 
-          // Validate product
-          const validation = validateProduct(productData);
-
-          if (!validation.isValid) {
-            console.log("[App] Product invalid:", validation.reason);
-            setFallbackReason(validation.reason!);
-            setSuggestedProducts(await getSuggestedProducts(productData.category, 3));
-            setCurrentStep("product-fallback");
-            return;
-          }
-
-          // Product is valid, show landing
-          console.log("[App] Product loaded successfully:", productData.name);
-          setProduct(productData);
-          setProductUniqueLink(productData.unique_link);
-          setProductVariant({
-            color: productData.selectedVariant?.color,
-            size: productData.selectedVariant?.size,
-          });
-
-          // Check for existing rate limit from localStorage
-          const existingRateLimit = getRateLimitState(productData.shop_id);
-          if (existingRateLimit) {
-            console.log('[App] Restored rate limit from localStorage:', existingRateLimit);
-            setRateLimitExpiry(existingRateLimit.expiryTimestamp);
-            setRateLimitMessage(existingRateLimit.message);
-          }
-
-          setCurrentStep("product-landing");
-        } catch (error) {
-          console.error("[App] Error fetching product:", error);
-          setFallbackReason("error");
-          setCurrentStep("product-fallback");
-        }
-      } else {
-        // Fallback: Try old query param format (backward compatibility)
-        const entryContext = parseEntryParams(window.location.href);
-        console.log("[App] Parsed entry context (legacy):", entryContext);
-
-        if (entryContext) {
-          // URL-based entry with specific product (legacy)
-          console.log("[App] URL-based entry with product (legacy):", entryContext.productId);
+        // Case 1: /shop_name/unique_link - Product detail page
+        if (shopName && uniqueLink) {
+          console.log("[App] Shop-based product entry:", { shopName, uniqueLink });
 
           // Track entry
           trackKPI("Entry", {
-            productId: entryContext.productId,
-            utm_source: entryContext.utm.source,
-            utm_medium: entryContext.utm.medium,
-            utm_campaign: entryContext.utm.campaign,
-            seller: entryContext.seller,
-            entryType: 'query_param_legacy',
+            uniqueLink,
+            shopName,
+            entryType: 'shop_product_path',
           });
 
           try {
-            // Fetch product data
-            const productData = await fetchProduct(entryContext.productId);
+            // Fetch product data using unique_link
+            const productData = await fetchProductByUniqueLink(uniqueLink);
 
             if (!productData) {
               console.log("[App] Product not found");
@@ -272,30 +236,83 @@ export default function App() {
               return;
             }
 
+            // Verify shop name matches (case-insensitive, handle both raw and sanitized)
+            const normalizedShopName = shopName.toLowerCase().trim();
+            const productShopName = (productData.seller.name || '').toLowerCase().trim();
+            const sanitizedProductShopName = sanitizeShopNameForUrl(productData.seller.name || '').toLowerCase().trim();
+
+            // Match if URL shop name matches either raw shop name or sanitized version
+            if (normalizedShopName !== productShopName && normalizedShopName !== sanitizedProductShopName) {
+              console.log("[App] Shop name mismatch:", { 
+                urlShop: shopName, 
+                productShop: productData.seller.name,
+                sanitized: sanitizedProductShopName
+              });
+              setErrorType("invalid_shop");
+              setCurrentStep("error");
+              return;
+            }
+
             // Product is valid, show landing
             console.log("[App] Product loaded successfully:", productData.name);
             setProduct(productData);
             setProductUniqueLink(productData.unique_link);
+            setShopFilter(sanitizeShopNameForUrl(productData.seller.name || ''));
             setProductVariant({
               color: productData.selectedVariant?.color,
               size: productData.selectedVariant?.size,
             });
+
+            // Check for existing rate limit from localStorage
+            const existingRateLimit = getRateLimitState(productData.shop_id);
+            if (existingRateLimit) {
+              console.log('[App] Restored rate limit from localStorage:', existingRateLimit);
+              setRateLimitExpiry(existingRateLimit.expiryTimestamp);
+              setRateLimitMessage(existingRateLimit.message);
+            }
+
             setCurrentStep("product-landing");
           } catch (error) {
             console.error("[App] Error fetching product:", error);
             setFallbackReason("error");
             setCurrentStep("product-fallback");
           }
-        } else {
-          // No URL parameters - show product selection
-          console.log("[App] No product context found, showing product selection");
+        }
+        // Case 2: /shop_name - Shop product listing page
+        else if (shopName && !uniqueLink) {
+          console.log("[App] Shop listing page:", shopName);
+
+          // Track entry
+          trackKPI("Entry", {
+            shopName,
+            entryType: 'shop_listing',
+          });
+
+          // Validate shop exists by fetching products
+          const shopProducts = await fetchProductsByShopName(shopName);
+
+          if (shopProducts.length === 0) {
+            console.log("[App] No products found for shop:", shopName);
+            setErrorType("invalid_shop");
+            setInvalidShopError(true);
+            setCurrentStep("error");
+            return;
+          }
+
+          // Shop exists, show product selection with filter
+          setShopFilter(shopName);
           setCurrentStep("product-selection");
         }
+      } else {
+        // Case 3: Root path / - Show all products
+        console.log("[App] Root path, showing all products");
+        setShopFilter(null);
+        setCurrentStep("product-selection");
       }
     };
 
     initializeApp();
-  }, []);
+  }, [location]);
 
   // Listen for browser back/forward navigation
   useEffect(() => {
@@ -383,10 +400,6 @@ export default function App() {
       uniqueLink,
     });
 
-    // Update URL for sharing - use uniqueLink as path parameter
-    const newUrl = `${window.location.origin}/${uniqueLink}`;
-    window.history.pushState({ uniqueLink, productId }, '', newUrl);
-
     try {
       let productData;
 
@@ -395,6 +408,7 @@ export default function App() {
         console.log("[App] Using cached product data from selection");
         // Transform backend product to internal format
         const { API_CONFIG } = await import('./config/api');
+        const shopName = backendProduct.shop_name || "فروشگاه";
         productData = {
           id: productId,
           unique_link: backendProduct.unique_link,
@@ -403,7 +417,7 @@ export default function App() {
           price: backendProduct.price,
           currency: backendProduct.currency || "ریال",
           seller: {
-            name: "فرش هریس",
+            name: shopName,
             verified: true
           },
           category: backendProduct.category,
@@ -416,6 +430,8 @@ export default function App() {
             `دسته‌بندی: ${backendProduct.category}`,
             `تاریخ ایجاد: ${new Date(backendProduct.created_at).toLocaleDateString('fa-IR')}`
           ],
+          link: backendProduct.link,
+          extra_details: backendProduct.extra_details,
           shop_id: backendProduct.shop_id,
           is_predefined: backendProduct.is_predefined,
           image_path: backendProduct.image_path,
@@ -445,10 +461,15 @@ export default function App() {
         return;
       }
 
+      // Update URL for sharing - use shop_name/unique_link format
+      const shopSlug = sanitizeShopNameForUrl(productData.seller.name || '');
+      navigate(`/${shopSlug}/${uniqueLink}`, { replace: true });
+
       // Product is valid, show landing
       console.log("[App] Selected product loaded successfully:", productData.name);
       setProduct(productData);
       setProductUniqueLink(uniqueLink);
+      setShopFilter(shopSlug);
       setProductVariant({
         color: productData.selectedVariant?.color,
         size: productData.selectedVariant?.size,
@@ -974,27 +995,15 @@ export default function App() {
       feedback: userFeedback,
     });
 
-    // Check if user is authenticated before going to upload
-    if (!isAuthenticated) {
-      console.log('[App] User not authenticated for try another, redirecting to auth');
-      trackKPI('auth_required', {
-        source: 'try_another',
-        productId: product?.id,
-      });
-      setCurrentStep('user-auth');
+    // Navigate to shop's product listing page if we have shop filter
+    if (shopFilter && product) {
+      const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
+      navigate(`/${shopSlug}`);
       return;
     }
 
-    setSelectedFile(null);
-    setPlacementSuccess(true);
-    setVisualizedImageUrl("");
-    setHasFeedbackForCurrentImage(false); // Reset برای عکس جدید
-    setProcessedImageId(null); // Clear processed image_id for new upload
-    // Clear any ongoing API processing
-    setApiProcessingPromise(null);
-    setApiStartTime(0);
-    setApiStatus('idle');
-    setCurrentStep("upload");
+    // Fallback: Navigate to product selection
+    navigate("/");
   };
 
   const handleBackToStore = () => {
@@ -1148,6 +1157,13 @@ export default function App() {
       errorType,
       productId: product?.id,
     });
+    
+    // For old_url and invalid_shop errors, redirect to root
+    if (errorType === "old_url" || errorType === "invalid_shop") {
+      navigate("/");
+      return;
+    }
+    
     setApiStatus('idle');
     setCurrentStep("staged-upload");
   };
@@ -1158,6 +1174,13 @@ export default function App() {
       errorType,
       productId: product?.id,
     });
+    
+    // For old_url and invalid_shop errors, redirect to root
+    if (errorType === "old_url" || errorType === "invalid_shop") {
+      navigate("/");
+      return;
+    }
+    
     setSelectedFile(null);
     setProcessedImageId(null); // Clear processed image_id on error cancel
     setApiStatus('idle');
@@ -1302,6 +1325,7 @@ export default function App() {
           <ProductSelection
             key="product-selection"
             onProductSelect={handleProductSelect}
+            shopName={shopFilter}
             isAuthenticated={isAuthenticated}
             user={user}
             onLogin={handleLoginClick}
@@ -1318,7 +1342,14 @@ export default function App() {
             onUploadStart={handleStartUpload}
             onShowProductDetails={handleShowProductDetails}
             onShowTerms={() => setShowTerms(true)}
-            onBack={() => setCurrentStep("product-selection")}
+            onBack={() => {
+              if (shopFilter && product) {
+                const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
+                navigate(`/${shopSlug}`);
+              } else {
+                setCurrentStep("product-selection");
+              }
+            }}
             isAuthenticated={isAuthenticated}
             user={user}
             onLogin={handleLoginClick}
