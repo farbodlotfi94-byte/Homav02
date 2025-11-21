@@ -152,10 +152,30 @@ class OTPService {
       }
 
       console.log("[OTPService] OTP verified successfully");
+
+      // Transform backend response to match AuthData interface
+      // Backend returns: {user: {...}, tokens: {access: "...", refresh: "..."}}
+      // Frontend expects: {access_token: "...", refresh_token: "...", user: {...}}
+      const backendData = data.data;
+      const authData = {
+        access_token: backendData.tokens?.access || "",
+        refresh_token: backendData.tokens?.refresh || "",
+        token_type: "bearer" as const,
+        expires_in: 1800, // 30 minutes default
+        user: backendData.user,
+      };
+
+      console.log("[OTPService] Transformed auth data:", {
+        hasAccessToken: !!authData.access_token,
+        hasRefreshToken: !!authData.refresh_token,
+        hasUser: !!authData.user,
+        tokenPreview: authData.access_token.substring(0, 20) + "...",
+      });
+
       return {
         success: true,
         message: data.message || "ورود موفق",
-        data: data.data,
+        data: authData,
         status,
       };
     } catch (error) {

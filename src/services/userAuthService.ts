@@ -89,7 +89,14 @@ class UserAuthService {
    * Public helper for other services to persist auth data
    */
   saveAuthData(authData: AuthData): void {
+    console.log('[UserAuth] saveAuthData called with:', {
+      hasAccessToken: !!authData.access_token,
+      hasRefreshToken: !!authData.refresh_token,
+      hasUser: !!authData.user,
+      tokenPreview: authData.access_token?.substring(0, 20) + '...',
+    });
     this.saveToStorage(authData);
+    console.log('[UserAuth] After save - accessToken in memory:', !!this.accessToken);
   }
 
   /**
@@ -389,9 +396,11 @@ class UserAuthService {
    */
   getAuthHeaders(): Record<string, string> {
     if (!this.accessToken) {
+      console.warn('[UserAuth] getAuthHeaders called but no access token available');
       return {};
     }
 
+    console.log('[UserAuth] Providing auth header with token:', this.accessToken.substring(0, 20) + '...');
     return {
       'Authorization': `Bearer ${this.accessToken}`,
     };
