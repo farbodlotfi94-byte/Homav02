@@ -86,6 +86,13 @@ class UserAuthService {
   }
 
   /**
+   * Public helper for other services to persist auth data
+   */
+  saveAuthData(authData: AuthData): void {
+    this.saveToStorage(authData);
+  }
+
+  /**
    * Clear tokens and user data from localStorage
    */
   private clearStorage(): void {

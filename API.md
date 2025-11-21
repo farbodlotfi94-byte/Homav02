@@ -6,34 +6,38 @@
 - [Base URL](#base-url)
 - [Authentication](#authentication)
 - [User Endpoints](#user-endpoints)
-  - [POST /api/users/register/](#post-apiusersregister)
-  - [POST /api/users/login/](#post-apiuserslogin)
-  - [GET /api/users/profile/](#get-apiusersprofile)
-  - [PUT /api/users/profile/](#put-apiusersprofile)
-  - [POST /api/users/logout/](#post-apiuserslogout)
-  - [POST /api/users/refresh/](#post-apiusersrefresh)
-  - [GET /api/users/gallery/](#get-apiusersgallery)
+    - [POST /api/users/register/](#post-apiusersregister)
+    - [POST /api/users/login/](#post-apiuserslogin)
+    - [POST /api/users/otp/send/](#post-apiusersotpsend)
+    - [POST /api/users/otp/verify/](#post-apiusersotpverify)
+    - [POST /api/users/otp/resend/](#post-apiusersotpresend)
+    - [POST /api/users/password/reset/](#post-apiuserspasswordreset)
+    - [GET /api/users/profile/](#get-apiusersprofile)
+    - [PUT /api/users/profile/](#put-apiusersprofile)
+    - [POST /api/users/logout/](#post-apiuserslogout)
+    - [POST /api/users/refresh/](#post-apiusersrefresh)
+    - [GET /api/users/gallery/](#get-apiusersgallery)
 - [Shop Endpoints](#shop-endpoints)
-  - [GET /api/shops/list/](#get-apishopslist)
-  - [POST /api/shops/login/](#post-apishopslogin)
-  - [POST /api/shops/products/](#post-apishopsproducts)
-  - [GET /api/shops/products/list/](#get-apishopsproductslist)
-  - [PUT /api/shops/products/edit/{product_id}/](#put-apishopsproductseditproduct_id)
-  - [DELETE /api/shops/products/delete/{product_id}/](#delete-apishopsproductsdeleteproduct_id)
+    - [GET /api/shops/list/](#get-apishopslist)
+    - [POST /api/shops/login/](#post-apishopslogin)
+    - [POST /api/shops/products/](#post-apishopsproducts)
+    - [GET /api/shops/products/list/](#get-apishopsproductslist)
+    - [PUT /api/shops/products/edit/{product_id}/](#put-apishopsproductseditproduct_id)
+    - [DELETE /api/shops/products/delete/{product_id}/](#delete-apishopsproductsdeleteproduct_id)
 - [Product Endpoints (Public)](#product-endpoints-public)
-  - [GET /api/products/](#get-apiproducts)
-  - [GET /api/products/{unique_link}/](#get-apiproductsunique_link)
-  - [POST /api/products/{unique_link}/process/](#post-apiproductsunique_linkprocess)
-  - [POST /api/products/vote/](#post-apiproductsvote)
+    - [GET /api/products/](#get-apiproducts)
+    - [GET /api/products/{unique_link}/](#get-apiproductsunique_link)
+    - [POST /api/products/{unique_link}/process/](#post-apiproductsunique_linkprocess)
+    - [POST /api/products/vote/](#post-apiproductsvote)
 - [Image Serving Endpoints](#image-serving-endpoints)
-  - [GET /api/images/{object_path}](#get-apiimagesobject_path)
+    - [GET /api/images/{object_path}](#get-apiimagesobject_path)
 - [Admin Configuration Endpoints](#admin-configuration-endpoints)
-  - [GET /api/admin/model-prompt/](#get-apiadminmodel-prompt)
-  - [PUT /api/admin/model-prompt/](#put-apiadminmodel-prompt)
-  - [GET /api/admin/groq-prompt/](#get-apiadmingroq-prompt)
-  - [PUT /api/admin/groq-prompt/](#put-apiadmingroq-prompt)
+    - [GET /api/admin/model-prompt/](#get-apiadminmodel-prompt)
+    - [PUT /api/admin/model-prompt/](#put-apiadminmodel-prompt)
+    - [GET /api/admin/groq-prompt/](#get-apiadmingroq-prompt)
+    - [PUT /api/admin/groq-prompt/](#put-apiadmingroq-prompt)
 - [System Health Endpoints](#system-health-endpoints)
-  - [GET /health/](#get-health)
+    - [GET /health/](#get-health)
 - [Error Responses](#error-responses)
 - [API Schema](#api-schema)
 
@@ -52,19 +56,41 @@ http://localhost:8000
 The API uses JWT (JSON Web Token) authentication for Users and Shops with different authentication schemes:
 
 **User Authentication:**
+
+Users can authenticate using two methods:
+
+1. **Password-based Authentication** (Traditional):
+    - Register: `POST /api/users/register/`
+    - Login: `POST /api/users/login/`
+    - Returns JWT access and refresh tokens
+
+2. **OTP-based Authentication** (Passwordless):
+    - Send OTP: `POST /api/users/otp/send/`
+    - Verify OTP: `POST /api/users/otp/verify/`
+    - Returns JWT access and refresh tokens
+    - Auto-creates account if user doesn't exist
+    - Rate limited: 3 OTP requests per hour per phone
+
+**User Token Management:**
 - JWT tokens with access and refresh tokens
+- Access token expires after 30 minutes
+- Refresh token expires after 7 days
 - Token refresh using `/api/users/refresh/`
 - Token blacklisting on logout
 
 **Shop Authentication:**
 - JWT access tokens (no refresh token)
 - Custom authentication backend
+- Username and password only
 
 **Token Usage:**
 - Include the access token in the `Authorization` header:
   ```
   Authorization: Bearer <access_token>
   ```
+
+**Password Reset:**
+- OTP-based password reset: `POST /api/users/otp/send/` (purpose='reset_password') → `POST /api/users/password/reset/`
 
 ## API Response Format
 
@@ -171,9 +197,9 @@ All API responses follow a consistent format using the `ResponseMixin` class fro
 
 **Errors:**
 - `400`: Validation failed
-  - Phone number already registered
-  - Password doesn't meet requirements
-  - Invalid Iranian phone number format
+    - Phone number already registered
+    - Password doesn't meet requirements
+    - Invalid Iranian phone number format
 
 ---
 
@@ -222,9 +248,265 @@ All API responses follow a consistent format using the `ResponseMixin` class fro
 
 **Errors:**
 - `400`: Invalid credentials
-  - Invalid phone number or password
-  - User account does not exist in either database
-  - User account is inactive (PostgreSQL only)
+    - Invalid phone number or password
+    - User account does not exist in either database
+    - User account is inactive (PostgreSQL only)
+
+---
+
+### POST /api/users/otp/send/
+
+**Description:** Send OTP (One-Time Password) code to phone number via SMS for authentication. Uses Kavenegar SMS provider. Rate limited to 3 requests per hour per phone number and 10 requests per hour per IP address.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789",
+  "purpose": "login"
+}
+```
+
+**Parameters:**
+- `phone_number`: Iranian phone number (e.g., 09123456789 or +989123456789) - Required
+- `purpose`: OTP purpose - Required, one of:
+    - `login`: For user authentication (default)
+    - `reset_password`: For password reset flow
+    - `verify_phone`: For phone number verification
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number
+- `purpose`: Must be one of the allowed values
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "کد تایید با موفقیت ارسال شد",
+  "data": {
+    "phone_number": "+989123456789",
+    "expires_in_seconds": 180,
+    "message": "کد تایید با موفقیت ارسال شد"
+  }
+}
+```
+
+**Security Features:**
+- OTP expires in 3 minutes (180 seconds)
+- 6-digit OTP code (NIST compliant)
+- SHA256 hashing before storage
+- Rate limiting: 3 sends per hour per phone, 10 sends per hour per IP
+- OTP codes are never logged
+
+**Errors:**
+- `400`: Invalid phone number or validation error
+    - Invalid Iranian phone number format
+    - Missing required fields
+- `429`: Rate limit exceeded
+    - Message: "تعداد درخواست‌های شما از حد مجاز گذشته است. لطفا بعدا تلاش کنید"
+    - Too many requests from this phone number or IP address
+- `500`: SMS provider error
+    - Message: "خطا در ارسال پیامک. لطفا بعدا تلاش کنید"
+    - Kavenegar service unavailable
+
+**Notes:**
+- OTP is sent via Kavenegar SMS service
+- OTP expires after 3 minutes
+- Maximum 3 OTP requests per hour per phone number
+- Maximum 10 OTP requests per hour per IP address
+- Same endpoint used for login, password reset, and phone verification (specify via `purpose`)
+
+---
+
+### POST /api/users/otp/verify/
+
+**Description:** Verify OTP code and authenticate user. If the user doesn't exist, a new account is automatically created (passwordless registration). Returns JWT access and refresh tokens on success.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789",
+  "otp_code": "123456",
+  "purpose": "login"
+}
+```
+
+**Parameters:**
+- `phone_number`: Iranian phone number - Required
+- `otp_code`: 6-digit OTP code received via SMS - Required
+- `purpose`: OTP purpose (must match the purpose used when sending OTP) - Required
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number
+- `otp_code`: Must be exactly 6 digits
+- `purpose`: Must match the purpose used in send OTP request
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "ورود با موفقیت انجام شد",
+  "data": {
+    "user": {
+      "id": 1,
+      "phone_number": "+989123456789",
+      "name": "",
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z"
+    },
+    "tokens": {
+      "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+      "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+    }
+  }
+}
+```
+
+**Security Features:**
+- Maximum 5 verification attempts per OTP
+- Constant-time comparison (prevents timing attacks)
+- Automatic OTP invalidation after successful verification
+- Account lockout after max attempts exceeded
+- Auto-registration for new users (passwordless)
+
+**Errors:**
+- `400`: Invalid OTP or validation error
+    - Message: "کد تایید نامعتبر است. X تلاش باقی مانده"
+    - Invalid OTP code (shows remaining attempts)
+    - Message: "تعداد تلاش‌های شما از حد مجاز گذشته است"
+    - Maximum attempts (5) exceeded
+- `410`: OTP expired (Gone)
+    - Message: "کد تایید منقضی شده است. لطفا کد جدید درخواست کنید"
+    - OTP has expired (> 3 minutes old)
+- `500`: System error
+
+**Notes:**
+- Automatically creates user account if phone number doesn't exist (passwordless registration)
+- OTP is invalidated after successful verification
+- Maximum 5 verification attempts before OTP is invalidated
+- Returns JWT tokens with 30-minute access token and 7-day refresh token
+- User can update their name later via profile endpoint
+
+---
+
+### POST /api/users/otp/resend/
+
+**Description:** Resend OTP code to phone number. Subject to the same rate limiting as send OTP endpoint.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789",
+  "purpose": "login"
+}
+```
+
+**Parameters:**
+- `phone_number`: Iranian phone number - Required
+- `purpose`: OTP purpose - Required (same as send OTP)
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "کد تایید مجددا ارسال شد",
+  "data": {
+    "phone_number": "+989123456789",
+    "expires_in_seconds": 180,
+    "message": "کد تایید با موفقیت ارسال شد"
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid phone number or validation error
+- `429`: Rate limit exceeded (same limits as send OTP)
+- `500`: SMS provider error
+
+**Notes:**
+- Generates a new OTP code (previous OTP is invalidated)
+- Subject to same rate limiting as send OTP (3 per hour per phone)
+- New OTP expires in 3 minutes
+- Resets verification attempt counter
+
+---
+
+### POST /api/users/password/reset/
+
+**Description:** Reset user password using OTP verification. User must first request OTP with purpose='reset_password', then verify OTP and set new password in this request.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789",
+  "otp_code": "123456",
+  "new_password": "NewSecurePassword123!",
+  "confirm_password": "NewSecurePassword123!"
+}
+```
+
+**Parameters:**
+- `phone_number`: Iranian phone number - Required
+- `otp_code`: 6-digit OTP code - Required
+- `new_password`: New password (min 8 characters) - Required
+- `confirm_password`: Password confirmation - Required
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number
+- `otp_code`: Must be exactly 6 digits
+- `new_password`: Must meet Django's password validation requirements (min 8 chars, not too common, etc.)
+- `confirm_password`: Must match new_password
+- User must exist in the database
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "رمز عبور با موفقیت تغییر یافت",
+  "data": {}
+}
+```
+
+**Password Reset Flow:**
+1. User requests OTP with purpose='reset_password': `POST /api/users/otp/send/`
+2. User receives 6-digit OTP via SMS
+3. User verifies OTP and sets new password: `POST /api/users/password/reset/`
+4. Password is updated, user can login with new password
+
+**Errors:**
+- `400`: Invalid OTP, password mismatch, or validation error
+    - Message: "کد تایید نامعتبر است"
+    - Invalid OTP code
+    - Message: "رمزهای عبور مطابقت ندارند"
+    - Passwords don't match
+    - Password doesn't meet requirements
+- `404`: User not found
+    - Message: "کاربری با این شماره تلفن یافت نشد"
+    - No account exists with this phone number
+- `410`: OTP expired
+    - Message: "کد تایید منقضی شده است"
+    - OTP has expired
+
+**Security Features:**
+- Requires valid OTP verification before password reset
+- OTP invalidated after use
+- Password strength validation
+- Maximum 5 OTP verification attempts
+- User must exist (cannot create account via password reset)
+
+**Notes:**
+- User account must already exist
+- OTP purpose must be 'reset_password' when requesting OTP
+- After password reset, user should login with new password
+- Old password is completely replaced
+- All existing sessions remain valid (tokens not invalidated)
 
 ---
 
@@ -484,8 +766,8 @@ Authorization: Bearer <access_token>
 
 **Errors:**
 - `400`: Invalid credentials
-  - Invalid username or password
-  - Shop account does not exist
+    - Invalid username or password
+    - Shop account does not exist
 
 ---
 
@@ -542,9 +824,9 @@ Content-Type: multipart/form-data
 
 **Errors:**
 - `400`: Invalid input data
-  - Image too large (> 10MB)
-  - Invalid image type
-  - Invalid price value
+    - Image too large (> 10MB)
+    - Invalid image type
+    - Invalid price value
 - `401`: Authentication required
 - `500`: Failed to upload image to storage
 
@@ -686,8 +968,8 @@ Content-Type: multipart/form-data
 
 **Errors:**
 - `400`: Invalid input data - "مشکل در اطلاعات ورودی"
-  - Image too large (> 10MB)
-  - Invalid image type
+    - Image too large (> 10MB)
+    - Invalid image type
 - `401`: Authentication required
 - `404`: Product not found - "محصول مورد نظر یافت نشد"
 - `500`: Failed to upload image
@@ -772,10 +1054,10 @@ Authorization: Bearer <shop_access_token>
 - `price_min`: Minimum price in Rials (inclusive)
 - `price_max`: Maximum price in Rials (inclusive)
 - `sort`: Sort order (default: newest)
-  - `newest`: Newest products first (created_at descending)
-  - `oldest`: Oldest products first (created_at ascending)
-  - `price_asc`: Lowest price first
-  - `price_desc`: Highest price first
+    - `newest`: Newest products first (created_at descending)
+    - `oldest`: Oldest products first (created_at ascending)
+    - `price_asc`: Lowest price first
+    - `price_desc`: Highest price first
 
 **Response (200 OK):**
 ```json
@@ -889,7 +1171,7 @@ GET /api/products/550e8400-e29b-41d4-a716-446655440000/
 
 **Errors:**
 - `404`: Product not found
-  - Message: "Product not found"
+    - Message: "Product not found"
 
 ---
 
@@ -1010,13 +1292,13 @@ Content-Type: application/json
 
 **Access Control:**
 - **Product images** (`products/*`): Publicly accessible without authentication
-  - Any client can retrieve product images
-  - Server verifies product exists in database before serving
+    - Any client can retrieve product images
+    - Server verifies product exists in database before serving
 
 - **Processed images** (`processed/*`): Requires user authentication and ownership verification
-  - User must be authenticated with valid JWT token
-  - User can only access images they own
-  - Returns 403 Forbidden if user doesn't own the image
+    - User must be authenticated with valid JWT token
+    - User can only access images they own
+    - Returns 403 Forbidden if user doesn't own the image
 
 **Response (200 OK):**
 ```
@@ -1066,8 +1348,8 @@ If-None-Match: "md5_hash_of_cached_content"
 - `ETag`: MD5 hash of image content for cache validation
 - `Last-Modified`: Timestamp when image was served
 - `Cache-Control`:
-  - Product images: `public, max-age=604800, stale-while-revalidate=60`
-  - Processed images: `private, max-age=300, must-revalidate`
+    - Product images: `public, max-age=604800, stale-while-revalidate=60`
+    - Processed images: `private, max-age=300, must-revalidate`
 
 **Errors:**
 - `304`: Not Modified (conditional GET - client cache is valid)

@@ -8,7 +8,7 @@ import { StagedUpload } from "./components/StagedUpload";
 import { ProductVisualization } from "./components/ProductVisualization";
 import { ProductFallback } from "./components/ProductFallback";
 import { ErrorRecovery } from "./components/ErrorRecovery";
-import { UserLogin } from "./components/UserLogin";
+import { OTPLogin } from "./components/OTPLogin";
 import { AboutUs } from "./components/AboutUs";
 import { AnimatePresence, motion } from "motion/react";
 import { toast, Toaster } from "sonner";
@@ -540,6 +540,14 @@ export default function App() {
   const handleLoginClick = () => {
     console.log('[App] Login button clicked');
     setCurrentStep('user-auth');
+  };
+
+  const handleAuthClose = () => {
+    if (product && productUniqueLink) {
+      setCurrentStep("product-landing");
+    } else {
+      setCurrentStep("product-selection");
+    }
   };
 
   // About Us button handler (opens About Us modal)
@@ -1360,20 +1368,13 @@ export default function App() {
           />
         )}
 
-        {/* User Auth (Login/Register) - NEW */}
+        {/* User Auth (OTP) */}
         {currentStep === "user-auth" && (
-          <UserLogin
+          <OTPLogin
             key="user-auth"
             isOpen={true}
-            onClose={() => {
-              // If user closes without logging in, go back to product selection
-              // (or product-landing if we have a product)
-              if (product && productUniqueLink) {
-                setCurrentStep("product-landing");
-              } else {
-                setCurrentStep("product-selection");
-              }
-            }}
+            initialPhoneNumber={user?.phone_number || undefined}
+            onClose={handleAuthClose}
             onSuccess={handleAuthSuccess}
           />
         )}
@@ -1392,22 +1393,16 @@ export default function App() {
         {/* Upload - Guard: Only allow authenticated users */}
         {currentStep === "upload" && (
           <>
-            {!isAuthenticated ? (
-              // Redirect to auth if not authenticated
-              <UserLogin
-                key="upload-auth-guard"
-                isOpen={true}
-                onClose={() => {
-                  // If user closes without logging in, go back to product landing
-                  if (product && productUniqueLink) {
-                    setCurrentStep("product-landing");
-                  } else {
-                    setCurrentStep("product-selection");
-                  }
-                }}
-                onSuccess={handleAuthSuccess}
-              />
-            ) : (
+          {!isAuthenticated ? (
+            // Redirect to auth if not authenticated
+            <OTPLogin
+              key="upload-auth-guard"
+              isOpen={true}
+              initialPhoneNumber={user?.phone_number || undefined}
+              onClose={handleAuthClose}
+              onSuccess={handleAuthSuccess}
+            />
+          ) : (
               <PhotoUpload
                 key="upload"
                 onUploadComplete={handleFileSelected}
