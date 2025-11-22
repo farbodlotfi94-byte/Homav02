@@ -14,9 +14,13 @@ export const POSTHOG_CONFIG = {
             maskAllInputs: true,
             maskTextSelector: '*',
         },
-        disable_external_dependency_loading: true, // Prevent loading external scripts (exception-autocapture.js, config.js)
-        advanced_disable_decide: false, // Keep feature flags enabled
+        disable_external_dependency_loading: !import.meta.env.DEV, // Allow in dev, disable in production
+        disable_surveys: !import.meta.env.DEV, // Allow in dev, disable in production
+        disable_toolbar: !import.meta.env.DEV, // CRITICAL: Allow in dev for testing, disable in production
+        advanced_disable_decide: !import.meta.env.DEV, // Allow remote config in dev, disable in production
+        advanced_disable_feature_flags: false, // Keep feature flags enabled
         debug: import.meta.env.DEV,
+        opt_out_capturing_by_default: false,
         persistence: 'localStorage+cookie',
         cross_subdomain_cookie: false,
         secure_cookie: true,
