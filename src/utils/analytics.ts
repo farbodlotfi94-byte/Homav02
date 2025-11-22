@@ -1,4 +1,4 @@
-/**
+/*
  * Analytics & KPI Tracking Service
  * ردیابی و تحلیل رفتار کاربران و KPIs
  */
