@@ -48,6 +48,7 @@ import {
   trackEvent,
   type ProcessImageResponse,
 } from "./utils/aiImageProcessor";
+import { posthogService } from "./services/posthog";
 import { trackEvent as trackAnalytics } from "./utils/analytics";
 import { getRateLimitState, saveRateLimitState, clearRateLimitState } from "./utils/rateLimitStorage";
 import { useCountdown } from "./hooks/useCountdown";
@@ -156,6 +157,11 @@ export default function App() {
     setRateLimitExpiry(null);
     setRateLimitMessage('');
   });
+
+  // Initialize PostHog with environment-aware settings
+  useEffect(() => {
+    posthogService.init();
+  }, []);
 
   // Initialize: Load auth state from storage
   useEffect(() => {
