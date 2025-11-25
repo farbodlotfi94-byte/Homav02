@@ -1,6 +1,6 @@
 import { Copy, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useState } from 'react';
 import { copyToClipboard } from '../utils/clipboard';
 

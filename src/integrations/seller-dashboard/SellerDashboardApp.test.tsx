@@ -1,26 +1,58 @@
 import { describe, it, expect } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { SellerDashboardApp } from './SellerDashboardApp';
 
-describe('SellerDashboard Integration', () => {
-  it('has seller dashboard route configured', () => {
-    // Verify that the route was added to App.tsx
-    // This is verified by the fact that navigating to /seller shows seller dashboard
-    expect(true).toBe(true);
+describe('SellerDashboardApp', () => {
+  it('renders login form with phone and password fields', () => {
+    render(<SellerDashboardApp />);
+
+    expect(
+      screen.getByLabelText('شماره تماس', { selector: 'input' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('رمز عبور', { selector: 'input' })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ورود' })).toBeInTheDocument();
   });
 
-  it('build succeeds with seller dashboard', () => {
-    // This test passes if the build succeeded earlier
-    // The seller dashboard was successfully integrated and builds
-    expect(true).toBe(true);
+  it('allows logging in with demo credentials and shows dashboard header', async () => {
+    render(<SellerDashboardApp />);
+
+    fireEvent.change(
+      screen.getByLabelText('شماره تماس', { selector: 'input' }),
+      { target: { value: '09123456789' } }
+    );
+    fireEvent.change(
+      screen.getByLabelText('رمز عبور', { selector: 'input' }),
+      { target: { value: 'demo123' } }
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'ورود' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('داشبورد آمار بازدید')
+      ).toBeInTheDocument();
+    });
   });
 
-  it('dev server serves seller dashboard', () => {
-    // This test passes if the dev server can serve the seller dashboard
-    // Verified by manual testing that /seller route loads
-    expect(true).toBe(true);
-  });
+  it('shows product list after login', async () => {
+    render(<SellerDashboardApp />);
 
-  it('seller dashboard files exist', () => {
-    // Verify that all seller dashboard files were copied
-    expect(true).toBe(true);
+    fireEvent.change(
+      screen.getByLabelText('شماره تماس', { selector: 'input' }),
+      { target: { value: '09123456789' } }
+    );
+    fireEvent.change(
+      screen.getByLabelText('رمز عبور', { selector: 'input' }),
+      { target: { value: 'demo123' } }
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'ورود' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('مبل راحتی مدرن')
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByText('فرش دستباف کاشان')).toBeInTheDocument();
   });
 });

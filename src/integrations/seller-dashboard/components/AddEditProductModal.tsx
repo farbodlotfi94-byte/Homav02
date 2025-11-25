@@ -5,7 +5,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ProductSpecsInput } from './ProductSpecsInput';
 import { ProductPreviewModal } from './ProductPreviewModal';
 import type { SellerProduct, ProductSpec } from '../types/seller';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface AddEditProductModalProps {
   isOpen: boolean;

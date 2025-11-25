@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { User, Instagram, MessageCircle, LogOut, Save, Upload } from 'lucide-react';
 import type { Seller } from '../types/seller';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { SellerProfileCard } from './SellerProfileCard';
 
 interface SettingsPageProps {
