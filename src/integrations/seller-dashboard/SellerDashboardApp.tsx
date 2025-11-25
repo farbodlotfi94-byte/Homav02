@@ -1,5 +1,6 @@
 import { Suspense, useState } from 'react';
 import { Toaster, toast } from 'sonner';
+import './index.css';
 import { SellerLogin } from './components/SellerLogin';
 import { SellerNavigation } from './components/SellerNavigation';
 import { SellerDashboard } from './components/SellerDashboard';
