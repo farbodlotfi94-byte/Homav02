@@ -20,6 +20,7 @@ export function SellerNavigation({ currentPage, onNavigate }: NavigationProps) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
+            const inactiveColor = 'rgba(17, 24, 39, 0.6)';
 
             return (
               <button
@@ -28,21 +29,21 @@ export function SellerNavigation({ currentPage, onNavigate }: NavigationProps) {
                 className="flex items-center justify-start gap-3 px-4 py-3 rounded-[16px] transition-all duration-300"
                 style={{
                   background: isActive ? 'var(--old-flax)' : 'transparent',
-                  color: isActive ? '#000000' : 'rgba(255, 255, 255, 0.5)',
-                  border: isActive ? '1px solid transparent' : '1px solid transparent',
+                  color: isActive ? '#000000' : inactiveColor,
+                  border: '1px solid transparent',
                   fontWeight: isActive ? 'var(--font-weight-bold)' : 'var(--font-weight-medium)',
                   fontSize: '15px'
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.color = '#FFFFFF';
+                    e.currentTarget.style.background = 'rgba(0, 0, 0, 0.04)';
+                    e.currentTarget.style.color = '#111827';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
+                    e.currentTarget.style.color = inactiveColor;
                   }
                 }}
               >
