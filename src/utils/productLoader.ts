@@ -89,7 +89,7 @@ export function parseShopAndProductFromPath(url: string): {
     }
 
     // Reserved routes
-    if (pathParts[0] === 'admin' || pathParts[0] === 'health') {
+    if (pathParts[0] === 'admin' || pathParts[0] === 'health' || pathParts[0] === 'seller') {
       return null;
     }
 

@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react';
-import { Toaster, toast } from 'sonner@2.0.3';
+import { Toaster, toast } from 'sonner';
 import { SellerLogin } from './components/SellerLogin';
 import { SellerNavigation } from './components/SellerNavigation';
 import { SellerDashboard } from './components/SellerDashboard';
@@ -13,6 +13,7 @@ import type { Seller, SellerProduct, DashboardStats } from './types/seller';
 type Page = 'dashboard' | 'products' | 'settings';
 
 export function SellerDashboardApp() {
+  console.log('[SellerDashboardApp] Component rendered');
   // This will be replaced with real authentication and data fetching
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -114,15 +115,11 @@ export function SellerDashboardApp() {
     ],
   };
 
-  // Login handler
+  // Login handler - TEMPORARILY ALWAYS SUCCESSFUL FOR TESTING
   const handleLogin = (phone: string, password: string) => {
-    // Simple demo login - should be replaced with real authentication
-    if (phone === '09123456789' && password === 'demo123') {
-      setIsLoggedIn(true);
-      toast.success('خوش آمدید! 👋');
-    } else {
-      toast.error('شماره تماس یا رمز عبور اشتباه است');
-    }
+    console.log('[SellerDashboardApp] Login attempt - temporarily allowing all logins for testing');
+    setIsLoggedIn(true);
+    toast.success('خوش آمدید! 👋');
   };
 
   // Register handler

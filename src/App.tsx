@@ -1313,8 +1313,8 @@ export default function App() {
       {/* Admin Route */}
       <Route path="/admin" element={<AdminDashboard />} />
 
-      {/* Seller Dashboard Route */}
-      <Route path="/seller/*" element={
+      {/* Seller Dashboard Route - must come before catch-all */}
+      <Route path="/seller" element={
         <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div>در حال بارگذاری پنل فروشنده...</div></div>}>
           <SellerDashboardApp />
         </Suspense>
