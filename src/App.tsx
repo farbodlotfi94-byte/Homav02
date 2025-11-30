@@ -19,6 +19,7 @@ const TermsModal = lazy(() => import("./components/TermsModal").then(m => ({ def
 const FeedbackSurvey = lazy(() => import("./components/FeedbackSurvey").then(m => ({ default: m.FeedbackSurvey })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const BrandColors = lazy(() => import("./components/BrandColors").then(m => ({ default: m.BrandColors })));
+const SellerDashboardApp = lazy(() => import("./integrations/seller-dashboard/SellerDashboardApp").then(m => ({ default: m.SellerDashboardApp })));
 
 // Loading fallback component
 const ModalLoadingFallback = () => null;
@@ -1311,6 +1312,13 @@ export default function App() {
     <Routes>
       {/* Admin Route */}
       <Route path="/admin" element={<AdminDashboard />} />
+
+      {/* Seller Dashboard Route - must come before catch-all */}
+      <Route path="/seller" element={
+        <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div>در حال بارگذاری پنل فروشنده...</div></div>}>
+          <SellerDashboardApp />
+        </Suspense>
+      } />
 
       {/* Main App Route - handles both / and /:uniqueLink */}
       <Route path="/*" element={

@@ -9,6 +9,8 @@
  * - Validates output before returning
  */
 
+import { validateImageBlob } from './imageValidator';
+
 // Maximum canvas dimensions for mobile browsers (Safari has ~16MP limit)
 const MAX_CANVAS_DIMENSION = 4096;
 const MAX_CANVAS_AREA = 16777216; // 4096 * 4096
@@ -214,7 +216,7 @@ export async function stripExifData(file: File): Promise<File> {
       }, 10000); // 10 second timeout for toBlob
 
       canvas.toBlob(
-        (blob) => {
+        async (blob) => {
           clearTimeout(timeoutId);
 
           if (!blob) {
@@ -231,6 +233,24 @@ export async function stripExifData(file: File): Promise<File> {
             reject(new Error('Created blob is empty'));
             return;
           }
+
+          // NEW: Validate the blob is a readable image
+          console.log('[stripExif] Validating canvas output...');
+          const validation = await validateImageBlob(blob, 5000);
+
+          if (!validation.isValid) {
+            console.error('[stripExif] Canvas blob validation failed:', validation.error);
+            console.warn('[stripExif] Falling back to original file');
+
+            // Fallback to original file if validation fails
+            resolve(file);
+            return;
+          }
+
+          console.log('[stripExif] Canvas blob validated successfully:', {
+            width: validation.width,
+            height: validation.height
+          });
 
           // Create new File object with fallback for old browsers
           const newFile = createFile(
