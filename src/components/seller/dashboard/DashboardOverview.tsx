@@ -1,29 +1,27 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import type { DashboardStats, ProductAnalyticsItem } from '../types/seller';
-import type { Seller } from '../types/seller';
+import type { DashboardStats } from '../../../integrations/seller-dashboard/types/seller';
+import type { Seller } from '../../../integrations/seller-dashboard/types/seller';
 import { SellerProfileCard } from './SellerProfileCard';
 
 interface SellerDashboardProps {
   stats: DashboardStats;
   seller: Seller;
-  productAnalytics: ProductAnalyticsItem[];
-  isLoadingAnalytics: boolean;
   onAddProduct: () => void;
 }
 
 // All data comes from props - no mock data
 
-export function SellerDashboard({
-  stats,
-  seller,
-  productAnalytics,
-  isLoadingAnalytics,
-  onAddProduct,
-}: SellerDashboardProps) {
+export function SellerDashboard({ stats, seller, onAddProduct }: SellerDashboardProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterOption, setFilterOption] = useState<'all' | 'high' | 'low'>('all');
+
+  // Debug: Show what data we received
+  console.log('Dashboard rendering with stats:', stats);
+  console.log('Visits data:', (stats as any).visits);
+  console.log('Credits data:', (stats as any).credits);
+  console.log('Last 7 days:', (stats as any).last7Days);
 
   // Get current date and time in Persian
   const getCurrentDateTime = () => {
@@ -40,37 +38,24 @@ export function SellerDashboard({
     return `${persianDate} - ${time}`;
   };
 
-  // Handle API response structure - check if data is nested under 'data' key
-  const apiData = (stats as any).data || stats;
+  // Use real data from props - no fallbacks to mock data
+  const chartData = (stats as any).last7Days || [];
+  const realProductData = stats.recentActivity || [];
 
-  // Debug logging to see what data we receive
-  console.log('SellerDashboard received stats:', stats);
-  console.log('SellerDashboard apiData:', apiData);
-  console.log('SellerDashboard visits data:', apiData.visits);
-  console.log('SellerDashboard credits data:', apiData.credits);
-  console.log('SellerDashboard last7Days:', apiData.last_7_days);
-
-  // Use real data from props instead of mock data
-  const chartData = apiData.last_7_days ?? [];
-  const realProductData = productAnalytics ?? [];
-
-  // Debug chart data
-  console.log('Chart data:', chartData);
-  console.log('Chart data length:', chartData.length);
-
-  // Helper function to show value or fallback text
-  const displayValue = (value: any, fallback: string = 'داده موجود نیست') => {
-    return value !== undefined ? value.toLocaleString('fa-IR') : fallback;
-  };
+  // Calculate token usage percentage - no fallbacks
+  const totalCredits = (stats as any).credits?.total_added;
+  const usedCredits = (stats as any).credits?.total_used;
+  const remainingCredits = (stats as any).credits?.remaining;
+  const usagePercentage = totalCredits && usedCredits ? Math.round((usedCredits / totalCredits) * 100) : 0;
 
   // Filter products based on search and filter option - use real data only
   const filteredProducts = realProductData
-    .filter((product) =>
+    .filter((product: any) =>
       product.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false
     )
-    .sort((a, b) => {
-      if (filterOption === 'high') return (b.views?.total || 0) - (a.views?.total || 0);
-      if (filterOption === 'low') return (a.views?.total || 0) - (b.views?.total || 0);
+    .sort((a: any, b: any) => {
+      if (filterOption === 'high') return (b.viewsTotal || b.views || 0) - (a.viewsTotal || a.views || 0);
+      if (filterOption === 'low') return (a.viewsTotal || a.views || 0) - (b.viewsTotal || b.views || 0);
       return 0;
     });
 
@@ -144,11 +129,11 @@ export function SellerDashboard({
               >
                 امروز
               </p>
-              <p
+              <p 
                 className="text-white"
                 style={{ fontSize: '20px', fontWeight: 'var(--font-weight-bold)' }}
               >
-{displayValue(apiData.visits?.today)}
+{stats.totalViews?.toLocaleString('fa-IR') || 'داده موجود نیست'}
               </p>
             </div>
             <div 
@@ -162,11 +147,11 @@ export function SellerDashboard({
               >
                 این هفته
               </p>
-              <p
+              <p 
                 className="text-white"
                 style={{ fontSize: '20px', fontWeight: 'var(--font-weight-bold)' }}
               >
-{displayValue(apiData.visits?.this_week)}
+{(stats as any).visits?.this_week?.toLocaleString('fa-IR') || 'داده موجود نیست'}
               </p>
             </div>
             <div 
@@ -180,11 +165,11 @@ export function SellerDashboard({
               >
                 این ماه
               </p>
-              <p
+              <p 
                 className="text-white"
                 style={{ fontSize: '20px', fontWeight: 'var(--font-weight-bold)' }}
               >
-{displayValue(apiData.visits?.this_month)}
+{(stats as any).visits?.this_month?.toLocaleString('fa-IR') || 'داده موجود نیست'}
               </p>
             </div>
           </div>
@@ -202,11 +187,11 @@ export function SellerDashboard({
             >
               امروز
             </p>
-            <p
+            <p 
               className="text-white"
               style={{ fontSize: '32px', fontWeight: 'var(--font-weight-bold)' }}
             >
-{displayValue(apiData.visits?.today)}
+{(stats as any).visits?.today?.toLocaleString('fa-IR') || 'داده موجود نیست'}
             </p>
           </div>
           <div 
@@ -219,11 +204,11 @@ export function SellerDashboard({
             >
               این هفته
             </p>
-            <p
+            <p 
               className="text-white"
               style={{ fontSize: '32px', fontWeight: 'var(--font-weight-bold)' }}
             >
-{displayValue(apiData.visits?.this_week)}
+{(stats as any).visits?.this_week?.toLocaleString('fa-IR') || 'داده موجود نیست'}
             </p>
           </div>
           <div 
@@ -236,18 +221,18 @@ export function SellerDashboard({
             >
               این ماه
             </p>
-            <p
+            <p 
               className="text-white"
               style={{ fontSize: '32px', fontWeight: 'var(--font-weight-bold)' }}
             >
-{displayValue(apiData.visits?.this_month)}
+{(stats as any).visits?.this_month?.toLocaleString('fa-IR') || 'داده موجود نیست'}
             </p>
           </div>
         </div>
 
         {/* Chart - iOS Sparkline Style */}
         <div className="pt-2">
-          <h3
+          <h3 
             className="text-white mb-3 text-right"
             style={{
               fontSize: '14px',
@@ -256,48 +241,42 @@ export function SellerDashboard({
           >
             بازدید ۷ روز اخیر
           </h3>
-          {chartData && chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={135} className="md:!h-[180px]">
-              <LineChart data={chartData}>
-                <XAxis
-                  dataKey="day"
-                  stroke="rgba(255, 255, 255, 0.3)"
-                  style={{ fontSize: '11px' }}
-                  tick={{ fill: 'rgba(255, 255, 255, 0.5)' }}
-                  axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
-                  tickLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1A1A1A',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '12px',
-                    direction: 'rtl',
-                    fontSize: '12px',
-                    padding: '8px 12px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
-                  }}
-                  labelStyle={{
-                    color: '#FFFFFF',
-                    fontWeight: 'var(--font-weight-bold)'
-                  }}
-                  itemStyle={{ color: 'var(--old-flax)' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="visits"
-                  stroke="#FFFFFF"
-                  strokeWidth={2.5}
-                  dot={{ fill: '#FFFFFF', r: 4 }}
-                  activeDot={{ r: 6, fill: 'var(--old-flax)', stroke: '#000000', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="text-white/50 text-center py-8">
-              داده‌ای برای نمایش وجود ندارد
-            </div>
-          )}
+          <ResponsiveContainer width="100%" height={135} className="md:!h-[180px]">
+            <LineChart data={chartData}>
+              <XAxis 
+                dataKey="day" 
+                stroke="rgba(255, 255, 255, 0.3)"
+                style={{ fontSize: '11px' }}
+                tick={{ fill: 'rgba(255, 255, 255, 0.5)' }}
+                axisLine={{ stroke: 'rgba(255, 255, 255, 0.1)' }}
+                tickLine={false}
+              />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: '#1A1A1A',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  direction: 'rtl',
+                  fontSize: '12px',
+                  padding: '8px 12px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                }}
+                labelStyle={{ 
+                  color: '#FFFFFF', 
+                  fontWeight: 'var(--font-weight-bold)' 
+                }}
+                itemStyle={{ color: 'var(--old-flax)' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="visits" 
+                stroke="#FFFFFF" 
+                strokeWidth={2.5}
+                dot={{ fill: '#FFFFFF', r: 4 }}
+                activeDot={{ r: 6, fill: 'var(--old-flax)', stroke: '#000000', strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -335,14 +314,14 @@ export function SellerDashboard({
                   >
                     مصرف شده
                   </p>
-                  <p
+                  <p 
                     className="text-white"
-                    style={{
+                    style={{ 
                       fontSize: '20px',
                       fontWeight: 'var(--font-weight-bold)'
                     }}
                   >
-{displayValue(apiData.credits?.total_used)}
+{stats.totalUploads?.toLocaleString('fa-IR') || 'داده موجود نیست'}
                   </p>
                 </div>
                 <div className="text-left">
@@ -352,48 +331,36 @@ export function SellerDashboard({
                   >
                     باقی‌مانده
                   </p>
-                  <p
+                  <p 
                     className="text-white"
-                    style={{
+                    style={{ 
                       fontSize: '20px',
                       fontWeight: 'var(--font-weight-bold)'
                     }}
                   >
-{displayValue(apiData.credits?.remaining)}
+{(stats as any).credits?.remaining?.toLocaleString('fa-IR') || 'داده موجود نیست'}
                   </p>
                 </div>
               </div>
               
               {/* Progress Bar */}
               <div className="space-y-2">
-                {(() => {
-                  const totalUsed = apiData.credits?.total_used || 0;
-                  const remaining = apiData.credits?.remaining || 0;
-                  const totalAdded = apiData.credits?.total_added || 0;
-                  const total = totalAdded || (totalUsed + remaining);
-                  const percentage = total > 0 ? Math.round((totalUsed / total) * 100) : 0;
-
-                  return (
-                    <>
-                      <div
-                        className="w-full rounded-full h-2 overflow-hidden"
-                        style={{ background: 'rgba(255, 255, 255, 0.1)' }}
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%`, background: 'var(--old-flax)' }}
-                        />
-                      </div>
-                      <div
-                        className="flex items-center justify-between text-white/60"
-                        style={{ fontSize: '12px', fontWeight: 'var(--font-weight-medium)' }}
-                      >
-                        <span>{percentage}٪ مصرف شده</span>
-                        <span>از {total.toLocaleString('fa-IR')} توکن</span>
-                      </div>
-                    </>
-                  );
-                })()}
+                <div 
+                  className="w-full rounded-full h-2 overflow-hidden"
+                  style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+                >
+                  <div 
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${usagePercentage || 0}%`, background: '#EEFF41' }}
+                  />
+                </div>
+                <div 
+                  className="flex items-center justify-between text-white/60"
+                  style={{ fontSize: '12px', fontWeight: 'var(--font-weight-medium)' }}
+                >
+                  <span>{usagePercentage || 0}٪ مصرف شده</span>
+                  <span>از {totalCredits?.toLocaleString('fa-IR') || 'N/A'} توکن</span>
+                </div>
               </div>
             </div>
           </div>
@@ -411,11 +378,11 @@ export function SellerDashboard({
                 >
                   توکن مصرف شده
                 </p>
-                <p
+                <p 
                   className="text-white text-right"
                   style={{ fontSize: '24px', fontWeight: 'var(--font-weight-bold)' }}
                 >
-{displayValue(apiData.credits?.total_used)}
+{usedCredits?.toLocaleString('fa-IR') || 'داده موجود نیست'}
                 </p>
               </div>
               <div 
@@ -428,45 +395,33 @@ export function SellerDashboard({
                 >
                   توکن باقی‌مانده
                 </p>
-                <p
+                <p 
                   className="text-white text-right"
                   style={{ fontSize: '24px', fontWeight: 'var(--font-weight-bold)' }}
                 >
-{displayValue(apiData.credits?.remaining)}
+{(stats as any).credits?.remaining?.toLocaleString('fa-IR') || 'داده موجود نیست'}
                 </p>
               </div>
             </div>
 
             {/* Progress Bar */}
             <div className="space-y-2">
-              {(() => {
-                const totalUsed = apiData.credits?.total_used || 0;
-                const remaining = apiData.credits?.remaining || 0;
-                const totalAdded = apiData.credits?.total_added || 0;
-                const total = totalAdded || (totalUsed + remaining);
-                const percentage = total > 0 ? Math.round((totalUsed / total) * 100) : 0;
-
-                return (
-                  <>
-                    <div
-                      className="flex items-center justify-between text-white/60"
-                      style={{ fontSize: '13px', fontWeight: 'var(--font-weight-medium)' }}
-                    >
-                      <span>{percentage}٪ مصرف شده</span>
-                      <span>از {total.toLocaleString('fa-IR')} توکن</span>
-                    </div>
-                    <div
-                      className="w-full rounded-full h-3 overflow-hidden"
-                      style={{ background: 'rgba(255, 255, 255, 0.1)' }}
-                    >
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%`, background: 'var(--old-flax)' }}
-                      />
-                    </div>
-                  </>
-                );
-              })()}
+              <div 
+                className="flex items-center justify-between text-white/60"
+                style={{ fontSize: '13px', fontWeight: 'var(--font-weight-medium)' }}
+              >
+                <span>۷۵٪ مصرف شده</span>
+                <span>از {totalCredits.toLocaleString('fa-IR')} توکن</span>
+              </div>
+              <div 
+                className="w-full rounded-full h-3 overflow-hidden"
+                style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+              >
+                <div 
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{ width: `${usagePercentage || 0}%`, background: '#EEFF41' }}
+                />
+              </div>
             </div>
           </div>
 
@@ -621,66 +576,50 @@ export function SellerDashboard({
               </tr>
             </thead>
             <tbody>
-              {isLoadingAnalytics ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="py-10 text-center text-white/60"
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: 'var(--font-weight-normal)'
-                    }}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white/50"></div>
-                      <span>در حال بارگذاری...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredProducts.length > 0 ? (
+              {filteredProducts.length > 0 ? (
                 filteredProducts.map((product) => (
-                  <tr
-                    key={product.id}
+                  <tr 
+                    key={product.id} 
                     className="transition-colors duration-200"
                     style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}
                     onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td
+                    <td 
                       className="py-3 px-2 text-white text-right"
-                      style={{
+                      style={{ 
                         fontSize: '14px',
                         fontWeight: 'var(--font-weight-normal)'
                       }}
                     >
                       {product.name}
                     </td>
-                    <td
+                    <td 
                       className="py-3 px-2 text-white text-center"
-                      style={{
+                      style={{ 
                         fontSize: '14px',
                         fontWeight: 'var(--font-weight-medium)'
                       }}
                     >
-                      {(product.views?.today || 0).toLocaleString('fa-IR')}
+                      {product.viewsToday.toLocaleString('fa-IR')}
                     </td>
-                    <td
+                    <td 
                       className="py-3 px-2 text-white text-center"
-                      style={{
+                      style={{ 
                         fontSize: '14px',
                         fontWeight: 'var(--font-weight-bold)'
                       }}
                     >
-                      {(product.views?.total || 0).toLocaleString('fa-IR')}
+                      {product.viewsTotal.toLocaleString('fa-IR')}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={3}
+                  <td 
+                    colSpan={3} 
                     className="py-10 text-center text-white/60"
-                    style={{
+                    style={{ 
                       fontSize: '14px',
                       fontWeight: 'var(--font-weight-normal)'
                     }}

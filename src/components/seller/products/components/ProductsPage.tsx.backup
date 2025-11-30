@@ -1,45 +1,103 @@
-import { useState } from 'react';
-import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import type { SellerProduct, Seller } from '../types/seller';
-import { SellerProfileCard } from './SellerProfileCard';
-import { ProductDetailModal } from './ProductDetailModal';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Search, Eye, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { ImageWithFallback } from '../../figma/ImageWithFallback';
+import { sellerApiService } from '../../../../services/sellerApiService';
+import { sellerAuthService } from '../../../../services/sellerAuthService';
+import { SellerProfileCard } from '../../dashboard/components/SellerProfileCard';
+import { ProductDetailModal } from '../modals/ProductDetailModal';
+import type { Seller } from '../../../../integrations/seller-dashboard/types/seller';
+import type { ProductListItem } from '../../../../types/seller-api';
 
 interface ProductsPageProps {
-  products: SellerProduct[];
-  seller: Seller;
-  isLoadingProducts: boolean;
+  onEditProduct: (productId: number) => void;
   onAddProduct: () => void;
-  onEditProduct: (product: SellerProduct) => void;
-  onDeleteProduct: (productId: string) => void;
+  onViewAnalytics: () => void;
 }
 
 export function ProductsPage({
-  products,
-  seller,
-  isLoadingProducts,
-  onAddProduct,
   onEditProduct,
-  onDeleteProduct,
+  onAddProduct,
+  onViewAnalytics,
 }: ProductsPageProps) {
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [selectedProduct, setSelectedProduct] = useState<SellerProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductListItem | null>(null);
+
+  const apiSeller = sellerAuthService.getShop();
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const result = await sellerApiService.getProductsList();
+
+      if (result.success && result.data) {
+        setProducts(result.data.results);
+      } else {
+        toast.error(result.error || 'خطا در دریافت لیست محصولات');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('خطا در اتصال به سرور');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: number) => {
+    if (!confirm('آیا از حذف این محصول اطمینان دارید؟')) return;
+
+    try {
+      const result = await sellerApiService.deleteProduct(productId);
+      if (result.success) {
+        toast.success('محصول با موفقیت حذف شد');
+        fetchProducts(); // Refresh the list
+      } else {
+        toast.error(result.error || 'خطا در حذف محصول');
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('خطا در اتصال به سرور');
+    }
+  };
+
+  const seller: Seller | null = apiSeller ? {
+    id: apiSeller.id.toString(),
+    name: apiSeller.username,
+    shopName: apiSeller.shop_name,
+    email: apiSeller.phone_number,
+    createdAt: apiSeller.created_at,
+  } : null;
 
   // Get unique categories
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
-  // Filter products
+  // Filter products (simplified for now - assuming all products are active)
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch;
   });
 
+  if (!seller) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">در حال بارگذاری...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div 
+    <div
       className="space-y-5 sm:space-y-6 md:space-y-7 pb-20 md:pb-6"
       style={{ minHeight: '100vh' }}
     >
@@ -104,34 +162,15 @@ export function ProductsPage({
       </div>
 
       {/* Products Grid */}
-      {isLoadingProducts ? (
-        <div
-          className="rounded-[28px] p-14 text-center"
-          style={{
-            background: 'var(--jet-black)',
-            border: '1px solid rgba(255, 255, 255, 0.08)'
-          }}
-        >
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-          <h3
-            className="text-white mb-3"
-            style={{
-              fontSize: '16px',
-              fontWeight: 'var(--font-weight-medium)'
-            }}
-          >
-            در حال بارگذاری محصولات...
-          </h3>
-        </div>
-      ) : products.length === 0 ? (
-        <div
+      {products.length === 0 ? (
+        <div 
           className="rounded-[28px] p-14 text-center space-y-5"
           style={{
             background: 'var(--jet-black)',
             border: '1px solid rgba(255, 255, 255, 0.08)'
           }}
         >
-          <div
+          <div 
             className="w-20 h-20 rounded-full flex items-center justify-center mx-auto"
             style={{ background: 'rgba(255, 255, 255, 0.05)' }}
           >
@@ -300,12 +339,16 @@ export function ProductsPage({
           </div>
 
           {/* Products Cards Grid */}
-          {filteredProducts.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#EEFF41]" />
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                 {filteredProducts.map((product) => (
                   <div
-                    key={product.id}
+                    key={product.image_url}
                     onClick={() => setSelectedProduct(product)}
                     className="rounded-[20px] overflow-hidden transition-all duration-300 cursor-pointer"
                     style={{
@@ -326,48 +369,16 @@ export function ProductsPage({
                       className="relative aspect-square overflow-hidden"
                       style={{ background: 'rgba(255, 255, 255, 0.05)' }}
                     >
-                      {product.images[0] ? (
-                        <ImageWithFallback
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
+                      <ImageWithFallback
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
                         <div className="w-full h-full flex items-center justify-center text-black/30">
                           <Plus className="w-14 h-14" strokeWidth={1.5} />
                         </div>
                       )}
                       
-                      {/* Status Badge */}
-                      <div className="absolute top-3 right-3">
-                        {product.status === 'active' ? (
-                          <div 
-                            className="px-3 py-1 rounded-full"
-                            style={{
-                              background: 'var(--old-flax)',
-                              color: '#000000',
-                              fontSize: '12px',
-                              fontWeight: 'var(--font-weight-bold)',
-                              border: 'none'
-                            }}
-                          >
-                            فعال
-                          </div>
-                        ) : product.status === 'inactive' ? (
-                          <div 
-                            className="px-3 py-1 rounded-full"
-                            style={{
-                              background: 'rgba(0, 0, 0, 0.7)',
-                              color: '#FFFFFF',
-                              fontSize: '12px',
-                              fontWeight: 'var(--font-weight-bold)',
-                              border: '1px solid rgba(255, 255, 255, 0.2)'
-                            }}
-                          >
-                            غیرفعال
-                          </div>
-                        ) : null}
-                      </div>
                     </div>
 
                     {/* Product Info */}
@@ -383,17 +394,6 @@ export function ProductsPage({
                         >
                           {product.name}
                         </h3>
-                        {product.category && (
-                          <p
-                            className="text-white/70 leading-tight mt-1"
-                            style={{
-                              fontSize: '13px',
-                              fontWeight: 'var(--font-weight-normal)'
-                            }}
-                          >
-                            {product.category}
-                          </p>
-                        )}
                       </div>
 
                       {/* Stats */}
