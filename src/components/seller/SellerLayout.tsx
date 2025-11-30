@@ -32,7 +32,7 @@ export function SellerLayout() {
   const currentPage = getCurrentPage();
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]" dir="rtl">
+    <div className="min-h-screen bg-[#FAFAFA]" dir="rtl" data-seller-theme="true">
       {/* Header */}
       <HomaHeader />
 

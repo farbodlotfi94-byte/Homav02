@@ -2,6 +2,11 @@
  * Types برای پنل فروشنده HOMA
  */
 
+import type { ProductAnalyticsItem } from '../../../types/seller-api';
+
+// Re-export for easier imports
+export type { ProductAnalyticsItem };
+
 export interface Seller {
   id: string;
   name: string;
@@ -101,7 +106,8 @@ export interface DashboardStats {
     name: string;
     views: number;
   };
-  recentActivity: Array<{
+  // Deprecated: Use productAnalytics from API instead
+  recentActivity?: Array<{
     id: string;
     type: 'view' | 'upload' | 'purchase';
     productName: string;

@@ -4,7 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HOMA is a Persian/Farsi furniture visualization web application built with React, TypeScript, and Vite. Users can select products, upload photos of their space, and see AI-generated visualizations of how furniture products look in their environment.
+HOMA is a Persian/Farsi furniture visualization web application built with React, TypeScript, and Vite. The application has two main user flows:
+
+1. **User Flow**: Customers select products, upload photos of their space, and see AI-generated visualizations of furniture in their environment
+2. **Seller Flow**: Shop owners manage products, track analytics, and configure their storefronts via a dedicated dashboard at `/seller`
 
 ## Development Commands
 
@@ -12,11 +15,20 @@ HOMA is a Persian/Farsi furniture visualization web application built with React
 # Install dependencies
 npm install
 
-# Start development server (port 3000)
+# Start development server (port 3000, opens automatically)
 npm run dev
 
-# Build for production
+# Build for production (output: build/)
 npm run build
+
+# Run tests (watch mode)
+npm test
+
+# Run tests once
+npm run test:run
+
+# Run tests with UI dashboard
+npm run test:ui
 
 # Docker deployment
 docker-compose up -d --build
@@ -81,19 +93,28 @@ The app follows a multi-step flow controlled by `currentStep` state in `src/App.
 
 ### Key Components
 
-**Main Flow:**
+**Main User Flow:**
 - `ProductSelection` - Grid of available products (when no URL params)
 - `ProductAwareLanding` - Product landing page with upload CTA
 - `PhotoUpload` - File picker and camera integration
 - `ProductVisualization` - Display AI-processed result with actions
 - `FeedbackSurvey` - Collect user feedback before actions
 
-**Admin:**
-- `AdminDashboard` - Admin panel (accessible via /admin URL)
+**Seller Dashboard** (`/seller` route, located in `src/integrations/seller-dashboard/`):
+- `SellerLogin` - Multi-step OTP-based authentication (phone verification → password setup)
+- `SellerDashboard` - Overview with analytics and product stats
+- `ProductsPage` - Product management (CRUD operations)
+- `SettingsPage` - Shop profile and configuration
+- Uses `sellerAuthService.ts` for authentication with automatic token refresh
+- Includes comprehensive UI components (buttons, forms, dialogs, charts) in `src/components/seller/ui/`
+
+**Admin Panel** (accessible via `/admin` URL):
+- `AdminDashboard` - Admin control center
 - `components/admin/` - Admin-specific components (products, analytics, Gemini prompt, Groq prompt)
 
-**UI Library:**
+**Shared UI Library:**
 - `components/ui/` - Radix UI + shadcn/ui reusable components
+- `src/components/seller/ui/` - Additional components for seller dashboard (forms, modals, charts)
 - Tailwind CSS with Persian typography (IRANSans font family)
 
 ## Environment Variables
@@ -153,16 +174,45 @@ See `DEPLOYMENT.md` for detailed Dokploy deployment instructions.
 - Retry logic for transient network failures
 - Graceful fallbacks when AI processing fails
 
+## Seller Dashboard Architecture
+
+### Authentication Flow
+The seller dashboard uses **OTP-based authentication** with automatic token refresh:
+
+1. **Login**: Phone + password → access/refresh tokens stored in localStorage
+2. **Registration**: Send OTP → Verify OTP → Create account with username/password
+3. **Password Reset**: Send OTP → Verify OTP → Set new password
+4. **Token Refresh**: Automatic refresh using `sellerAuthService.refreshToken()` when access token expires
+
+**Key Service**: `src/services/sellerAuthService.ts` manages all authentication logic
+- Stores tokens in localStorage (keys: `homa_shop_access_token`, `homa_shop_refresh_token`)
+- Provides methods: `login()`, `register()`, `resetPassword()`, `refreshToken()`, `logout()`
+- Returns `ShopAuthData` interface with user and token info
+
+### Seller API Integration
+- **Base endpoint**: Same as main API (configured via `VITE_API_BASE_URL`)
+- **Endpoints**: All prefixed with `/api/shops/` (e.g., `/api/shops/login/`, `/api/shops/otp/phone-verify/send/`)
+- **Service**: `src/services/sellerApiService.ts` handles product CRUD and dashboard data
+- **Type definitions**: `src/types/seller-api.ts` contains backend response shapes
+
+### Styling Notes
+- Seller dashboard has **isolated Tailwind CSS** in `src/integrations/seller-dashboard/index.css`
+- Must be imported in `SellerDashboardApp.tsx` to override parent app's global styles
+- Component imports use vendored libraries with version aliases (configured in `vite.config.ts`)
+
 ## Important Files to Check
 
 When working on specific features:
 
-- **Product loading**: `src/utils/productLoader.ts`, `src/App.tsx:105-172`
-- **Image upload**: `src/components/PhotoUpload.tsx`, `src/components/StagedUpload.tsx`
-- **AI processing**: `src/utils/aiImageProcessor.ts`, `src/services/api.ts`
+- **User flow - Product loading**: `src/utils/productLoader.ts`, `src/App.tsx:105-172`
+- **User flow - Image upload**: `src/components/PhotoUpload.tsx`, `src/components/StagedUpload.tsx`
+- **User flow - AI processing**: `src/utils/aiImageProcessor.ts`, `src/services/api.ts`
+- **Seller flow - Authentication**: `src/services/sellerAuthService.ts`
+- **Seller flow - Dashboard**: `src/integrations/seller-dashboard/SellerDashboardApp.tsx`
+- **Seller flow - API calls**: `src/services/sellerApiService.ts`
 - **Admin features**: `src/components/AdminDashboard.tsx`, `src/components/admin/*`
 - **API configuration**: `src/config/api.ts`
-- **Type definitions**: `src/types/product.ts`, `src/types/admin.ts`
+- **Type definitions**: `src/types/product.ts`, `src/types/admin.ts`, `src/types/seller-api.ts`
 - **Font configuration**: `src/styles/fonts.css`, `src/assets/fonts/vazirmatn/`
 
 ## Testing and Debugging
@@ -215,6 +265,24 @@ Backend uses PostgreSQL with these key tables:
 
 ## Seller Dashboard Integration Notes (2025-11-25)
 
-- When integrating `src/integrations/seller-dashboard`, remember to import its bundled Tailwind CSS (`src/integrations/seller-dashboard/index.css`) inside `SellerDashboardApp.tsx`. Without this import the host app’s globals override typography, spacing, and color tokens, resulting in mismatched UI.
-- Vendor files copied from the seller repo referenced packages with inline version suffixes (e.g. `@radix-ui/react-slot@1.1.2`, `sonner@2.0.3`). Vite/Vitest cannot resolve those specifiers. Strip the `@<version>` suffix everywhere so imports match the dependencies declared in `package.json`.
-- The Vitest environment needs a constructable `ResizeObserver` mock because Recharts’ `ResponsiveContainer` instantiates it. Provide a class-based mock in `src/test/setup.ts` to keep seller dashboard smoke tests passing.
+### Stylesheet & CSS Isolation
+- Import bundled Tailwind CSS (`src/integrations/seller-dashboard/index.css`) inside `SellerDashboardApp.tsx`
+- Without this import, the parent app's `globals.css` overrides typography, spacing, and color tokens, resulting in broken UI
+- The seller dashboard CSS is isolated and self-contained; don't remove or rely on parent styles
+
+### Vendor Package Aliases
+- Seller dashboard components reference packages with inline version suffixes (e.g. `@radix-ui/react-slot@1.1.2`, `sonner@2.0.3`)
+- Vite and Vitest cannot resolve these specifiers; they must match `package.json` dependencies
+- **Resolution**: Vite's `resolve.alias` config in `vite.config.ts` strips version suffixes at build time
+- When adding new seller dashboard dependencies, ensure they're added to `package.json` AND the alias list
+
+### Testing with Vitest
+- Recharts' `ResponsiveContainer` instantiates `ResizeObserver` during render
+- Vitest jsdom environment doesn't provide a native `ResizeObserver`
+- Solution: Provide a class-based `ResizeObserver` mock in `src/test/setup.ts`
+- Without this mock, seller dashboard component tests fail during rendering phase
+
+### Routing & Access
+- Seller dashboard accessible at `/seller` route via routing in `src/App.tsx`
+- ProtectedRoute wrapper handles authentication checks
+- Redirect to login if no valid access token or refresh fails

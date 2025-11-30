@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { HomaHeader } from './HomaHeader';
+import { HomaHeader } from '../common/HomaHeader';
 import { sellerAuthService } from '../../../services/sellerAuthService';
 
 interface SellerLoginProps {

@@ -5,8 +5,8 @@
  */
 
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { SellerLogin } from '../SellerLogin';
-import { ProtectedRoute } from './ProtectedRoute';
+import { SellerLogin } from './auth/SellerLogin';
+import { ProtectedRoute } from './auth/ProtectedRoute';
 import { SellerLayout } from './SellerLayout';
 import { DashboardPage } from './dashboard/DashboardPage';
 import { ProductsPageWrapper } from './products/ProductsPageWrapper';

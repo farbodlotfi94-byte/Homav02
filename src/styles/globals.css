@@ -292,10 +292,26 @@ html {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
-  
+
   .glass-dark {
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
+}
+
+/* Seller Portal Theme - Yellow Accent */
+[data-seller-theme="true"] {
+  /* Seller Primary Colors */
+  --seller-primary: #EEFF41;
+  --seller-primary-hover: #D9E838;
+  --seller-primary-dark: #C4D02F;
+  --seller-primary-light: rgba(238, 255, 65, 0.1);
+
+  /* Override main theme colors for seller section */
+  --primary: #EEFF41;
+  --primary-hover: #D9E838;
+  --accent: #EEFF41;
+  --accent-foreground: #1a1a1a;
+  --ring: #EEFF41;
 }

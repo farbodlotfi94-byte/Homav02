@@ -18,12 +18,27 @@
     - [POST /api/users/refresh/](#post-apiusersrefresh)
     - [GET /api/users/gallery/](#get-apiusersgallery)
 - [Shop Endpoints](#shop-endpoints)
+    - [POST /api/shops/otp/phone-verify/send/](#post-apishopsotpphone-verifysend)
+    - [POST /api/shops/otp/phone-verify/verify/](#post-apishopsotpphone-verifyverify)
+    - [POST /api/shops/otp/password-reset/send/](#post-apishopsotppassword-resetsend)
+    - [POST /api/shops/password/reset/](#post-apishopspasswordreset)
+    - [POST /api/shops/register/](#post-apishopsregister)
     - [GET /api/shops/list/](#get-apishopslist)
     - [POST /api/shops/login/](#post-apishopslogin)
+    - [POST /api/shops/refresh/](#post-apishopsrefresh)
+    - [GET /api/shops/dashboard/](#get-apishopsdashboard)
+    - [GET /api/shops/settings/](#get-apishopssettings)
+    - [PUT /api/shops/settings/](#put-apishopssettings)
     - [POST /api/shops/products/](#post-apishopsproducts)
     - [GET /api/shops/products/list/](#get-apishopsproductslist)
+    - [GET /api/shops/products/{unique_link}/](#get-apishopsproductsunique_link)
     - [PUT /api/shops/products/edit/{product_id}/](#put-apishopsproductseditproduct_id)
     - [DELETE /api/shops/products/delete/{product_id}/](#delete-apishopsproductsdeleteproduct_id)
+    - [GET /api/shops/products/analytics/](#get-apishopsproductsanalytics)
+    - [GET /api/shops/credits/](#get-apishopscredits)
+    - [GET /api/shops/credits/history/](#get-apishopscreditshistory)
+    - [POST /api/shops/admin/credits/add/](#post-apishopsadmincreditsadd)
+    - [POST /api/shops/admin/credits/remove/](#post-apishopsadmincreditsremove)
 - [Product Endpoints (Public)](#product-endpoints-public)
     - [GET /api/products/](#get-apiproducts)
     - [GET /api/products/{unique_link}/](#get-apiproductsunique_link)
@@ -79,9 +94,11 @@ Users can authenticate using two methods:
 - Token blacklisting on logout
 
 **Shop Authentication:**
-- JWT access tokens (no refresh token)
+- JWT access tokens with refresh tokens
 - Custom authentication backend
-- Username and password only
+- Phone number and password authentication
+- OTP-based registration and password reset
+- Token refresh using `/api/shops/refresh/`
 
 **Token Usage:**
 - Include the access token in the `Authorization` header:
@@ -690,6 +707,290 @@ Authorization: Bearer <access_token>
 
 ## Shop Endpoints
 
+### POST /api/shops/otp/phone-verify/send/
+
+**Description:** Send OTP code to phone number for shop registration verification. Phone number must not be already registered.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789"
+}
+```
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number, must not be already registered as a shop
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "کد تایید با موفقیت ارسال شد",
+  "data": {
+    "phone_number": "+989123456789",
+    "expires_in_seconds": 180,
+    "message": "کد تایید با موفقیت ارسال شد"
+  }
+}
+```
+
+**Security Features:**
+- OTP expires in 3 minutes (180 seconds)
+- 6-digit OTP code
+- Rate limiting: 3 requests per hour per phone number, 10 requests per hour per IP
+- Phone number validation (Iranian format only)
+- Duplicate registration prevention
+
+**Errors:**
+- `400`: Invalid phone number format or already registered
+    - Message: "این شماره تلفن قبلاً ثبت نام کرده است" (already registered)
+    - Message: "Invalid Iranian phone number format"
+- `429`: Rate limit exceeded
+- `500`: SMS provider error
+
+**Notes:**
+- OTP purpose: 'phone_verification'
+- Frontend should call this endpoint first, then verify OTP before registration
+- OTP codes are sent via Kavenegar SMS service
+
+---
+
+### POST /api/shops/otp/phone-verify/verify/
+
+**Description:** Verify OTP code and mark phone number as verified for registration. Stores verification status in Redis cache for 10 minutes.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789",
+  "otp_code": "123456"
+}
+```
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number
+- `otp_code`: Must be exactly 6 digits
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "شماره تلفن تایید شد",
+  "data": {
+    "phone_number": "+989123456789",
+    "verified": true
+  }
+}
+```
+
+**Security Features:**
+- Maximum 5 verification attempts per OTP
+- Constant-time comparison (prevents timing attacks)
+- Automatic OTP invalidation after successful verification
+- Verification status cached in Redis (10-minute TTL)
+- One-time use (deleted after registration)
+
+**Errors:**
+- `400`: Invalid OTP code
+    - Message: "کد تایید نامعتبر است. X تلاش باقی مانده" (shows remaining attempts)
+    - Message: "تعداد تلاش‌های شما از حد مجاز گذشته است" (max attempts exceeded)
+- `410`: OTP expired
+    - Message: "کد تایید منقضی شده است. لطفا کد جدید درخواست کنید"
+- `429`: Rate limit exceeded
+
+**Notes:**
+- OTP purpose must match: 'phone_verification'
+- Successful verification stores flag in Redis: `shop_phone_verified:{normalized_phone}`
+- Frontend can proceed with registration after successful verification
+- Verification expires after 10 minutes
+
+---
+
+### POST /api/shops/otp/password-reset/send/
+
+**Description:** Send OTP code to phone number for password reset. Only works if a shop account exists with this phone number.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789"
+}
+```
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number
+- Shop account must exist with this phone number
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "کد تایید با موفقیت ارسال شد",
+  "data": {
+    "phone_number": "+989123456789",
+    "expires_in_seconds": 180,
+    "message": "کد تایید با موفقیت ارسال شد"
+  }
+}
+```
+
+**Security Features:**
+- Only sends OTP if shop account exists (prevents account enumeration)
+- OTP expires in 3 minutes (180 seconds)
+- Rate limiting: 3 requests per hour per phone number, 10 requests per hour per IP
+
+**Errors:**
+- `400`: Invalid phone number or shop not found
+    - Message: "فروشگاهی با این شماره تلفن یافت نشد" (shop not found)
+- `429`: Rate limit exceeded
+- `500`: SMS provider error
+
+**Notes:**
+- OTP purpose: 'password_reset'
+- Only existing shops can request password reset
+- OTP codes are sent via Kavenegar SMS service
+
+---
+
+### POST /api/shops/password/reset/
+
+**Description:** Reset shop password using OTP verification. Shop account must exist and OTP must be valid.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "phone_number": "09123456789",
+  "otp_code": "123456",
+  "new_password": "NewSecurePassword123!",
+  "confirm_password": "NewSecurePassword123!"
+}
+```
+
+**Validation Rules:**
+- `phone_number`: Must be a valid Iranian phone number, shop must exist
+- `otp_code`: Must be exactly 6 digits
+- `new_password`: Must meet Django password requirements (min 8 chars, not common, etc.)
+- `confirm_password`: Must match new_password
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "رمز عبور با موفقیت تغییر یافت",
+  "data": {}
+}
+```
+
+**Security Features:**
+- OTP must be for 'password_reset' purpose
+- Password strength validation
+- Maximum 5 OTP verification attempts
+- Constant-time OTP comparison
+- Passwords are hashed before storage
+
+**Errors:**
+- `400`: Invalid OTP, password mismatch, or validation error
+    - Message: "کد تایید نامعتبر است" (invalid OTP)
+    - Message: "رمزهای عبور مطابقت ندارند" (passwords don't match)
+    - Password validation errors
+- `404`: Shop not found
+    - Message: "فروشگاه مورد نظر یافت نشد"
+- `410`: OTP expired
+    - Message: "کد تایید منقضی شده است"
+- `429`: Rate limit exceeded
+
+**Notes:**
+- OTP is invalidated after successful password reset
+- Old password is completely replaced
+- Existing sessions remain valid (tokens not invalidated)
+- Shop must exist before password reset
+
+---
+
+### POST /api/shops/register/
+
+**Description:** Register a new shop account. Phone number must be verified via OTP before registration.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "username": "shop1",
+  "password": "SecurePassword123!",
+  "shop_name": "My Furniture Store",
+  "shop_website_link": "https://shop.example.com",
+  "phone_number": "09123456789"
+}
+```
+
+**Validation Rules:**
+- `username`: Unique, max 100 characters
+- `password`: Must meet Django password requirements
+- `shop_name`: Required, max 255 characters
+- `shop_website_link`: Optional URL
+- `phone_number`: Must be verified via OTP within last 10 minutes
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "فروشگاه با موفقیت ایجاد شد",
+  "data": {
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+    "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+    "shop": {
+      "id": 1,
+      "username": "shop1",
+      "shop_name": "My Furniture Store",
+      "role": "shop",
+      "link": "https://shop.example.com",
+      "created_at": "2024-01-15T10:30:00Z",
+      "is_active": true,
+      "phone_number": "+989123456789",
+      "try_on_credits": 100
+    }
+  }
+}
+```
+
+**Security Features:**
+- Phone verification required before registration
+- Phone verification check (Redis cache, 10-minute TTL)
+- One-time verification use (deleted after registration)
+- Username uniqueness validation
+- Password strength requirements
+
+**Registration Flow:**
+1. User enters phone number
+2. Frontend calls `POST /api/shops/otp/phone-verify/send/` to get OTP
+3. User receives SMS with OTP code
+4. Frontend calls `POST /api/shops/otp/phone-verify/verify/` to verify OTP
+5. If verification successful, frontend can proceed with registration
+6. Frontend calls `POST /api/shops/register/` with all required data
+7. Backend validates phone verification before creating account
+
+**Errors:**
+- `400`: Invalid input data or phone not verified
+    - Message: "شماره تلفن تایید نشده است. لطفا ابتدا کد تایید دریافت کرده و آن را تایید کنید"
+    - Validation errors for username, password, etc.
+
+**Notes:**
+- Phone verification is required and must be done within 10 minutes
+- Verification flag is deleted after successful registration (one-time use)
+- Returns JWT tokens immediately after registration
+- Default credits: 100 try-on credits
+
+---
+
 ### GET /api/shops/list/
 
 **Description:** Retrieve a list of all shops with their basic information.
@@ -732,14 +1033,14 @@ Authorization: Bearer <access_token>
 
 ### POST /api/shops/login/
 
-**Description:** Authenticate shop with username and password.
+**Description:** Authenticate shop with phone number and password.
 
 **Authentication:** Not required
 
 **Request Body:**
 ```json
 {
-  "username": "shop1",
+  "phone_number": "+989123456789",
   "password": "password123"
 }
 ```
@@ -755,19 +1056,237 @@ Authorization: Bearer <access_token>
     "shop": {
       "id": 1,
       "username": "shop1",
+      "phone_number": "+989123456789",
       "shop_name": "Furniture Store",
       "role": "shop",
       "link": "",
-      "created_at": "2024-01-15T10:30:00Z"
+      "created_at": "2024-01-15T10:30:00Z",
+      "try_on_credits": 100
     }
   }
 }
 ```
 
+**Response Fields:**
+- `access_token`: JWT access token for authentication
+- `token_type`: Token type (always "bearer")
+- `shop`: Shop information object
+    - `try_on_credits`: Current available credits for try-on processing
+
 **Errors:**
 - `400`: Invalid credentials
-    - Invalid username or password
+    - Invalid phone number or password
     - Shop account does not exist
+
+**Notes:**
+- Shop login includes current credit balance in response
+- Credits are consumed when users process try-on images with shop's products
+- Both access token and refresh token are returned on successful login
+
+---
+
+### POST /api/shops/refresh/
+
+**Description:** Refresh shop JWT access token using a refresh token obtained from login. The refresh token is long-lived and can be used multiple times to obtain new access tokens.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc...",
+    "token_type": "bearer"
+  }
+}
+```
+
+**Response Fields:**
+- `access_token`: New JWT access token for authentication (replaces expired token)
+- `token_type`: Token type (always "bearer")
+
+**Errors:**
+- `400`: Invalid or expired refresh token
+    - Refresh token is malformed
+    - Refresh token has expired
+    - Associated shop account no longer exists or is inactive
+
+**Notes:**
+- Refresh token does not expire (or has a very long expiry)
+- You can call this endpoint multiple times with the same refresh token
+- Refresh token can be stored securely on client side (e.g., in httpOnly cookies)
+- Use the new access token for subsequent API requests
+- If refresh fails, user must log in again to get new tokens
+
+---
+
+### GET /api/shops/settings/
+
+**Description:** Get current shop settings including basic information, shareable shop link, and registration date in Persian calendar.
+
+**Authentication:** Required (Shop JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer <shop_access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Shop settings retrieved successfully",
+  "data": {
+    "username": "furniture_shop_123",
+    "shop_name": "Modern Furniture Store",
+    "phone_number": "+989123456789",
+    "shop_link": "https://example.com/Modern Furniture Store/",
+    "shop_website_link": "https://shop.example.com",
+    "registered_since": "1403/09/15",
+    "registered_since_display": "15 آذر 1403"
+  }
+}
+```
+
+**Response Fields:**
+- `username` - Shop username
+- `shop_name` - Shop display name
+- `phone_number` - Phone number in +98 format
+- `shop_link` - **READ-ONLY** shareable shop link (format: `https://{FRONTEND_BASE_URL}/{shop_name}/`)
+- `shop_website_link` - Optional shop website URL (can be null)
+- `registered_since` - Registration date in Persian calendar (YYYY/MM/DD format)
+- `registered_since_display` - Human-readable Persian date (e.g., "15 آذر 1403")
+
+**Errors:**
+- `401`: Authentication required
+
+**Notes:**
+- `shop_link` is automatically generated and read-only - used for sharing shop's product catalog
+- Persian dates are automatically converted from Gregorian calendar
+- All fields are current values from database
+
+---
+
+### PUT /api/shops/settings/
+
+**Description:** Update shop settings including basic information and optional password change.
+
+**Authentication:** Required (Shop JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer <shop_access_token>
+Content-Type: application/json
+```
+
+**Request Body (all fields optional):**
+```json
+{
+  "username": "new_username",
+  "shop_name": "Updated Shop Name",
+  "phone_number": "09123456789",
+  "shop_website_link": "https://new-website.com",
+  "old_password": "CurrentPass123!",
+  "new_password": "NewSecurePass456!",
+  "confirm_password": "NewSecurePass456!"
+}
+```
+
+**Request Fields:**
+- `username` (optional) - New username (must be unique)
+- `shop_name` (optional) - New shop display name
+- `phone_number` (optional) - New phone number in Iranian format (must be unique)
+- `shop_website_link` (optional) - New website URL (can be null/empty to remove)
+
+**Password Change (optional):**
+- `old_password` (required if changing password) - Current password for verification
+- `new_password` (required if changing password) - New password (min 8 characters)
+- `confirm_password` (required if changing password) - Must match new_password
+
+**Validation Rules:**
+1. At least one field must be provided
+2. If changing password, all 3 password fields (old_password, new_password, confirm_password) are required
+3. Old password must be correct
+4. New password must pass Django validation (min 8 chars, not too common, etc.)
+5. New password and confirm_password must match
+6. Username must be unique (if changed)
+7. Phone number must be unique and in Iranian format (if changed)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "تنظیمات فروشگاه با موفقیت به‌روزرسانی شد",
+  "data": {
+    "username": "new_username",
+    "shop_name": "Updated Shop Name",
+    "phone_number": "+989123456789",
+    "shop_link": "https://example.com/Updated Shop Name/",
+    "shop_website_link": "https://new-website.com",
+    "registered_since": "1403/09/15",
+    "registered_since_display": "15 آذر 1403"
+  }
+}
+```
+
+**Example Requests:**
+
+```bash
+# Update only shop name
+curl -X PUT http://localhost:8000/api/shops/settings/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"shop_name": "New Shop Name"}'
+
+# Update shop name and phone number
+curl -X PUT http://localhost:8000/api/shops/settings/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shop_name": "New Shop Name",
+    "phone_number": "09123456789"
+  }'
+
+# Update with password change
+curl -X PUT http://localhost:8000/api/shops/settings/ \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "shop_name": "New Shop Name",
+    "old_password": "CurrentPass123!",
+    "new_password": "NewSecurePass456!",
+    "confirm_password": "NewSecurePass456!"
+  }'
+```
+
+**Errors:**
+- `400`: Validation errors
+    - "حداقل یک فیلد برای به‌روزرسانی باید ارسال شود" (No fields provided)
+    - "رمز عبور فعلی اشتباه است" (Incorrect current password)
+    - "رمز عبور جدید و تکرار آن مطابقت ندارند" (Password mismatch)
+    - "این نام کاربری قبلا استفاده شده است" (Username already taken)
+    - "این شماره تلفن قبلا استفاده شده است" (Phone number already taken)
+    - "فرمت شماره تلفن اشتباه است" (Invalid phone format)
+    - "برای تغییر رمز عبور، باید رمز عبور فعلی، رمز عبور جدید و تکرار آن را وارد کنید" (Incomplete password fields)
+    - Django password validation errors (too short, too common, etc.)
+- `401`: Authentication required
+
+**Notes:**
+- Password change requires old password for security
+- Username and phone number uniqueness checked excluding current shop
+- `shop_link` automatically updates when `shop_name` changes
+- Password fields are write-only and never returned in responses
+- Partial updates supported - only provided fields are updated
+- Phone number automatically normalized to +98 format
 
 ---
 
@@ -834,7 +1353,7 @@ Content-Type: multipart/form-data
 
 ### GET /api/shops/products/list/
 
-**Description:** List all products for authenticated shop with pagination and search.
+**Description:** List all products for authenticated shop with pagination and search. Returns simplified product data (image_url, name, total_views, price) optimized for dashboard display.
 
 **Authentication:** Required (Shop JWT)
 
@@ -860,21 +1379,16 @@ Authorization: Bearer <shop_access_token>
     "previous": null,
     "results": [
       {
-        "id": 1,
-        "shop_id": 1,
+        "image_url": "http://localhost:8000/api/products/images/products/2024/01/15/abc123.jpg",
         "name": "Wooden Chair",
-        "description": "Comfortable wooden chair for dining",
-        "category": "furniture",
-        "price": 1500000,
-        "image_path": "products/2024/01/15/abc123.jpg",
-        "image_url": "https://storage.example.com/...",
-        "unique_link": "550e8400-e29b-41d4-a716-446655440000",
-        "created_at": "2024-01-15T10:30:00Z",
-        "link": "https://shop.example.com/product/123",
-        "extra_details": {
-          "اندازه": "3x4",
-          "جنس بدنه": "چوبی"
-        }
+        "total_views": 145,
+        "price": 1500000
+      },
+      {
+        "image_url": "http://localhost:8000/api/products/images/products/2024/01/16/def456.jpg",
+        "name": "Modern Sofa",
+        "total_views": 89,
+        "price": 5500000
       }
     ]
   }
@@ -904,9 +1418,82 @@ GET /api/shops/products/list/?search=wood&category=furniture&page=1&page_size=10
 - Automatically excludes soft-deleted products
 - Search is case-insensitive
 - Results ordered by created_at (newest first)
+- `total_views` counts all product page visits (tracked via ProductVisit model)
+- Response format simplified for dashboard display (only 4 fields)
+- For detailed product info, use `GET /api/shops/products/{unique_link}/`
 
 **Errors:**
 - `401`: Authentication required
+
+---
+
+### GET /api/shops/products/{unique_link}/
+
+**Description:** Get detailed information about a product belonging to authenticated shop. Includes shareable frontend link for customer access.
+
+**Authentication:** Required (Shop JWT)
+
+**Path Parameters:**
+- `unique_link`: Product unique link (UUID, e.g., "550e8400-e29b-41d4-a716-446655440000")
+
+**Request Headers:**
+```
+Authorization: Bearer <shop_access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Product retrieved successfully",
+  "data": {
+    "id": 1,
+    "name": "Wooden Chair",
+    "description": "Comfortable wooden chair for dining",
+    "category": 1,
+    "category_display": "FURNITURE",
+    "price": 1500000,
+    "image_url": "http://localhost:8000/api/products/images/products/2024/01/15/abc123.jpg",
+    "unique_link": "550e8400-e29b-41d4-a716-446655440000",
+    "link": "https://shop.example.com/product/123",
+    "extra_details": {
+      "اندازه": "3x4",
+      "جنس بدنه": "چوبی"
+    },
+    "total_views": 145,
+    "frontend_link": "https://example.com/MyShop/550e8400-e29b-41d4-a716-446655440000",
+    "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-20T14:22:00Z",
+    "is_active": true
+  }
+}
+```
+
+**Example Request:**
+```bash
+GET /api/shops/products/550e8400-e29b-41d4-a716-446655440000/
+Authorization: Bearer <shop_access_token>
+```
+
+**Frontend Link Format:**
+The `frontend_link` field provides a shareable URL for customers in the format:
+```
+https://{FRONTEND_BASE_URL}/{shop_name}/{unique_link}
+```
+
+Example: `https://example.com/MyFurnitureShop/550e8400-e29b-41d4-a716-446655440000`
+
+**Notes:**
+- Only shop owner can access their product details
+- `frontend_link` is dynamically generated using `FRONTEND_BASE_URL` from settings
+- Shop owners can copy and share this link with customers
+- `total_views` includes all historical views (even from deleted products via denormalized data)
+- Use this endpoint to get full product details including the shareable link
+
+**Errors:**
+- `401`: Authentication required
+- `403`: Product does not belong to authenticated shop - "شما مجاز به دسترسی به این محصول نیستید"
+- `404`: Product not found - "محصول مورد نظر یافت نشد"
 
 ---
 
@@ -1035,6 +1622,399 @@ Authorization: Bearer <shop_access_token>
 - Soft-deleted products will not appear in product lists
 - Shop can only delete their own products
 - Already deleted products cannot be deleted again
+
+---
+
+### GET /api/shops/credits/
+
+**Description:** View current credit balance and usage statistics for authenticated shop.
+
+**Authentication:** Required (Shop JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer <shop_access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "current_credits": 100,
+    "total_credits_used": 50,
+    "total_credits_added": 150,
+    "shop_name": "Furniture Store",
+    "shop_id": 1
+  }
+}
+```
+
+**Response Fields:**
+- `current_credits`: Current available credits for try-on processing
+- `total_credits_used`: Total number of credits consumed (lifetime)
+- `total_credits_added`: Total number of credits added to account (lifetime)
+- `shop_name`: Name of the shop
+- `shop_id`: Shop ID
+
+**Errors:**
+- `401`: Authentication required
+
+**Notes:**
+- Credits are consumed when users process try-on images with shop's products
+- Each successful try-on processing consumes 1 credit
+- Credits are automatically refunded if AI processing fails
+
+---
+
+### GET /api/shops/credits/history/
+
+**Description:** View paginated credit transaction history for authenticated shop with optional filtering.
+
+**Authentication:** Required (Shop JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer <shop_access_token>
+```
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `page_size`: Number of items per page (default: 20, max: 100)
+- `transaction_type`: Filter by type (optional): `ADMIN_ADD`, `ADMIN_REMOVE`, `TRY_ON_DEDUCT`, `TRY_ON_REFUND`
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "count": 50,
+    "next": "http://localhost:8000/api/shops/credits/history/?page=2",
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "amount": -1,
+        "transaction_type": "TRY_ON_DEDUCT",
+        "transaction_type_display": "Try-On Deduction",
+        "reason": "Try-on image processing",
+        "balance_after": 99,
+        "created_at": "2025-01-17T12:00:00Z",
+        "performed_by_username": null,
+        "related_processed_image_id": 123
+      },
+      {
+        "id": 2,
+        "amount": 100,
+        "transaction_type": "ADMIN_ADD",
+        "transaction_type_display": "Admin Addition",
+        "reason": "Monthly credit allocation",
+        "balance_after": 100,
+        "created_at": "2025-01-17T10:00:00Z",
+        "performed_by_username": "admin_user",
+        "related_processed_image_id": null
+      }
+    ]
+  }
+}
+```
+
+**Transaction Types:**
+- `ADMIN_ADD`: Credits added by admin (positive amount)
+- `ADMIN_REMOVE`: Credits removed by admin (negative amount)
+- `TRY_ON_DEDUCT`: Credit consumed for try-on processing (negative amount)
+- `TRY_ON_REFUND`: Credit refunded due to processing failure (positive amount)
+
+**Errors:**
+- `401`: Authentication required
+
+**Example Requests:**
+```bash
+# Get first page
+GET /api/shops/credits/history/
+
+# Get page 2 with 50 items
+GET /api/shops/credits/history/?page=2&page_size=50
+
+# Filter by transaction type
+GET /api/shops/credits/history/?transaction_type=TRY_ON_DEDUCT
+```
+
+**Notes:**
+- Results ordered by created_at (newest first)
+- Full audit trail with transaction reasons and admin information
+- Links to related processed images when available
+
+---
+
+### POST /api/shops/admin/credits/add/
+
+**Description:** Add credits to a shop's balance (admin only).
+
+**Authentication:** Required (Admin Shop JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer <admin_shop_access_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "shop_id": 1,
+  "amount": 100,
+  "reason": "Monthly credit allocation"
+}
+```
+
+**Request Fields:**
+- `shop_id`: ID of target shop (required)
+- `amount`: Number of credits to add (required, must be positive integer)
+- `reason`: Reason for adding credits (optional, for audit trail)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Credits added successfully",
+  "data": {
+    "shop_id": 1,
+    "shop_name": "Furniture Store",
+    "credits_added": 100,
+    "new_balance": 150,
+    "transaction_id": 456
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid input data
+    - Amount must be positive
+    - Shop does not exist
+- `401`: Authentication required
+- `403`: Admin permission required (only admin shops can add credits)
+- `404`: Target shop not found
+
+**Notes:**
+- Only shops with `role='admin'` can use this endpoint
+- Creates audit trail entry with admin username and reason
+- Operation is atomic and thread-safe
+- Both shops must have active accounts
+
+---
+
+### POST /api/shops/admin/credits/remove/
+
+**Description:** Remove credits from a shop's balance (admin only).
+
+**Authentication:** Required (Admin Shop JWT)
+
+**Request Headers:**
+```
+Authorization: Bearer <admin_shop_access_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "shop_id": 1,
+  "amount": 50,
+  "reason": "Credit adjustment"
+}
+```
+
+**Request Fields:**
+- `shop_id`: ID of target shop (required)
+- `amount`: Number of credits to remove (required, must be positive integer)
+- `reason`: Reason for removing credits (optional, for audit trail)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Credits removed successfully",
+  "data": {
+    "shop_id": 1,
+    "shop_name": "Furniture Store",
+    "credits_removed": 50,
+    "new_balance": 100,
+    "transaction_id": 457
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid input data
+    - Amount must be positive
+    - Shop does not have enough credits
+    - Shop does not exist
+- `401`: Authentication required
+- `403`: Admin permission required (only admin shops can remove credits)
+- `404`: Target shop not found
+
+**Notes:**
+- Only shops with `role='admin'` can use this endpoint
+- Cannot remove more credits than shop currently has
+- Creates audit trail entry with admin username and reason
+- Operation is atomic and thread-safe
+
+---
+
+### GET /api/shops/dashboard/
+
+Get comprehensive dashboard summary for the authenticated shop.
+
+**Authentication:** Required (Shop JWT Token)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Dashboard data retrieved successfully",
+  "data": {
+    "visits": {
+      "today": 45,
+      "this_week": 312,
+      "this_month": 1203
+    },
+    "ai_generations": {
+      "today": 12,
+      "this_week": 89,
+      "this_month": 387
+    },
+    "last_7_days": [
+      {
+        "day": "شنبه",
+        "date": "1403/09/03",
+        "visits": 23,
+        "ai_generations": 5
+      },
+      {
+        "day": "یکشنبه",
+        "date": "1403/09/04",
+        "visits": 45,
+        "ai_generations": 12
+      },
+      {
+        "day": "دوشنبه",
+        "date": "1403/09/05",
+        "visits": 67,
+        "ai_generations": 18
+      }
+    ],
+    "credits": {
+      "remaining": 500,
+      "total_used": 1500,
+      "total_added": 2000
+    }
+  }
+}
+```
+
+**Errors:**
+- `401`: Authentication required (invalid or missing JWT token)
+
+**Notes:**
+- Visit counts include all historical visits, even for deleted products (using denormalized data)
+- AI generation counts only include active (non-deleted) products
+- `this_week` and `this_month` represent the last 7 and 30 days respectively
+- Persian dates are in Solar Hijri calendar format (YYYY/MM/DD)
+- Persian day names follow the Iranian week (Saturday = شنبه is the first day)
+- Chart data is ordered chronologically from oldest to newest (7 days ago → today)
+
+---
+
+### GET /api/shops/products/analytics/
+
+Get detailed analytics for each product with pagination.
+
+**Authentication:** Required (Shop JWT Token)
+
+**Query Parameters:**
+- `period` (string, optional): Time period for filtering
+    - Values: `today`, `week`, `month`, `all`
+    - Default: `all`
+- `ordering` (string, optional): Sort field
+    - Values: `-views_total`, `-ai_total`, `name`, `views_total`, `ai_total`, `-name`
+    - Default: `-views_total`
+    - Prefix with `-` for descending order
+- `page` (integer, optional): Page number (default: 1)
+- `page_size` (integer, optional): Results per page (default: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Product analytics retrieved successfully",
+  "data": {
+    "count": 45,
+    "next": "http://localhost:8000/api/shops/products/analytics/?page=2",
+    "previous": null,
+    "results": [
+      {
+        "id": 123,
+        "name": "صندلی راحتی",
+        "category": 1,
+        "category_display": "صندلی",
+        "price": 5000000,
+        "image_url": "http://localhost:8000/api/products/images/products/uuid.jpg",
+        "views": {
+          "today": 45,
+          "total": 1203
+        },
+        "ai_generations": {
+          "today": 12,
+          "total": 387
+        },
+        "engagement_rate": 32.17,
+        "created_at": "2024-01-15T10:30:00Z",
+        "is_active": true
+      },
+      {
+        "id": 124,
+        "name": "میز ناهارخوری",
+        "category": 2,
+        "category_display": "میز",
+        "price": 8000000,
+        "image_url": "http://localhost:8000/api/products/images/products/uuid2.jpg",
+        "views": {
+          "today": 32,
+          "total": 890
+        },
+        "ai_generations": {
+          "today": 8,
+          "total": 245
+        },
+        "engagement_rate": 27.53,
+        "created_at": "2024-01-10T14:20:00Z",
+        "is_active": true
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid query parameters
+    - Invalid period value
+    - Invalid ordering value
+- `401`: Authentication required (invalid or missing JWT token)
+
+**Notes:**
+- Only returns active (non-deleted) products
+- `engagement_rate` is calculated as: (ai_generations / views) × 100
+- If a product has 0 views, engagement_rate will be 0.0
+- Visit counts include all historical data (preserved even after product deletion via denormalized fields)
+- Default ordering is by total views (highest first)
+- Period filtering:
+    - `today`: Only data from today
+    - `week`: Last 7 days
+    - `month`: Last 30 days
+    - `all`: All time (no filtering)
 
 ---
 
@@ -1212,9 +2192,15 @@ Content-Type: multipart/form-data
   "status": "success",
   "image_path": "processed/results/550e8400-e29b-41d4-a716-446655440000.jpg",
   "image_id": 1,
+  "shop_credits_remaining": 99,
   "message": "Image processed successfully"
 }
 ```
+
+**Response Fields:**
+- `image_path`: MinIO object path - use `/api/images/{image_path}` endpoint to retrieve the image
+- `image_id`: ID of the processed image record
+- `shop_credits_remaining`: Remaining credits for the shop that owns this product (after deduction)
 
 **Notes:**
 - `image_path` is MinIO object path - use `/api/images/{image_path}` endpoint to retrieve the image
@@ -1222,11 +2208,18 @@ Content-Type: multipart/form-data
 - EXIF data is stripped for privacy
 - Customer upload image is deleted after processing for storage efficiency
 - Result images are stored permanently in MinIO
+- **Credit System**: Each successful processing consumes 1 credit from the product's shop
+- Credits are deducted before processing begins
+- If processing fails, credits are automatically refunded
+- Processing will fail with 402 error if shop has insufficient credits
 - Processed image records now persist `enhancement_prompt`, `enhancement_model`, `image_generation_prompt`, and `image_generation_model` for future inspection
 
 **Errors:**
 - `400`: Invalid image or processing failed
 - `401`: Authentication required
+- `402`: Payment Required - Insufficient credits
+    - Message: "اعتبار کافی نیست. اعتبار فروشگاه: {credits}"
+    - Shop has no credits remaining for try-on processing
 - `404`: Product not found
 - `429`: Rate limit exceeded (5 requests per hour)
 - `500`: AI processing or storage error
