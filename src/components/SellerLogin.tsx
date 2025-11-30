@@ -387,32 +387,6 @@ export function SellerLogin({ onLogin, onRegister }: SellerLoginProps) {
               </button>
             </div>
           </div>
-
-          {/* Quick Test Card - Minimal Dark */}
-          <div 
-            className="rounded-[20px] p-4"
-            style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.03)',
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              textAlign: 'right'
-            }}
-          >
-            <p style={{
-              fontSize: '13px',
-              fontWeight: 'var(--font-weight-bold)',
-              color: '#000000',
-              marginBottom: '6px'
-            }}>
-              ⚡ تست سریع
-            </p>
-            <div style={{
-              fontSize: '13px',
-              fontWeight: 'var(--font-weight-medium)',
-              color: 'rgba(0, 0, 0, 0.6)'
-            }}>
-              <span>09123456789 | demo123</span>
-            </div>
-          </div>
         </div>
       </div>
     </div>
