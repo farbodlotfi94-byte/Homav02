@@ -141,6 +141,12 @@ See `DEPLOYMENT.md` for detailed Dokploy deployment instructions.
 - Framer Motion for animations with `AnimatePresence`
 - Event handlers prefixed with `handle` (e.g., `handleStartUpload`)
 
+### Display Field Convention
+- When both a raw backend field and a user-facing display variant exist (e.g., `category` and `category_display`):
+  - Always render the `*_display` value in the UI (e.g., show `category_display`).
+  - Always use the raw field for programmatic operations (API calls, filters, comparisons), e.g., send `category` in queries and filters.
+- Apply this convention consistently across the project for any similar pairs: `name`/`name_display`, `brand`/`brand_display`, etc.
+
 ### Error Handling
 - API errors handled with Persian user messages
 - Console logging for debugging with `[ComponentName]` prefixes
@@ -206,3 +212,9 @@ Backend uses PostgreSQL with these key tables:
 - Vazirmatn font loaded locally (not from CDN) for improved performance
 - Font file: Variable font supports all weights (100-900) in single WOFF2 file (~111 KB)
 - Font-display: swap for optimal Largest Contentful Paint (LCP)
+
+## Seller Dashboard Integration Notes (2025-11-25)
+
+- When integrating `src/integrations/seller-dashboard`, remember to import its bundled Tailwind CSS (`src/integrations/seller-dashboard/index.css`) inside `SellerDashboardApp.tsx`. Without this import the host app’s globals override typography, spacing, and color tokens, resulting in mismatched UI.
+- Vendor files copied from the seller repo referenced packages with inline version suffixes (e.g. `@radix-ui/react-slot@1.1.2`, `sonner@2.0.3`). Vite/Vitest cannot resolve those specifiers. Strip the `@<version>` suffix everywhere so imports match the dependencies declared in `package.json`.
+- The Vitest environment needs a constructable `ResizeObserver` mock because Recharts’ `ResponsiveContainer` instantiates it. Provide a class-based mock in `src/test/setup.ts` to keep seller dashboard smoke tests passing.

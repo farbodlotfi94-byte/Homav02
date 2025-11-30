@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ProductAwareLanding } from "./components/ProductAwareLanding";
 import { ProductSelection } from "./components/ProductSelection";
 import { PhotoUpload } from "./components/PhotoUpload";
@@ -8,8 +8,10 @@ import { StagedUpload } from "./components/StagedUpload";
 import { ProductVisualization } from "./components/ProductVisualization";
 import { ProductFallback } from "./components/ProductFallback";
 import { ErrorRecovery } from "./components/ErrorRecovery";
-import { UserLogin } from "./components/UserLogin";
+import { OTPLogin } from "./components/OTPLogin";
+import { AboutUs } from "./components/AboutUs";
 import { AnimatePresence, motion } from "motion/react";
+import { toast, Toaster } from "sonner";
 
 // Lazy load modals and admin components
 const ProductDetailsModal = lazy(() => import("./components/ProductDetailsModal").then(m => ({ default: m.ProductDetailsModal })));
@@ -17,19 +19,24 @@ const TermsModal = lazy(() => import("./components/TermsModal").then(m => ({ def
 const FeedbackSurvey = lazy(() => import("./components/FeedbackSurvey").then(m => ({ default: m.FeedbackSurvey })));
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const BrandColors = lazy(() => import("./components/BrandColors").then(m => ({ default: m.BrandColors })));
+const SellerDashboardApp = lazy(() => import("./integrations/seller-dashboard/SellerDashboardApp").then(m => ({ default: m.SellerDashboardApp })));
 
 // Loading fallback component
 const ModalLoadingFallback = () => null;
 import type { Product } from "./types/product";
-import type { User, AuthResponse } from "./types/auth";
+import type { User, AuthData } from "./types/auth";
 import { userAuthService } from "./services/userAuthService";
 import { submitVote } from "./services/api";
 import {
   parseEntryParams,
+  parseUniqueLinkFromPath,
+  parseShopAndProductFromPath,
   fetchProduct,
   fetchProductByUniqueLink,
+  fetchProductsByShopName,
   validateProduct,
   getSuggestedProducts,
+  sanitizeShopNameForUrl,
 } from "./utils/productLoader";
 import {
   isMobileDevice,
@@ -42,7 +49,10 @@ import {
   trackEvent,
   type ProcessImageResponse,
 } from "./utils/aiImageProcessor";
+import { posthogService } from "./services/posthog";
 import { trackEvent as trackAnalytics } from "./utils/analytics";
+import { getRateLimitState, saveRateLimitState, clearRateLimitState } from "./utils/rateLimitStorage";
+import { useCountdown } from "./hooks/useCountdown";
 import "./utils/mockUrl"; // Load mock URL helper
 import "./utils/testHelpers"; // Load test helpers for console
 
@@ -60,7 +70,7 @@ type Step =
   | "feedback" // Feedback survey between action and execution
   | "error"; // Error recovery
 
-type ErrorType = "network" | "timeout" | "server" | "unknown";
+type ErrorType = "network" | "timeout" | "server" | "unknown" | "old_url" | "invalid_shop";
 type FallbackReason =
   | "not_found"
   | "inactive"
@@ -78,6 +88,8 @@ type FeedbackType =
   | null;
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] =
     useState<Step>("loading");
   const [product, setProduct] = useState<Product | null>(null);
@@ -126,6 +138,32 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // About Us modal state
+  const [showAboutUs, setShowAboutUs] = useState(false);
+
+  // Rate limit state
+  const [rateLimitExpiry, setRateLimitExpiry] = useState<number | null>(null);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string>('');
+
+  // Shop filter state
+  const [shopFilter, setShopFilter] = useState<string | null>(null);
+  const [invalidShopError, setInvalidShopError] = useState(false);
+
+  // Rate limit countdown with auto-clear on expiry
+  const rateLimitCountdown = useCountdown(rateLimitExpiry, () => {
+    console.log('[App] Rate limit expired, clearing state');
+    if (product?.shop_id) {
+      clearRateLimitState(product.shop_id);
+    }
+    setRateLimitExpiry(null);
+    setRateLimitMessage('');
+  });
+
+  // Initialize PostHog with environment-aware settings
+  useEffect(() => {
+    posthogService.init();
+  }, []);
+
   // Initialize: Load auth state from storage
   useEffect(() => {
     // Check if user is authenticated
@@ -148,69 +186,140 @@ export default function App() {
       console.log("[App] Initializing...");
       console.log("[App] Current URL:", window.location.href);
 
-      // Parse entry parameters from URL
-      const entryContext = parseEntryParams(window.location.href);
-      console.log("[App] Parsed entry context:", entryContext);
+      // Reset shop filter
+      setShopFilter(null);
+      setInvalidShopError(false);
 
-      if (entryContext) {
-        // URL-based entry with specific product
-        console.log("[App] URL-based entry with product:", entryContext.productId);
+      // First, check for old URL formats (UUID at root or query params) - show error
+      const oldFormatUniqueLink = parseUniqueLinkFromPath(window.location.href);
+      const oldFormatQueryParams = parseEntryParams(window.location.href);
 
-        // Track entry
-        trackKPI("Entry", {
-          productId: entryContext.productId,
-          utm_source: entryContext.utm.source,
-          utm_medium: entryContext.utm.medium,
-          utm_campaign: entryContext.utm.campaign,
-          seller: entryContext.seller,
-        });
+      if (oldFormatUniqueLink || oldFormatQueryParams) {
+        // Old URL format detected - show error
+        console.log("[App] Old URL format detected, showing error");
+        setErrorType("old_url");
+        setCurrentStep("error");
+        return;
+      }
 
-        try {
-          // Fetch product data
-          const productData = await fetchProduct(entryContext.productId);
+      // Try new shop-based routing
+      const shopAndProduct = parseShopAndProductFromPath(window.location.href);
+      console.log("[App] Shop and product from path:", shopAndProduct);
 
-          if (!productData) {
-            console.log("[App] Product not found");
-            setFallbackReason("not_found");
-            setSuggestedProducts(await getSuggestedProducts("all", 3));
-            setCurrentStep("product-fallback");
-            return;
-          }
+      if (shopAndProduct) {
+        const { shopName, uniqueLink } = shopAndProduct;
 
-          // Validate product
-          const validation = validateProduct(productData);
+        // Case 1: /shop_name/unique_link - Product detail page
+        if (shopName && uniqueLink) {
+          console.log("[App] Shop-based product entry:", { shopName, uniqueLink });
 
-          if (!validation.isValid) {
-            console.log("[App] Product invalid:", validation.reason);
-            setFallbackReason(validation.reason!);
-            setSuggestedProducts(await getSuggestedProducts(productData.category, 3));
-            setCurrentStep("product-fallback");
-            return;
-          }
-
-          // Product is valid, show landing
-          console.log("[App] Product loaded successfully:", productData.name);
-          setProduct(productData);
-          setProductUniqueLink(productData.unique_link);
-          setProductVariant({
-            color: productData.selectedVariant?.color,
-            size: productData.selectedVariant?.size,
+          // Track entry
+          trackKPI("Entry", {
+            uniqueLink,
+            shopName,
+            entryType: 'shop_product_path',
           });
-          setCurrentStep("product-landing");
-        } catch (error) {
-          console.error("[App] Error fetching product:", error);
-          setFallbackReason("error");
-          setCurrentStep("product-fallback");
+
+          try {
+            // Fetch product data using unique_link
+            const productData = await fetchProductByUniqueLink(uniqueLink);
+
+            if (!productData) {
+              console.log("[App] Product not found");
+              setFallbackReason("not_found");
+              setSuggestedProducts(await getSuggestedProducts("all", 3));
+              setCurrentStep("product-fallback");
+              return;
+            }
+
+            // Validate product
+            const validation = validateProduct(productData);
+
+            if (!validation.isValid) {
+              console.log("[App] Product invalid:", validation.reason);
+              setFallbackReason(validation.reason!);
+              setSuggestedProducts(await getSuggestedProducts(productData.category, 3));
+              setCurrentStep("product-fallback");
+              return;
+            }
+
+            // Verify shop name matches (case-insensitive, handle both raw and sanitized)
+            const normalizedShopName = shopName.toLowerCase().trim();
+            const productShopName = (productData.seller.name || '').toLowerCase().trim();
+            const sanitizedProductShopName = sanitizeShopNameForUrl(productData.seller.name || '').toLowerCase().trim();
+
+            // Match if URL shop name matches either raw shop name or sanitized version
+            if (normalizedShopName !== productShopName && normalizedShopName !== sanitizedProductShopName) {
+              console.log("[App] Shop name mismatch:", { 
+                urlShop: shopName, 
+                productShop: productData.seller.name,
+                sanitized: sanitizedProductShopName
+              });
+              setErrorType("invalid_shop");
+              setCurrentStep("error");
+              return;
+            }
+
+            // Product is valid, show landing
+            console.log("[App] Product loaded successfully:", productData.name);
+            setProduct(productData);
+            setProductUniqueLink(productData.unique_link);
+            setShopFilter(sanitizeShopNameForUrl(productData.seller.name || ''));
+            setProductVariant({
+              color: productData.selectedVariant?.color,
+              size: productData.selectedVariant?.size,
+            });
+
+            // Check for existing rate limit from localStorage
+            const existingRateLimit = getRateLimitState(productData.shop_id);
+            if (existingRateLimit) {
+              console.log('[App] Restored rate limit from localStorage:', existingRateLimit);
+              setRateLimitExpiry(existingRateLimit.expiryTimestamp);
+              setRateLimitMessage(existingRateLimit.message);
+            }
+
+            setCurrentStep("product-landing");
+          } catch (error) {
+            console.error("[App] Error fetching product:", error);
+            setFallbackReason("error");
+            setCurrentStep("product-fallback");
+          }
+        }
+        // Case 2: /shop_name - Shop product listing page
+        else if (shopName && !uniqueLink) {
+          console.log("[App] Shop listing page:", shopName);
+
+          // Track entry
+          trackKPI("Entry", {
+            shopName,
+            entryType: 'shop_listing',
+          });
+
+          // Validate shop exists by fetching products
+          const shopProducts = await fetchProductsByShopName(shopName);
+
+          if (shopProducts.length === 0) {
+            console.log("[App] No products found for shop:", shopName);
+            setErrorType("invalid_shop");
+            setInvalidShopError(true);
+            setCurrentStep("error");
+            return;
+          }
+
+          // Shop exists, show product selection with filter
+          setShopFilter(shopName);
+          setCurrentStep("product-selection");
         }
       } else {
-        // No URL parameters - show product selection
-        console.log("[App] No product context found, showing product selection");
+        // Case 3: Root path / - Show all products
+        console.log("[App] Root path, showing all products");
+        setShopFilter(null);
         setCurrentStep("product-selection");
       }
     };
 
     initializeApp();
-  }, []);
+  }, [location]);
 
   // Listen for browser back/forward navigation
   useEffect(() => {
@@ -292,27 +401,61 @@ export default function App() {
   };
 
   // Product Selection Handler
-  const handleProductSelect = async (productId: string, uniqueLink: string) => {
+  const handleProductSelect = async (productId: string, uniqueLink: string, backendProduct?: any) => {
     trackKPI("Product Selected", {
       productId,
       uniqueLink,
     });
 
-    // Update URL for sharing
-    const newUrl = `${window.location.origin}${window.location.pathname}?productId=${productId}`;
-    window.history.pushState({ productId }, '', newUrl);
-
     try {
-      setCurrentStep("loading");
-      
-      // Fetch product data using uniqueLink directly
-      const productData = await fetchProductByUniqueLink(uniqueLink);
+      let productData;
 
-      if (!productData) {
-        console.log("[App] Product not found after selection");
-        setFallbackReason("not_found");
-        setCurrentStep("product-fallback");
-        return;
+      // If product data was passed from ProductSelection, use it directly (faster)
+      if (backendProduct) {
+        console.log("[App] Using cached product data from selection");
+        // Transform backend product to internal format
+        const { API_CONFIG } = await import('./config/api');
+        const shopName = backendProduct.shop_name || "فروشگاه";
+        productData = {
+          id: productId,
+          unique_link: backendProduct.unique_link,
+          name: backendProduct.name,
+          thumbnail: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`,
+          price: backendProduct.price,
+          currency: backendProduct.currency || "ریال",
+          seller: {
+            name: shopName,
+            verified: true
+          },
+          category: backendProduct.category,
+          status: "active" as const,
+          images: [`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(backendProduct.image_path)}`],
+          description: backendProduct.description,
+          features: [
+            "محصول از پیش تعریف شده",
+            "قابل تست در فضای شما",
+            `دسته‌بندی: ${backendProduct.category}`,
+            `تاریخ ایجاد: ${new Date(backendProduct.created_at).toLocaleDateString('fa-IR')}`
+          ],
+          link: backendProduct.link,
+          extra_details: backendProduct.extra_details,
+          shop_id: backendProduct.shop_id,
+          is_predefined: backendProduct.is_predefined,
+          image_path: backendProduct.image_path,
+          created_at: backendProduct.created_at
+        };
+      } else {
+        // Fallback: Fetch product data (for URL-based navigation)
+        setCurrentStep("loading");
+        console.log("[App] Fetching product data from API");
+        productData = await fetchProductByUniqueLink(uniqueLink);
+
+        if (!productData) {
+          console.log("[App] Product not found after selection");
+          setFallbackReason("not_found");
+          setCurrentStep("product-fallback");
+          return;
+        }
       }
 
       // Validate product
@@ -325,10 +468,15 @@ export default function App() {
         return;
       }
 
+      // Update URL for sharing - use shop_name/unique_link format
+      const shopSlug = sanitizeShopNameForUrl(productData.seller.name || '');
+      navigate(`/${shopSlug}/${uniqueLink}`, { replace: true });
+
       // Product is valid, show landing
       console.log("[App] Selected product loaded successfully:", productData.name);
       setProduct(productData);
       setProductUniqueLink(uniqueLink);
+      setShopFilter(shopSlug);
       setProductVariant({
         color: productData.selectedVariant?.color,
         size: productData.selectedVariant?.size,
@@ -342,24 +490,32 @@ export default function App() {
   };
 
   // NEW: Auth success handler (login or register)
-  const handleAuthSuccess = (authResponse: AuthResponse) => {
-    setUser(authResponse.user);
+  const handleAuthSuccess = (authData: AuthData) => {
+    setUser(authData.user);
     setIsAuthenticated(true);
 
     trackKPI('user_authenticated', {
-      userId: authResponse.user.id,
-      phone: authResponse.user.phone_number,
+      userId: authData.user.id,
+      phone: authData.user.phone_number,
       source: 'upload_attempt',
     });
 
-    console.log('[App] User authenticated successfully:', authResponse.user.phone_number);
+    console.log('[App] User authenticated successfully:', authData.user.phone_number);
 
-    // Proceed to upload
-    setCurrentStep('upload');
+    // Determine where to navigate after successful authentication
+    if (product && productUniqueLink) {
+      // User has a product selected, proceed to upload
+      console.log('[App] Product exists, navigating to upload');
+      setCurrentStep('upload');
+    } else {
+      // No product selected, go to product selection
+      console.log('[App] No product selected, navigating to product-selection');
+      setCurrentStep('product-selection');
+    }
   };
 
   // NEW: Logout handler
-  const handleLogout = async () => {
+  const handleLogout = async (redirectToAuth: boolean = false) => {
     await userAuthService.logout();
 
     setUser(null);
@@ -374,18 +530,37 @@ export default function App() {
 
     trackKPI('user_logout', {
       productId: product?.id,
+      redirectToAuth,
     });
 
-    console.log('[App] User logged out');
+    console.log('[App] User logged out', { redirectToAuth });
 
-    // Redirect to product landing
-    setCurrentStep('product-landing');
+    // Redirect to auth page if session expired during upload, otherwise go to product landing
+    if (redirectToAuth) {
+      setCurrentStep('user-auth');
+    } else {
+      setCurrentStep('product-landing');
+    }
   };
 
   // NEW: Login button handler (opens auth modal)
   const handleLoginClick = () => {
     console.log('[App] Login button clicked');
     setCurrentStep('user-auth');
+  };
+
+  const handleAuthClose = () => {
+    if (product && productUniqueLink) {
+      setCurrentStep("product-landing");
+    } else {
+      setCurrentStep("product-selection");
+    }
+  };
+
+  // About Us button handler (opens About Us modal)
+  const handleAboutUsClick = () => {
+    console.log('[App] About Us button clicked');
+    setShowAboutUs(true);
   };
 
   // Product Landing → Check Auth → Upload
@@ -531,11 +706,54 @@ export default function App() {
 
         // Handle 401 error (token expired and refresh failed)
         if (result.status === 401 && result.requiresLogin) {
-          console.error('[App] Session expired, user logged out');
-          await handleLogout();
+          console.error('[App] Session expired during upload, redirecting to login');
+          await handleLogout(true); // Pass true to redirect to auth page
           setApiStatus('failure');
           setPlacementSuccess(false);
-          setCurrentStep('visualization');
+          // Don't set to visualization - handleLogout will redirect to user-auth
+          return;
+        }
+
+        // Handle 429 rate limit error
+        if (result.status === 429 && result.isRateLimited && result.rateLimitInfo) {
+          console.log('[App] محدودیت تعداد درخواست رسیده است');
+          setApiStatus('failure');
+          setPlacementSuccess(false);
+
+          // Calculate expiry timestamp
+          const expiryTimestamp = Date.now() + (result.rateLimitInfo.retryAfter * 1000);
+          setRateLimitExpiry(expiryTimestamp);
+          setRateLimitMessage(result.rateLimitInfo.message);
+
+          // Save to localStorage for persistence
+          if (product?.shop_id) {
+            saveRateLimitState(
+              product.shop_id,
+              expiryTimestamp,
+              result.rateLimitInfo.message,
+              result.rateLimitInfo.availableIn
+            );
+          }
+
+          // Show toast notification
+          toast.error(result.rateLimitInfo.message, {
+            description: `لطفاً ${result.rateLimitInfo.availableIn} دیگر تلاش کنید.\n\nتوجه: محدودیت فقط برای این فروشگاه است. می‌توانید محصولات فروشگاه‌های دیگر را امتحان کنید.`,
+            duration: 8000,
+          });
+
+          // Track rate limit event
+          trackEvent({
+            eventType: "rate_limit_hit",
+            productId: product.id,
+            sessionId,
+            metadata: {
+              retryAfter: result.rateLimitInfo.retryAfter,
+              availableIn: result.rateLimitInfo.availableIn,
+              shopId: product.shop_id,
+            },
+          });
+
+          setCurrentStep("visualization");
           return;
         }
 
@@ -791,16 +1009,16 @@ export default function App() {
       productId: product?.id,
       feedback: userFeedback,
     });
-    setSelectedFile(null);
-    setPlacementSuccess(true);
-    setVisualizedImageUrl("");
-    setHasFeedbackForCurrentImage(false); // Reset برای عکس جدید
-    setProcessedImageId(null); // Clear processed image_id for new upload
-    // Clear any ongoing API processing
-    setApiProcessingPromise(null);
-    setApiStartTime(0);
-    setApiStatus('idle');
-    setCurrentStep("upload");
+
+    // Navigate to shop's product listing page if we have shop filter
+    if (shopFilter && product) {
+      const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
+      navigate(`/${shopSlug}`);
+      return;
+    }
+
+    // Fallback: Navigate to product selection
+    navigate("/");
   };
 
   const handleBackToStore = () => {
@@ -858,6 +1076,7 @@ export default function App() {
       productName: product?.name,
       variant: productVariant,
       placementSuccess,
+      hasLink: !!product?.link,
     });
 
     if (product) {
@@ -868,11 +1087,17 @@ export default function App() {
         metadata: {
           variant: productVariant,
           placementSuccess,
+          link: product.link,
         },
       });
-    }
 
-    alert(`خرید ${product?.name} - به زودی! 🛒`);
+      // Redirect to product link if available
+      if (product.link) {
+        window.open(product.link, '_blank', 'noopener,noreferrer');
+      } else {
+        alert(`خرید ${product?.name} - به زودی! 🛒`);
+      }
+    }
   };
 
   // Product Details Modal
@@ -889,6 +1114,18 @@ export default function App() {
       productId: product?.id,
     });
     setShowProductDetails(false);
+
+    // Check if user is authenticated before going to upload
+    if (!isAuthenticated) {
+      console.log('[App] User not authenticated for details upload CTA, redirecting to auth');
+      trackKPI('auth_required', {
+        source: 'details_modal_upload',
+        productId: product?.id,
+      });
+      setCurrentStep('user-auth');
+      return;
+    }
+
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
@@ -909,6 +1146,18 @@ export default function App() {
     trackKPI("Fallback Upload", {
       reason: fallbackReason,
     });
+
+    // Check if user is authenticated before going to upload
+    if (!isAuthenticated) {
+      console.log('[App] User not authenticated for fallback upload, redirecting to auth');
+      trackKPI('auth_required', {
+        source: 'fallback_upload',
+        reason: fallbackReason,
+      });
+      setCurrentStep('user-auth');
+      return;
+    }
+
     // Clear any ongoing API processing
     setApiProcessingPromise(null);
     setApiStartTime(0);
@@ -923,6 +1172,13 @@ export default function App() {
       errorType,
       productId: product?.id,
     });
+    
+    // For old_url and invalid_shop errors, redirect to root
+    if (errorType === "old_url" || errorType === "invalid_shop") {
+      navigate("/");
+      return;
+    }
+    
     setApiStatus('idle');
     setCurrentStep("staged-upload");
   };
@@ -933,6 +1189,13 @@ export default function App() {
       errorType,
       productId: product?.id,
     });
+    
+    // For old_url and invalid_shop errors, redirect to root
+    if (errorType === "old_url" || errorType === "invalid_shop") {
+      navigate("/");
+      return;
+    }
+    
     setSelectedFile(null);
     setProcessedImageId(null); // Clear processed image_id on error cancel
     setApiStatus('idle');
@@ -1050,8 +1313,15 @@ export default function App() {
       {/* Admin Route */}
       <Route path="/admin" element={<AdminDashboard />} />
 
-      {/* Main App Route */}
-      <Route path="/" element={
+      {/* Seller Dashboard Route - must come before catch-all */}
+      <Route path="/seller" element={
+        <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div>در حال بارگذاری پنل فروشنده...</div></div>}>
+          <SellerDashboardApp />
+        </Suspense>
+      } />
+
+      {/* Main App Route - handles both / and /:uniqueLink */}
+      <Route path="/*" element={
         <>
           <AnimatePresence mode="wait">
         {/* Loading State */}
@@ -1077,10 +1347,12 @@ export default function App() {
           <ProductSelection
             key="product-selection"
             onProductSelect={handleProductSelect}
+            shopName={shopFilter}
             isAuthenticated={isAuthenticated}
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
           />
         )}
 
@@ -1092,19 +1364,31 @@ export default function App() {
             onUploadStart={handleStartUpload}
             onShowProductDetails={handleShowProductDetails}
             onShowTerms={() => setShowTerms(true)}
+            onBack={() => {
+              if (shopFilter && product) {
+                const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
+                navigate(`/${shopSlug}`);
+              } else {
+                setCurrentStep("product-selection");
+              }
+            }}
             isAuthenticated={isAuthenticated}
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
+            rateLimitExpiry={rateLimitExpiry}
+            rateLimitMessage={rateLimitMessage}
           />
         )}
 
-        {/* User Auth (Login/Register) - NEW */}
+        {/* User Auth (OTP) */}
         {currentStep === "user-auth" && (
-          <UserLogin
+          <OTPLogin
             key="user-auth"
             isOpen={true}
-            onClose={() => setCurrentStep("product-landing")}
+            initialPhoneNumber={user?.phone_number || undefined}
+            onClose={handleAuthClose}
             onSuccess={handleAuthSuccess}
           />
         )}
@@ -1120,17 +1404,31 @@ export default function App() {
           />
         )}
 
-        {/* Upload */}
+        {/* Upload - Guard: Only allow authenticated users */}
         {currentStep === "upload" && (
-          <PhotoUpload
-            key="upload"
-            onUploadComplete={handleFileSelected}
-            onBack={() => setCurrentStep("product-landing")}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-          />
+          <>
+          {!isAuthenticated ? (
+            // Redirect to auth if not authenticated
+            <OTPLogin
+              key="upload-auth-guard"
+              isOpen={true}
+              initialPhoneNumber={user?.phone_number || undefined}
+              onClose={handleAuthClose}
+              onSuccess={handleAuthSuccess}
+            />
+          ) : (
+              <PhotoUpload
+                key="upload"
+                onUploadComplete={handleFileSelected}
+                onBack={() => setCurrentStep("product-landing")}
+                isAuthenticated={isAuthenticated}
+                user={user}
+                onLogin={handleLoginClick}
+                onLogout={handleLogout}
+                onAboutClick={handleAboutUsClick}
+              />
+            )}
+          </>
         )}
 
         {/* Precheck */}
@@ -1145,6 +1443,7 @@ export default function App() {
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
           />
         )}
 
@@ -1159,6 +1458,7 @@ export default function App() {
             user={user}
             onLogin={handleLoginClick}
             onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
           />
         )}
 
@@ -1270,6 +1570,7 @@ export default function App() {
               user={user}
               onLogin={handleLoginClick}
               onLogout={handleLogout}
+              onAboutClick={handleAboutUsClick}
             />
           )}
 
@@ -1315,10 +1616,24 @@ export default function App() {
         />
       </Suspense>
 
+      {/* About Us Modal - Accessible from hamburger menu */}
+      <AboutUs
+        open={showAboutUs}
+        onOpenChange={setShowAboutUs}
+      />
+
       {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
       <Suspense fallback={null}>
         <BrandColors />
       </Suspense>
+
+      {/* Toast Notifications */}
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        dir="rtl"
+      />
         </>
       } />
     </Routes>

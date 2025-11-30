@@ -1,10 +1,21 @@
+/**
+ * PhotoUpload Component
+ *
+ * Allows users to upload photos for furniture visualization.
+ * Shows optional upload guidance on first view.
+ *
+ * TODO: Future enhancement - Add localStorage to auto-hide guidance for returning users
+ * TODO: Future enhancement - Add info icon (ℹ️) to re-show guidance after dismissal
+ */
+
 import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
+import { UploadGuidanceModal } from "./UploadGuidanceModal";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
-import { optimizeImage } from "../utils/imageOptimizer";
+// import { optimizeImage } from "../utils/imageOptimizer";
 
 interface PhotoUploadProps {
   onUploadComplete: (file: File) => void;
@@ -13,6 +24,7 @@ interface PhotoUploadProps {
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
 }
 
 export function PhotoUpload({
@@ -21,7 +33,8 @@ export function PhotoUpload({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick
 }: PhotoUploadProps) {
   const shouldAnimate = useAnimationPreference();
   const [isDragging, setIsDragging] = useState(false);
@@ -31,6 +44,46 @@ export function PhotoUpload({
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Track if guidance modal should be shown
+  const [showGuidanceModal, setShowGuidanceModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"file" | "camera" | null>(null);
+
+  // Check if user has seen the guidance before (within last 5 minutes)
+  const hasSeenGuidance = () => {
+    try {
+      const seenData = localStorage.getItem('homa_upload_guidance_seen');
+      if (!seenData) return false;
+      
+      const { timestamp } = JSON.parse(seenData);
+      const now = Date.now();
+      const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+      
+      // If more than 5 minutes have passed, show hint again
+      if (now - timestamp > fiveMinutes) {
+        localStorage.removeItem('homa_upload_guidance_seen');
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      // If parsing fails, treat as not seen
+      return false;
+    }
+  };
+
+  // Mark guidance as seen with current timestamp
+  const markGuidanceAsSeen = () => {
+    try {
+      const data = {
+        seen: true,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('homa_upload_guidance_seen', JSON.stringify(data));
+    } catch (e) {
+      console.warn('[PhotoUpload] Failed to save guidance status to localStorage');
+    }
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -47,29 +100,90 @@ export function PhotoUpload({
     setIsDragging(false);
 
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.type === "image/jpeg" || droppedFile.type === "image/png")) {
-      // Optimize image before passing to parent for precheck
-      const optimizedFile = await optimizeImage(droppedFile);
-      onUploadComplete(optimizedFile);
+    if (droppedFile) {
+      // Accept common image types including HEIC from iOS
+      // The stripExif utility will convert them to JPEG/PNG
+      const acceptedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/heic',
+        'image/heif',
+        'image/webp',
+        'image/jpg'
+      ];
+
+      if (acceptedTypes.includes(droppedFile.type.toLowerCase()) || droppedFile.type.startsWith('image/')) {
+        console.log('[PhotoUpload] File dropped:', {
+          name: droppedFile.name,
+          type: droppedFile.type,
+          size: droppedFile.size
+        });
+        onUploadComplete(droppedFile);
+      } else {
+        console.warn('[PhotoUpload] Unsupported file type dropped:', droppedFile.type);
+      }
     }
   }, [onUploadComplete]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Optimize image before passing to parent for precheck
-      const optimizedFile = await optimizeImage(selectedFile);
-      onUploadComplete(optimizedFile);
+      console.log('[PhotoUpload] File selected:', {
+        name: selectedFile.name,
+        type: selectedFile.type,
+        size: selectedFile.size
+      });
+
+      // Validate file has content
+      if (selectedFile.size === 0) {
+        console.error('[PhotoUpload] Selected file is empty');
+        return;
+      }
+
+      // iOS may not report correct MIME type for HEIC files
+      // Accept the file and let stripExif handle conversion
+      onUploadComplete(selectedFile);
     }
+
+    // Reset the input value to allow re-selecting the same file
+    e.target.value = '';
   }, [onUploadComplete]);
 
   const handleFileButtonClick = useCallback(() => {
-    fileInputRef.current?.click();
+    if (hasSeenGuidance()) {
+      // User has seen guidance before, directly open file picker
+      fileInputRef.current?.click();
+    } else {
+      // Show guidance modal for first time
+      setPendingAction("file");
+      setShowGuidanceModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCameraButtonClick = useCallback(() => {
-    cameraInputRef.current?.click();
+    if (hasSeenGuidance()) {
+      // User has seen guidance before, directly open camera
+      cameraInputRef.current?.click();
+    } else {
+      // Show guidance modal for first time
+      setPendingAction("camera");
+      setShowGuidanceModal(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleGuidanceConfirm = useCallback(() => {
+    // Mark guidance as seen
+    markGuidanceAsSeen();
+    
+    if (pendingAction === "file") {
+      fileInputRef.current?.click();
+    } else if (pendingAction === "camera") {
+      cameraInputRef.current?.click();
+    }
+    setPendingAction(null);
+  }, [pendingAction]);
 
   const removeFile = () => {
     setFile(null);
@@ -86,6 +200,7 @@ export function PhotoUpload({
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
 
       <div className="pt-14">
@@ -95,6 +210,16 @@ export function PhotoUpload({
           transition={shouldAnimate ? { duration: 0.5 } : undefined}
           className="max-w-lg mx-auto px-6 py-6"
         >
+          {/* Upload Guidance Modal */}
+          <UploadGuidanceModal
+            open={showGuidanceModal}
+            onClose={() => {
+              setShowGuidanceModal(false);
+              setPendingAction(null);
+            }}
+            onConfirm={handleGuidanceConfirm}
+          />
+
           {/* Upload Circle */}
           <div
             onDragOver={handleDragOver}
@@ -126,11 +251,11 @@ export function PhotoUpload({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png"
+              accept="image/jpeg,image/png,image/heic,image/heif,image/webp,.jpg,.jpeg,.png,.heic,.heif,.webp"
               onChange={handleFileSelect}
               className="hidden"
             />
-            <button 
+            <button
               type="button"
               onClick={handleFileButtonClick}
               className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors cursor-pointer flex items-center justify-center font-medium select-none"

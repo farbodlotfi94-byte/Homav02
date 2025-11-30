@@ -10,12 +10,20 @@ export interface User {
   created_at: string;    // ISO 8601 timestamp
 }
 
-export interface AuthResponse {
+// Base auth data (unwrapped)
+export interface AuthData {
   access_token: string;
   refresh_token: string;
   token_type: 'bearer';
   expires_in: number;    // Seconds until access token expires (1800 = 30 min)
   user: User;
+}
+
+// Wrapped API response format
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data: AuthData;
 }
 
 export interface LoginCredentials {
@@ -30,11 +38,22 @@ export interface RegisterCredentials {
 }
 
 export interface RefreshTokenRequest {
-  refresh_token: string;
+  refresh: string;  // Changed from refresh_token to refresh
+}
+
+export interface RefreshTokenResponse {
+  access: string;  // Only returns new access token
 }
 
 export interface LogoutRequest {
-  refresh_token?: string;  // Optional: omit to logout all devices
+  refresh_token: string;
+  all_devices?: boolean;  // Optional: set to true to logout from all devices
+}
+
+export interface LogoutResponse {
+  success: boolean;
+  message: string;
+  data: Record<string, never>;  // Empty object
 }
 
 export interface UserProfile {

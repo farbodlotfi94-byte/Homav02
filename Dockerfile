@@ -11,6 +11,12 @@ ARG VITE_API_IMAGE_PROCESSING_TIMEOUT
 ENV VITE_API_TIMEOUT=${VITE_API_TIMEOUT}
 ENV VITE_API_IMAGE_PROCESSING_TIMEOUT=${VITE_API_IMAGE_PROCESSING_TIMEOUT}
 
+# PostHog environment variables
+ARG VITE_PUBLIC_POSTHOG_KEY
+ARG VITE_PUBLIC_POSTHOG_HOST
+ENV VITE_PUBLIC_POSTHOG_KEY=${VITE_PUBLIC_POSTHOG_KEY}
+ENV VITE_PUBLIC_POSTHOG_HOST=${VITE_PUBLIC_POSTHOG_HOST}
+
 # Set working directory
 WORKDIR /app
 
@@ -20,11 +26,34 @@ COPY package*.json ./
 # Install all dependencies (including devDependencies for build)
 RUN npm ci
 
-# Copy source code
+# Copy source code (including public folder)
 COPY . .
 
+# Verify public folder exists before build
+RUN echo "=== Checking public/guidance-examples/ ===" && \
+    ls -la public/guidance-examples/ || echo "Warning: public/guidance-examples not found in source" && \
+    echo "=== Files in public/guidance-examples/ ===" && \
+    find public/guidance-examples/ -type f -name "*.webp" || echo "No .webp files found"
+
 # Build the application
+# Vite automatically copies public folder contents to build output root
 RUN npm run build
+
+# Verify that guidance-examples are in build output
+# If not found, manually copy them (fallback)
+RUN echo "=== Checking build/guidance-examples/ ===" && \
+    if [ ! -d "build/guidance-examples" ]; then \
+      echo "Warning: guidance-examples not in build output, copying manually..." && \
+      mkdir -p build/guidance-examples && \
+      cp -r public/guidance-examples/* build/guidance-examples/ 2>/dev/null || true && \
+      echo "Manually copied guidance-examples"; \
+    else \
+      echo "✓ guidance-examples found in build output"; \
+    fi && \
+    echo "=== Files in build/guidance-examples/ ===" && \
+    ls -lah build/guidance-examples/ || echo "✗ Failed to copy guidance-examples" && \
+    echo "=== Verifying correct-room-modern.webp exists ===" && \
+    test -f build/guidance-examples/correct-room-modern.webp && echo "✓ correct-room-modern.webp EXISTS" || echo "✗ correct-room-modern.webp MISSING"
 
 # Production stage with Nginx
 FROM nginx:alpine AS production

@@ -28,6 +28,7 @@ interface ProductVisualizationProps {
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
 }
 
 export function ProductVisualization({
@@ -48,7 +49,8 @@ export function ProductVisualization({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = isMobileDevice();
@@ -83,6 +85,7 @@ export function ProductVisualization({
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
 
       <div className="pt-14">
@@ -191,7 +194,18 @@ export function ProductVisualization({
                     <RotateCcw className="w-4 h-4" />
                     امتحان عکس دیگر
                   </button>
-                  
+
+                  {/* Show shop button only if product has a link */}
+                  {product.link && (
+                    <button
+                      onClick={onPurchase}
+                      className="w-full flex items-center justify-center gap-2 py-3 text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <Store className="w-4 h-4" />
+                      مشاهده فروشگاه
+                    </button>
+                  )}
+
                   <button
                     onClick={onBackToStore}
                     className="w-full flex items-center justify-center gap-2 py-3 text-gray-700 hover:text-gray-900 transition-colors"

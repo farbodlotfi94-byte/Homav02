@@ -46,8 +46,16 @@ git push origin main
    - Port: `3000` (mapped to container port 80)
 
 4. **Environment Variables**
+
+   **Required variables:**
    - `NODE_ENV=production`
-   - Add any additional environment variables your app needs
+   - `VITE_API_BASE_URL=https://api.myhoma.ir`
+   - `VITE_PUBLIC_POSTHOG_KEY=phc_5ie0tXqbc7I6IFfLeuhZg7FA6fMnyEu1SoaylZktoRp`
+   - `VITE_PUBLIC_POSTHOG_HOST=https://eu.posthog.com`
+
+   **Optional variables:**
+   - `VITE_API_TIMEOUT=300000` (default: 5 minutes)
+   - `VITE_API_IMAGE_PROCESSING_TIMEOUT=600000` (default: 10 minutes)
 
 5. **Deploy**
    - Click "Deploy" to start the build process

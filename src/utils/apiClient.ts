@@ -77,19 +77,33 @@ export async function apiGet<T>(
 
     clearTimeout(timeoutId);
 
-    const data = await response.json();
+    const responseData = await response.json();
 
     if (!response.ok) {
+      // Standard format: {success: false, message, data}
+      // Check for specific error details in data.error
+      let errorMessage = responseData.message || responseData.error || 'خطا در دریافت اطلاعات';
+      if (responseData.data?.error) {
+        if (Array.isArray(responseData.data.error)) {
+          errorMessage = responseData.data.error.join(', ');
+        } else {
+          errorMessage = responseData.data.error;
+        }
+      }
       throw new APIError(
-        data.error || data.message || 'خطا در دریافت اطلاعات',
+        errorMessage,
         response.status,
-        data
+        responseData
       );
     }
 
+    // Standard format: {success: true, message, data}
+    // Extract actual payload from data.data, fallback to data for backward compatibility
+    const actualData = responseData.data !== undefined ? responseData.data : responseData;
+    
     return {
       success: true,
-      data: data.data || data,
+      data: actualData,
       statusCode: response.status,
     };
   } catch (error) {
@@ -144,19 +158,33 @@ export async function apiPost<T>(
 
     clearTimeout(timeoutId);
 
-    const data = await response.json();
+    const responseData = await response.json();
 
     if (!response.ok) {
+      // Standard format: {success: false, message, data}
+      // Check for specific error details in data.error
+      let errorMessage = responseData.message || responseData.error || 'خطا در ارسال اطلاعات';
+      if (responseData.data?.error) {
+        if (Array.isArray(responseData.data.error)) {
+          errorMessage = responseData.data.error.join(', ');
+        } else {
+          errorMessage = responseData.data.error;
+        }
+      }
       throw new APIError(
-        data.error || data.message || 'خطا در ارسال اطلاعات',
+        errorMessage,
         response.status,
-        data
+        responseData
       );
     }
 
+    // Standard format: {success: true, message, data}
+    // Extract actual payload from data.data, fallback to data for backward compatibility
+    const actualData = responseData.data !== undefined ? responseData.data : responseData;
+    
     return {
       success: true,
-      data: data.data || data,
+      data: actualData,
       statusCode: response.status,
     };
   } catch (error) {
@@ -233,15 +261,20 @@ export async function apiUpload<T>(
           const data = JSON.parse(xhr.responseText);
 
           if (xhr.status >= 200 && xhr.status < 300) {
+            // Standard format: {success: true, message, data}
+            // Extract actual payload from data.data, fallback to data for backward compatibility
+            const actualData = data.data !== undefined ? data.data : data;
             resolve({
               success: true,
-              data: data.data || data,
+              data: actualData,
               statusCode: xhr.status,
             });
           } else {
+            // Standard format: {success: false, message, data}
+            const errorMessage = data.message || data.error || 'خطا در آپلود فایل';
             resolve({
               success: false,
-              error: data.error || data.message || 'خطا در آپلود فایل',
+              error: errorMessage,
               statusCode: xhr.status,
             });
           }
@@ -312,19 +345,25 @@ export async function apiPut<T>(
 
     clearTimeout(timeoutId);
 
-    const data = await response.json();
+    const responseData = await response.json();
 
     if (!response.ok) {
+      // Standard format: {success: false, message, data}
+      const errorMessage = responseData.message || responseData.error || 'خطا در به‌روزرسانی';
       throw new APIError(
-        data.error || data.message || 'خطا در به‌روزرسانی',
+        errorMessage,
         response.status,
-        data
+        responseData
       );
     }
 
+    // Standard format: {success: true, message, data}
+    // Extract actual payload from data.data, fallback to data for backward compatibility
+    const actualData = responseData.data !== undefined ? responseData.data : responseData;
+    
     return {
       success: true,
-      data: data.data || data,
+      data: actualData,
       statusCode: response.status,
     };
   } catch (error) {
@@ -369,19 +408,25 @@ export async function apiDelete<T>(
 
     clearTimeout(timeoutId);
 
-    const data = await response.json();
+    const responseData = await response.json();
 
     if (!response.ok) {
+      // Standard format: {success: false, message, data}
+      const errorMessage = responseData.message || responseData.error || 'خطا در حذف';
       throw new APIError(
-        data.error || data.message || 'خطا در حذف',
+        errorMessage,
         response.status,
-        data
+        responseData
       );
     }
 
+    // Standard format: {success: true, message, data}
+    // Extract actual payload from data.data, fallback to data for backward compatibility
+    const actualData = responseData.data !== undefined ? responseData.data : responseData;
+    
     return {
       success: true,
-      data: data.data || data,
+      data: actualData,
       statusCode: response.status,
     };
   } catch (error) {

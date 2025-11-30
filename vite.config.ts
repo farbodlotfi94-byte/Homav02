@@ -105,5 +105,17 @@
       port: 3000,
       open: true,
       host: '0.0.0.0',
+      proxy: {
+        // Proxy PostHog requests through local dev server to bypass network restrictions
+        '/posthog': {
+          target: 'https://eu.posthog.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/posthog/, ''),
+          secure: true,
+          headers: {
+            'Origin': 'https://eu.posthog.com',
+          },
+        },
+      },
     },
   });

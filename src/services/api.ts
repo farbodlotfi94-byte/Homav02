@@ -17,6 +17,12 @@ export interface ApiResponse<T = any> {
   status: number;
   headers?: Headers;         // Expose response headers
   requiresLogin?: boolean;   // Flag for 401 after refresh failed
+  isRateLimited?: boolean;   // Flag for 429 rate limit
+  rateLimitInfo?: {          // Rate limit details
+    retryAfter: number;      // Seconds until retry
+    availableIn: string;     // Human-readable time
+    message: string;         // Error message
+  };
 }
 
 export interface ApiError {
@@ -98,8 +104,8 @@ async function apiRequest<T = any>(
         return apiRequest<T>(url, options);
       } else {
         console.error('[API] Token refresh failed, user must login');
-        // Logout user
-        userAuthService.logout();
+        // Logout user (await to ensure headers cleared before next call)
+        await userAuthService.logout();
 
         return {
           data: null as T,
@@ -111,12 +117,74 @@ async function apiRequest<T = any>(
       }
     }
 
+    // Handle 429 Rate Limit - parse retry information
+    if (response.status === 429) {
+      console.log('[API] 429 Rate Limit Exceeded');
+
+      try {
+        const errorData = await response.json();
+        const retryAfterHeader = response.headers.get('Retry-After');
+
+        // Parse retry_after from response body (standard format: {success: false, message, data})
+        let retryAfter = 0;
+        if (errorData.data?.retry_after) {
+          retryAfter = errorData.data.retry_after;
+        } else if (retryAfterHeader) {
+          // Handle both seconds (number) and HTTP-date format
+          const parsed = parseInt(retryAfterHeader, 10);
+          retryAfter = isNaN(parsed) ? 3600 : parsed; // Default to 1 hour if parsing fails
+        }
+
+        const availableIn = errorData.data?.available_in || `${Math.ceil(retryAfter / 60)} دقیقه`;
+        const message = errorData.message || 'محدودیت تعداد درخواست رسیده است';
+
+        console.log(`[RateLimit] Detected 429, retry after ${retryAfter}s (${availableIn})`);
+
+        return {
+          data: null as T,
+          success: false,
+          error: message,
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter,
+            availableIn,
+            message,
+          },
+        };
+      } catch (parseError) {
+        console.error('[API] Failed to parse rate limit response:', parseError);
+        return {
+          data: null as T,
+          success: false,
+          error: 'محدودیت تعداد درخواست رسیده است. لطفاً چند دقیقه دیگر تلاش کنید.',
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter: 3600, // Default to 1 hour
+            availableIn: '1 ساعت',
+            message: 'محدودیت تعداد درخواست رسیده است',
+          },
+        };
+      }
+    }
+
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
       try {
         const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
+        // Standard format: {success: false, message, data}
+        // Check for specific error details in data.error
+        let finalErrorMessage = errorData.message || errorMessage;
+        if (errorData.data?.error) {
+          if (Array.isArray(errorData.data.error)) {
+            finalErrorMessage = errorData.data.error.join(', ');
+          } else {
+            finalErrorMessage = errorData.data.error;
+          }
+        }
+        errorMessage = finalErrorMessage;
       } catch (jsonError) {
         // If JSON parsing fails, try to get text
         try {
@@ -132,9 +200,13 @@ async function apiRequest<T = any>(
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
+    // Standard format: {success: true, message, data}
+    // Extract actual payload from data.data, fallback to data for backward compatibility
+    const actualData = responseData.data !== undefined ? responseData.data : responseData;
+    
     return {
-      data,
+      data: actualData as T,
       success: true,
       status: response.status,
       headers: response.headers,
@@ -385,8 +457,8 @@ export async function apiPostWithTimeout<T = any>(
         return apiPostWithTimeout<T>(endpoint, body, timeout);
       } else {
         console.error('[API] Token refresh failed, user must login');
-        // Logout user
-        userAuthService.logout();
+        // Logout user (await to ensure headers cleared before next call)
+        await userAuthService.logout();
 
         return {
           data: null as T,
@@ -398,12 +470,74 @@ export async function apiPostWithTimeout<T = any>(
       }
     }
 
+    // Handle 429 Rate Limit - parse retry information
+    if (response.status === 429) {
+      console.log('[API] 429 Rate Limit Exceeded (POST with timeout)');
+
+      try {
+        const errorData = await response.json();
+        const retryAfterHeader = response.headers.get('Retry-After');
+
+        // Parse retry_after from response body (standard format: {success: false, message, data})
+        let retryAfter = 0;
+        if (errorData.data?.retry_after) {
+          retryAfter = errorData.data.retry_after;
+        } else if (retryAfterHeader) {
+          // Handle both seconds (number) and HTTP-date format
+          const parsed = parseInt(retryAfterHeader, 10);
+          retryAfter = isNaN(parsed) ? 3600 : parsed; // Default to 1 hour if parsing fails
+        }
+
+        const availableIn = errorData.data?.available_in || `${Math.ceil(retryAfter / 60)} دقیقه`;
+        const message = errorData.message || 'محدودیت تعداد درخواست رسیده است';
+
+        console.log(`[RateLimit] Detected 429, retry after ${retryAfter}s (${availableIn})`);
+
+        return {
+          data: null as T,
+          success: false,
+          error: message,
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter,
+            availableIn,
+            message,
+          },
+        };
+      } catch (parseError) {
+        console.error('[API] Failed to parse rate limit response:', parseError);
+        return {
+          data: null as T,
+          success: false,
+          error: 'محدودیت تعداد درخواست رسیده است. لطفاً چند دقیقه دیگر تلاش کنید.',
+          status: 429,
+          isRateLimited: true,
+          rateLimitInfo: {
+            retryAfter: 3600, // Default to 1 hour
+            availableIn: '1 ساعت',
+            message: 'محدودیت تعداد درخواست رسیده است',
+          },
+        };
+      }
+    }
+
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
       try {
         const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
+        // Standard format: {success: false, message, data}
+        // Check for specific error details in data.error
+        let finalErrorMessage = errorData.message || errorMessage;
+        if (errorData.data?.error) {
+          if (Array.isArray(errorData.data.error)) {
+            finalErrorMessage = errorData.data.error.join(', ');
+          } else {
+            finalErrorMessage = errorData.data.error;
+          }
+        }
+        errorMessage = finalErrorMessage;
       } catch (jsonError) {
         // If JSON parsing fails, try to get text
         try {
@@ -419,9 +553,13 @@ export async function apiPostWithTimeout<T = any>(
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
+    // Standard format: {success: true, message, data}
+    // Extract actual payload from data.data, fallback to data for backward compatibility
+    const actualData = responseData.data !== undefined ? responseData.data : responseData;
+
     return {
-      data,
+      data: actualData as T,
       success: true,
       status: response.status,
       headers: response.headers,
@@ -432,14 +570,14 @@ export async function apiPostWithTimeout<T = any>(
       clearTimeout(timeoutId);
     }
 
-    console.error('[API] Custom timeout request failed:', { 
-      url, 
+    console.error('[API] Custom timeout request failed:', {
+      url,
       error: error instanceof Error ? error.message : error,
       name: error instanceof Error ? error.name : 'Unknown',
       errorType: error.constructor.name,
       isDOMException: error instanceof DOMException
     });
-    
+
     if (error instanceof Error) {
       // Handle specific error types
       if (error.name === 'AbortError') {
@@ -450,7 +588,7 @@ export async function apiPostWithTimeout<T = any>(
           status: 408,
         };
       }
-      
+
       if (error instanceof DOMException) {
         return {
           data: null as T,
@@ -459,7 +597,7 @@ export async function apiPostWithTimeout<T = any>(
           status: 0,
         };
       }
-      
+
       if (error.message.includes('NS_BINDING_ABORTED')) {
         return {
           data: null as T,
@@ -477,7 +615,7 @@ export async function apiPostWithTimeout<T = any>(
           status: 0,
         };
       }
-      
+
       return {
         data: null as T,
         success: false,
@@ -506,6 +644,8 @@ export async function apiPostWithTimeout<T = any>(
 export async function checkApiHealth(): Promise<boolean> {
   try {
     const response = await apiGet(API_CONFIG.ENDPOINTS.HEALTH);
+    // Health endpoint returns: {status: "healthy", database: true, cache: true}
+    // Response is wrapped in standard format: {success: true, message, data: {status, database, cache}}
     return response.success && response.data?.status === 'healthy';
   } catch {
     return false;

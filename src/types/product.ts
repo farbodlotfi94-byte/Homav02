@@ -18,6 +18,7 @@ export interface Product {
   };
   brand?: string;
   category: string;
+  category_display?: string; // Display name for category
   variants?: {
     colors?: Array<{ name: string; hex: string; available: boolean }>;
     sizes?: Array<{ name: string; available: boolean }>;
@@ -30,6 +31,8 @@ export interface Product {
   images: string[];
   description?: string;
   features?: string[];
+  link?: string | null; // Product purchase/redirect URL
+  extra_details?: Record<string, string>; // Key-value product features
   // Backend-specific fields
   shop_id: number | null;
   is_predefined: number; // 0 or 1
@@ -56,34 +59,63 @@ export interface EntryContext {
 export interface BackendProduct {
   id: number;
   shop_id: number | null;
+  shop_name?: string; // Shop/seller name (if included in response)
   name: string;
   description: string;
-  category: string;
+  category: string; // Category enum/DB value
+  category_display?: string; // Category display name for users
   price?: number;
   currency?: string;
   is_predefined: number;
   image_path: string;
   unique_link: string;
   created_at: string;
+  link?: string | null; // Product purchase/redirect URL
+  extra_details?: Record<string, string>; // Key-value product features
 }
 
+// Paginated response wrapper
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+// Wrapped API response format with pagination
 export interface BackendProductsResponse {
-  products: BackendProduct[];
+  success: boolean;
+  message: string;
+  data: PaginatedResponse<BackendProduct>;
 }
 
-export interface BackendProductResponse {
-  id: number;
-  shop_name: string;
-  image_path: string;
-  unique_link: string;
-  created_at: string;
+// Single product detail response (not paginated)
+export interface BackendProductDetailResponse {
+  success: boolean;
+  message: string;
+  data: BackendProduct;
+}
+
+// Rate limit error details from backend
+export interface RateLimitError {
+  message: string;          // User-facing error message
+  retryAfter: number;       // Time in seconds until user can retry
+  availableIn: string;      // Human-readable time (e.g., "57 minutes")
+  statusCode: 429;          // HTTP status code
 }
 
 export interface BackendProcessResponse {
   status: string;           // "success" or "error"
-  image_path: string;       // Relative path to the processed image in MinIO
+  image_path: string;       // Relative path to the processed image (served via /api/products/images/)
   image_id: number;         // ID of the processed image record
   message?: string;         // Success/error message (optional)
-  customer_image_path?: string;  // Optional: original image path (legacy)
-  processed_image_path?: string; // Optional: processed image path (legacy)
+  isRateLimited?: boolean;  // True if request was rate limited
+  rateLimitInfo?: RateLimitError; // Rate limit details (only present if isRateLimited is true)
+}
+
+export interface VoteResponse {
+  status: string;
+  image_id: number;
+  score: number;
+  message: string;
 }

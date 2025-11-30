@@ -5,17 +5,20 @@ import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { Header } from "./Header";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
-import type { BackendProduct, BackendProductsResponse } from "../types/product";
+import type { BackendProduct, PaginatedResponse } from "../types/product";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+import { sanitizeShopNameForUrl } from "../utils/productLoader";
 
 interface ProductSelectionProps {
-  onProductSelect: (productId: string, uniqueLink: string) => void;
+  onProductSelect: (productId: string, uniqueLink: string, productData?: BackendProduct) => void;
   onBack?: () => void;
   isAuthenticated?: boolean;
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
+  shopName?: string | null; // Filter products by shop name
 }
 
 export function ProductSelection({
@@ -24,32 +27,96 @@ export function ProductSelection({
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick,
+  shopName
 }: ProductSelectionProps) {
   const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingPrev, setIsLoadingPrev] = useState(false);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [windowStartOffset, setWindowStartOffset] = useState<number>(0); // backend offset of first item in products
+
+  const PAGE_SIZE = 20;
+  const MAX_CACHE = 50;
+  const BOTTOM_THRESHOLD_PX = 300;
+  const TOP_THRESHOLD_PX = 200;
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    // Initial load or reload when shopName changes
+    (async () => {
+      await loadInitialProducts();
+    })();
+  }, [shopName]);
 
-  const loadProducts = async () => {
+  const filterByShop = (items: BackendProduct[]) => {
+    if (!shopName) {
+      return items;
+    }
+
+    const normalizedShopName = shopName.toLowerCase().trim();
+    return items.filter(product => {
+      const productShopName = (product.shop_name || '').toLowerCase().trim();
+      const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
+      return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
+    });
+  };
+
+  const loadInitialProducts = async (options?: { allowGuestRetry?: boolean }) => {
+    const allowGuestRetry = options?.allowGuestRetry ?? true;
     try {
       setLoading(true);
       setError(null);
-      
+
       console.log('[ProductSelection] Loading products from:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.PRODUCTS);
-      
-      const response = await apiGet<BackendProductsResponse>(API_CONFIG.ENDPOINTS.PRODUCTS);
-      
-      console.log('[ProductSelection] API response:', response);
-      
+
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+        limit: PAGE_SIZE,
+        offset: 0
+      });
+
+      if (response.requiresLogin) {
+        console.warn('[ProductSelection] Auth expired on public feed, retrying as guest:', {
+          allowGuestRetry,
+        });
+
+        if (allowGuestRetry) {
+          return await loadInitialProducts({ allowGuestRetry: false });
+        }
+
+        setError(response.error || 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید');
+        return;
+      }
+
+      console.log('[ProductSelection] API response (initial):', response);
+
       if (response.success && response.data) {
-        console.log('[ProductSelection] Products loaded:', response.data.products.length);
-        setProducts(response.data.products);
+        // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet extracts: response.data = { count, next, previous, results }
+        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
+        let productsArray = paginatedData?.results || [];
+        productsArray = filterByShop(productsArray);
+
+        console.log('[ProductSelection] Products loaded:', {
+          shopName: shopName || 'all',
+          total: paginatedData?.count || 0,
+          loaded: productsArray.length,
+          filtered: shopName ? productsArray.length : paginatedData?.results?.length || 0,
+          hasNext: !!paginatedData?.next,
+          hasPrevious: !!paginatedData?.previous
+        });
+        setProducts(productsArray);
+        setTotalCount(shopName ? productsArray.length : (paginatedData?.count || productsArray.length));
+        setHasMore((productsArray.length || 0) < (paginatedData?.count || 0));
+        setWindowStartOffset(0);
+
+        // Attach scroll listener
+        attachScrollListener();
       } else {
         console.error('[ProductSelection] API error:', response.error);
         setError(response.error || 'خطا در بارگذاری محصولات');
@@ -62,13 +129,119 @@ export function ProductSelection({
     }
   };
 
+  const loadNextPage = async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const nextOffset = windowStartOffset + products.length;
+      if (totalCount && nextOffset >= totalCount) {
+        setHasMore(false);
+        return;
+      }
+
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+        limit: PAGE_SIZE,
+        offset: nextOffset
+      });
+
+      if (response.success && response.data) {
+        // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet extracts: response.data = { count, next, previous, results }
+        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
+        const nextResults = filterByShop(paginatedData?.results || []);
+
+        let newProducts = [...products, ...nextResults];
+        let newWindowStart = windowStartOffset;
+
+        if (newProducts.length > MAX_CACHE) {
+          const toDrop = newProducts.length - MAX_CACHE;
+          newProducts = newProducts.slice(toDrop);
+          newWindowStart = windowStartOffset + toDrop;
+        }
+
+        setProducts(newProducts);
+        setWindowStartOffset(newWindowStart);
+        const loadedSoFar = newWindowStart + newProducts.length;
+        setHasMore(loadedSoFar < (paginatedData?.count || totalCount || loadedSoFar));
+        if (!totalCount) setTotalCount(paginatedData?.count || loadedSoFar);
+      }
+    } catch (err) {
+      console.error('[ProductSelection] Error loading next page:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const loadPrevPage = async () => {
+    if (isLoadingPrev) return;
+    if (windowStartOffset <= 0) return; // nothing earlier
+    setIsLoadingPrev(true);
+    try {
+      const prevOffset = Math.max(0, windowStartOffset - PAGE_SIZE);
+
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+        limit: PAGE_SIZE,
+        offset: prevOffset
+      });
+
+      if (response.success && response.data) {
+        // API returns: { success: true, message: "...", data: { count, next, previous, results } }
+        // apiGet extracts: response.data = { count, next, previous, results }
+        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
+        const prevResults = filterByShop(paginatedData?.results || []);
+
+        let newProducts = [...prevResults, ...products];
+        let newWindowStart = prevOffset;
+
+        if (newProducts.length > MAX_CACHE) {
+          // When prepending, drop from end to keep earlier items visible
+          newProducts = newProducts.slice(0, MAX_CACHE);
+        }
+
+        setProducts(newProducts);
+        setWindowStartOffset(newWindowStart);
+      }
+    } catch (err) {
+      console.error('[ProductSelection] Error loading previous page:', err);
+    } finally {
+      setIsLoadingPrev(false);
+    }
+  };
+
+  const onScroll = () => {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+
+    // Near bottom -> load next
+    if (fullHeight - (scrollTop + viewportHeight) < BOTTOM_THRESHOLD_PX) {
+      void loadNextPage();
+    }
+
+    // Near top -> try load previous (if we dropped)
+    if (scrollTop < TOP_THRESHOLD_PX) {
+      void loadPrevPage();
+    }
+  };
+
+  const attachScrollListener = () => {
+    window.addEventListener('scroll', onScroll, { passive: true });
+  };
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
   const handleProductSelect = (product: BackendProduct) => {
     console.log('[ProductSelection] Product selected:', product);
     setSelectedProduct(product.unique_link);
     // Generate internal productId for URL compatibility
     const productId = `prod_${product.id}`;
     console.log('[ProductSelection] Calling onProductSelect with:', { productId, uniqueLink: product.unique_link });
-    onProductSelect(productId, product.unique_link);
+    // Pass the product data to avoid refetching
+    onProductSelect(productId, product.unique_link, product);
   };
 
   const getImageUrl = (imagePath: string) => {
@@ -86,6 +259,7 @@ export function ProductSelection({
           user={user}
           onLogin={onLogin}
           onLogout={onLogout}
+          onAboutClick={onAboutClick}
         />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
@@ -107,13 +281,14 @@ export function ProductSelection({
           user={user}
           onLogin={onLogin}
           onLogout={onLogout}
+          onAboutClick={onAboutClick}
         />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-sm mx-auto px-6">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">خطا در بارگذاری</h2>
             <p className="text-gray-600 mb-6">{error}</p>
-            <Button onClick={loadProducts} className="w-full">
+            <Button onClick={() => void loadInitialProducts()} className="w-full">
               تلاش مجدد
             </Button>
           </div>
@@ -131,6 +306,7 @@ export function ProductSelection({
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
       
       <div className="pt-14 pb-6">
@@ -143,10 +319,12 @@ export function ProductSelection({
             className="text-center mb-8"
           >
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              محصول مورد نظر خود را انتخاب کنید
+              {shopName ? `محصولات ${shopName}` : 'محصول مورد نظر خود را انتخاب کنید'}
             </h1>
             <p className="text-gray-600">
-              عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند
+              {shopName 
+                ? 'عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند'
+                : 'عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند'}
             </p>
           </motion.div>
 
@@ -214,7 +392,7 @@ export function ProductSelection({
                         )}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                            {product.category}
+                            {product.category_display || product.category}
                           </span>
                           <ArrowRight className="w-4 h-4 text-gray-400" />
                         </div>

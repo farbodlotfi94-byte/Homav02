@@ -1,36 +1,49 @@
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { Upload, Info, X, Check } from "lucide-react";
+import { Upload, Info, X, Check, Clock } from "lucide-react";
 import type { Product } from "../types/product";
 import type { User } from "../types/auth";
 import { Header } from "./Header";
 import { useState, useEffect } from "react";
 import svgPaths from "../imports/svg-an2xierte7";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+import { useCountdown } from "../hooks/useCountdown";
 
 interface ProductAwareLandingProps {
   product: Product;
   onUploadStart: () => void;
   onShowProductDetails: () => void;
   onShowTerms: () => void;
+  onBack?: () => void;
   isAuthenticated?: boolean;
   user?: User | null;
   onLogin?: () => void;
   onLogout?: () => void;
+  onAboutClick?: () => void;
+  rateLimitExpiry?: number | null;
+  rateLimitMessage?: string;
 }
 
 export function ProductAwareLanding({
   product,
   onUploadStart,
   onShowProductDetails,
+  onBack,
   isAuthenticated,
   user,
   onLogin,
-  onLogout
+  onLogout,
+  onAboutClick,
+  rateLimitExpiry,
+  rateLimitMessage
 }: ProductAwareLandingProps) {
   const shouldAnimate = useAnimationPreference();
   const [showSnackbar, setShowSnackbar] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Rate limit countdown
+  const countdown = useCountdown(rateLimitExpiry || null);
+  const isRateLimited = rateLimitExpiry && !countdown.isExpired;
   
   // Auto-hide snackbar after 5 seconds
   useEffect(() => {
@@ -52,11 +65,13 @@ export function ProductAwareLanding({
   return (
     <div className="min-h-screen bg-white">
       <Header
-        showBackButton={false}
+        showBackButton={true}
+        onBack={onBack}
         isAuthenticated={isAuthenticated}
         user={user}
         onLogin={onLogin}
         onLogout={onLogout}
+        onAboutClick={onAboutClick}
       />
 
       {/* Snackbar */}
@@ -98,7 +113,7 @@ export function ProductAwareLanding({
             transition={shouldAnimate ? { duration: 0.4 } : undefined}
           >
             {/* Product Image */}
-            <div className="aspect-square bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
+            <div className="aspect-[4/5] bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
               <img
                 src={product.thumbnail}
                 alt={product.name}
@@ -106,6 +121,19 @@ export function ProductAwareLanding({
                 width={400}
                 height={400}
                 fetchPriority="high"
+                onError={(e) => {
+                  console.error('[ProductAwareLanding] Image load error:', {
+                    src: product.thumbnail,
+                    productId: product.id,
+                    imagePath: product.image_path
+                  });
+                  // Set a placeholder or retry
+                  const target = e.target as HTMLImageElement;
+                  target.style.backgroundColor = '#f3f4f6';
+                }}
+                onLoad={() => {
+                  console.log('[ProductAwareLanding] Image loaded successfully:', product.thumbnail);
+                }}
               />
             </div>
 
@@ -163,23 +191,21 @@ export function ProductAwareLanding({
                     className="overflow-hidden"
                   >
                     <div className="px-6 py-6 space-y-6" style={{ fontFamily: 'var(--font-family-vazirmatn)' }}>
-                      {/* Price */}
-                      {displayPrice && (
-                        <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
-                          <p className="text-gray-600 mb-1 text-start" style={{ fontSize: '14px' }}>قیمت</p>
-                          <p className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>{displayPrice}</p>
-                        </div>
-                      )}
-
                       {/* Description */}
                       {product.description && (
                         <div className="space-y-2">
-                          <h3 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
-                            {product.name}
-                          </h3>
-                          <p className="text-gray-600 text-start leading-relaxed" style={{ fontSize: '14px' }}>
-                            {product.description}
-                          </p>
+                            {(product.category_display || product.category) && (
+                                <p className="text-gray-700 text-start" style={{ fontSize: '14px' }}>
+                                    دسته‌بندی:  {product.category_display}
+                                </p>
+                            )}
+                            <p className="text-gray-700 font-medium" style={{ fontSize: '14px' }}>
+                                توضیحات:
+                            </p>
+
+                            <p className="text-gray-600 leading-relaxed" style={{ fontSize: '14px', paddingRight: '2rem', direction: 'rtl' }}>
+                                {product.description}
+                            </p>
                           {product.brand && (
                             <p className="text-gray-500 text-start" style={{ fontSize: '14px' }}>
                               برند: {product.brand}
@@ -188,18 +214,18 @@ export function ProductAwareLanding({
                         </div>
                       )}
 
-                      {/* Features */}
-                      {product.features && product.features.length > 0 && (
+                      {/* Extra Details */}
+                      {product.extra_details && Object.keys(product.extra_details).length > 0 && (
                         <div className="space-y-3">
                           <h4 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
                             توضیحات
                           </h4>
                           <div className="space-y-2">
-                            {product.features.map((feature, index) => (
-                              <div key={index} className="flex items-start gap-2 text-start">
+                            {Object.entries(product.extra_details).map(([key, value]) => (
+                              <div key={key} className="flex items-start gap-2 text-start">
                                 <Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                                 <span className="text-gray-700" style={{ fontSize: '14px' }}>
-                                  {feature}
+                                  {key}: {value}
                                 </span>
                               </div>
                             ))}
@@ -270,10 +296,20 @@ export function ProductAwareLanding({
         <div className="max-w-lg mx-auto px-6 py-4">
           <Button
             onClick={onUploadStart}
-            className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors flex items-center justify-center gap-2"
+            disabled={!!isRateLimited}
+            className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Upload className="w-5 h-5" />
-            امتحان کن تو فضای خودت
+            {isRateLimited ? (
+              <>
+                <Clock className="w-5 h-5" />
+                امکان تلاش مجدد در {countdown.formattedTime}
+              </>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                امتحان کن تو فضای خودت
+              </>
+            )}
           </Button>
         </div>
       </div>
