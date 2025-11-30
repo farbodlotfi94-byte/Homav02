@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import './index.css';
 import { SellerLogin } from './components/SellerLogin';
@@ -58,32 +58,6 @@ export function SellerDashboardApp() {
     productName: '',
   });
 
-  // Check authentication on mount
-  useEffect(() => {
-    console.log('[SellerDashboardApp] Checking authentication');
-    const isAuthenticated = sellerAuthService.isAuthenticated();
-    setIsLoggedIn(isAuthenticated);
-    setIsCheckingAuth(false);
-
-    if (isAuthenticated) {
-      loadDashboardData();
-    }
-  }, []);
-
-  // Refetch data when navigating between tabs
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    // Refetch based on current page (no cache check)
-    if (currentPage === 'dashboard') {
-      console.log('[SellerDashboardApp] Navigated to dashboard, loading data');
-      loadDashboardData();
-    } else if (currentPage === 'products') {
-      console.log('[SellerDashboardApp] Navigated to products page, loading products');
-      loadProducts();
-    }
-    // Settings uses already-loaded seller data (no API call needed)
-  }, [currentPage, isLoggedIn]);
 
   // Load all dashboard data
   const loadDashboardData = async () => {
@@ -160,39 +134,49 @@ export function SellerDashboardApp() {
   };
 
   // Load products list (fetched when navigating to products page)
-  const loadProducts = async () => {
-    if (isLoadingProducts) {
-      console.log('[SellerDashboardApp] Products already loading, skipping');
-      return;
-    }
+  const loadProducts = useCallback(async () => {
+    console.log('[SellerDashboardApp] loadProducts called');
 
     console.log('[SellerDashboardApp] Loading products list');
     setIsLoadingProducts(true);
 
     try {
+      console.log('[SellerDashboardApp] Making API call to getProductsList');
       const result = await sellerApiService.getProductsList({ page: 1, page_size: 100 });
 
+      console.log('[SellerDashboardApp] API response:', result);
+
       if (result.success && result.data) {
-        const productsData = result.data.results.map((item, index) => ({
-          id: `temp-${index}`,
-          sellerId: '',
-          name: item.name,
-          description: '',
-          category: '',
-          price: item.price,
-          currency: 'IRR' as const,
-          images: [item.image_url],
-          tryLink: '',
-          specs: [],
-          createdAt: '',
-          updatedAt: '',
-          status: 'active' as const,
-          views: item.total_views,
-        } as SellerProduct));
+        console.log('[SellerDashboardApp] API call successful, processing results...');
+        console.log('[SellerDashboardApp] Number of products:', result.data.results.length);
+        console.log('[SellerDashboardApp] First product:', result.data.results[0]);
+
+        const productsData = result.data.results.map((item, index) => {
+          const imageUrl = item.image_url;
+          console.log(`[SellerDashboardApp] Product ${index}: name=${item.name}, image_url=${imageUrl}`);
+
+          return {
+            id: `temp-${index}`,
+            sellerId: '',
+            name: item.name,
+            description: '',
+            category: '',
+            price: item.price,
+            currency: 'IRR' as const,
+            images: imageUrl ? [imageUrl] : [],
+            tryLink: '',
+            specs: [],
+            createdAt: '',
+            updatedAt: '',
+            status: 'active' as const,
+            views: item.total_views,
+          } as SellerProduct;
+        });
 
         setProducts(productsData);
         console.log('[SellerDashboardApp] Products loaded:', productsData.length);
       } else {
+        console.log('[SellerDashboardApp] API call failed:', result.error);
         if (result.error?.includes('منقضی شده') || result.error?.includes('expired')) {
           console.log('[SellerDashboardApp] Authentication error detected, logging out');
           handleLogout();
@@ -206,7 +190,38 @@ export function SellerDashboardApp() {
     } finally {
       setIsLoadingProducts(false);
     }
-  };
+  }, []);
+
+  // Check authentication on mount
+  useEffect(() => {
+    console.log('[SellerDashboardApp] Checking authentication');
+    const isAuthenticated = sellerAuthService.isAuthenticated();
+    setIsLoggedIn(isAuthenticated);
+    setIsCheckingAuth(false);
+
+    if (isAuthenticated) {
+      loadDashboardData();
+    }
+  }, []);
+
+  // Refetch data when navigating between tabs
+  useEffect(() => {
+    console.log('[SellerDashboardApp] Page changed:', { currentPage, isLoggedIn });
+    if (!isLoggedIn) {
+      console.log('[SellerDashboardApp] Not logged in, skipping data load');
+      return;
+    }
+
+    // Refetch based on current page (no cache check)
+    if (currentPage === 'dashboard') {
+      console.log('[SellerDashboardApp] Navigated to dashboard, loading data');
+      loadDashboardData();
+    } else if (currentPage === 'products') {
+      console.log('[SellerDashboardApp] Navigated to products page, loading products');
+      loadProducts();
+    }
+    // Settings uses already-loaded seller data (no API call needed)
+  }, [currentPage, isLoggedIn]);
 
   // Login success handler
   const handleLoginSuccess = () => {

@@ -20,6 +20,7 @@ interface ProductAwareLandingProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  onSellerDashboard?: () => void;
   rateLimitExpiry?: number | null;
   rateLimitMessage?: string;
 }
@@ -34,6 +35,7 @@ export function ProductAwareLanding({
   onLogin,
   onLogout,
   onAboutClick,
+  onSellerDashboard,
   rateLimitExpiry,
   rateLimitMessage
 }: ProductAwareLandingProps) {
@@ -72,6 +74,7 @@ export function ProductAwareLanding({
         onLogin={onLogin}
         onLogout={onLogout}
         onAboutClick={onAboutClick}
+        onSellerDashboard={onSellerDashboard}
       />
 
       {/* Snackbar */}

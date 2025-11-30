@@ -14,6 +14,7 @@ interface StagedUploadProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  onSellerDashboard?: () => void;
 }
 
 type Stage = {
@@ -81,7 +82,8 @@ export function StagedUpload({
   user,
   onLogin,
   onLogout,
-  onAboutClick
+  onAboutClick,
+  onSellerDashboard
 }: StagedUploadProps) {
   const [stages, setStages] = useState<Stage[]>([
     { id: 1, label: "بارگذاری فایل", progress: 0, status: "active" },
@@ -196,6 +198,7 @@ export function StagedUpload({
         onLogin={onLogin}
         onLogout={onLogout}
         onAboutClick={onAboutClick}
+        onSellerDashboard={onSellerDashboard}
       />
       
       {/* Main Container */}

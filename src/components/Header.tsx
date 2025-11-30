@@ -17,6 +17,7 @@ interface HeaderProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  onSellerDashboard?: () => void;
 }
 
 export function Header({
@@ -26,7 +27,8 @@ export function Header({
   user = null,
   onLogin,
   onLogout,
-  onAboutClick
+  onAboutClick,
+  onSellerDashboard
 }: HeaderProps) {
   return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
@@ -70,6 +72,13 @@ export function Header({
                               </DropdownMenuItem>
                           </>
                       )}
+                      {/* Seller Dashboard Option */}
+                      <DropdownMenuItem
+                          onClick={onSellerDashboard}
+                          className="cursor-pointer text-right"
+                      >
+                          پنل فروشنده
+                      </DropdownMenuItem>
                       {/* About Us Option */}
                       <DropdownMenuItem
                           onClick={onAboutClick}

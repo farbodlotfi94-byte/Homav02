@@ -18,6 +18,7 @@ interface ProductSelectionProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  onSellerDashboard?: () => void;
   shopName?: string | null; // Filter products by shop name
 }
 
@@ -29,6 +30,7 @@ export function ProductSelection({
   onLogin,
   onLogout,
   onAboutClick,
+  onSellerDashboard,
   shopName
 }: ProductSelectionProps) {
   const shouldAnimate = useAnimationPreference();
@@ -260,6 +262,7 @@ export function ProductSelection({
           onLogin={onLogin}
           onLogout={onLogout}
           onAboutClick={onAboutClick}
+          onSellerDashboard={onSellerDashboard}
         />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
@@ -282,6 +285,7 @@ export function ProductSelection({
           onLogin={onLogin}
           onLogout={onLogout}
           onAboutClick={onAboutClick}
+          onSellerDashboard={onSellerDashboard}
         />
         <div className="pt-14 flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-sm mx-auto px-6">
@@ -307,6 +311,7 @@ export function ProductSelection({
         onLogin={onLogin}
         onLogout={onLogout}
         onAboutClick={onAboutClick}
+        onSellerDashboard={onSellerDashboard}
       />
       
       <div className="pt-14 pb-6">

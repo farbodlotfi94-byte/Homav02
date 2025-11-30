@@ -29,6 +29,7 @@ interface ProductVisualizationProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  onSellerDashboard?: () => void;
 }
 
 export function ProductVisualization({
@@ -50,7 +51,8 @@ export function ProductVisualization({
   user,
   onLogin,
   onLogout,
-  onAboutClick
+  onAboutClick,
+  onSellerDashboard
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = isMobileDevice();
@@ -86,6 +88,7 @@ export function ProductVisualization({
         onLogin={onLogin}
         onLogout={onLogout}
         onAboutClick={onAboutClick}
+        onSellerDashboard={onSellerDashboard}
       />
 
       <div className="pt-14">

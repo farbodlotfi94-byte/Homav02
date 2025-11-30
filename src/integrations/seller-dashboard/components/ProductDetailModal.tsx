@@ -1,6 +1,6 @@
 import { X, Copy, Check, Eye, ExternalLink, Edit, Trash2, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { SellerProductImage } from './SellerProductImage';
 import { Badge } from './ui/badge';
 import type { SellerProduct } from '../types/seller';
 
@@ -96,17 +96,16 @@ export function ProductDetailModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 md:gap-6">
             {/* Image */}
             <div className="relative aspect-square bg-[#f5f5f5] rounded-[16px] sm:rounded-[20px] md:rounded-[24px] overflow-hidden">
-              {product.images[0] ? (
-                <ImageWithFallback
-                  src={product.images[0]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[#666]">
-                  <span className="text-right">بدون تصویر</span>
-                </div>
-              )}
+              <SellerProductImage
+                imageUrl={product.images[0] || null}
+                alt={product.name}
+                className="w-full h-full object-cover"
+                fallbackIcon={
+                  <div className="w-full h-full flex items-center justify-center text-[#666]">
+                    <span className="text-right">بدون تصویر</span>
+                  </div>
+                }
+              />
               
               {/* Status Badge */}
               <div className="absolute top-3 right-3 sm:top-4 sm:right-4">

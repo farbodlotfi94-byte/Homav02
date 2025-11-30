@@ -141,7 +141,10 @@ class SellerApiService {
     if (params.category) queryParams.append('category', params.category);
 
     const queryString = queryParams.toString();
-    const endpoint = `/api/shops/products/list/${queryString ? `?${queryString}` : ''}`;
+    const endpoint = queryString
+      ? `/api/shops/products/list/?${queryString}`
+      : `/api/shops/products/list/`;
+    console.log('[SellerAPI] Products list endpoint:', endpoint);
 
     return this.makeRequest<PaginatedProductsResponse>(endpoint);
   }
@@ -356,6 +359,68 @@ class SellerApiService {
     const endpoint = `/api/shops/credits/history/${queryString ? `?${queryString}` : ''}`;
 
     return this.makeRequest<PaginatedTransactionsResponse>(endpoint);
+  }
+
+  /**
+   * Get image blob URL for seller product images
+   * Handles authentication and token refresh automatically
+   * @param imageUrl - The image URL from API response (relative or absolute)
+   * @returns Blob URL that can be used as img src, or null if failed
+   */
+  async getImageBlobUrl(imageUrl: string | null): Promise<string | null> {
+    if (!imageUrl) {
+      console.log('[SellerAPI] No image URL provided');
+      return null;
+    }
+
+    try {
+      // If it's already a blob URL or data URL, return as-is
+      if (imageUrl.startsWith('blob:') || imageUrl.startsWith('data:')) {
+        console.log('[SellerAPI] Using blob/data URL directly');
+        return imageUrl;
+      }
+
+      // Construct full URL if relative
+      const fullUrl = imageUrl.startsWith('http')
+        ? imageUrl
+        : `${API_CONFIG.BASE_URL}${imageUrl}`;
+
+      console.log('[SellerAPI] Fetching image blob from:', fullUrl);
+
+      const authHeaders = sellerAuthService.getAuthHeaders();
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+          ...authHeaders,
+        },
+      });
+
+      if (response.status === 401) {
+        console.log('[SellerAPI] 401 Unauthorized for image - attempting token refresh');
+        const refreshed = await sellerAuthService.refreshAccessToken();
+        if (refreshed) {
+          console.log('[SellerAPI] Token refreshed, retrying image request');
+          return this.getImageBlobUrl(imageUrl); // Retry with new token
+        } else {
+          console.error('[SellerAPI] Token refresh failed for image');
+          sellerAuthService.logout();
+          return null;
+        }
+      }
+
+      if (!response.ok) {
+        console.error('[SellerAPI] Failed to fetch image:', response.status, response.statusText);
+        return null;
+      }
+
+      const imageBlob = await response.blob();
+      const blobUrl = URL.createObjectURL(imageBlob);
+      console.log('[SellerAPI] Image blob URL created successfully');
+      return blobUrl;
+    } catch (error) {
+      console.error('[SellerAPI] Error fetching image blob:', error);
+      return null;
+    }
   }
 }
 

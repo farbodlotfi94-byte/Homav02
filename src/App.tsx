@@ -563,6 +563,12 @@ export default function App() {
     setShowAboutUs(true);
   };
 
+  // Seller Dashboard button handler (navigate to seller dashboard)
+  const handleSellerDashboard = () => {
+    console.log('[App] Seller Dashboard button clicked');
+    navigate('/seller');
+  };
+
   // Product Landing → Check Auth → Upload
   const handleStartUpload = () => {
     trackKPI("upload_start", {
@@ -1353,6 +1359,7 @@ export default function App() {
             onLogin={handleLoginClick}
             onLogout={handleLogout}
             onAboutClick={handleAboutUsClick}
+            onSellerDashboard={handleSellerDashboard}
           />
         )}
 
@@ -1377,6 +1384,7 @@ export default function App() {
             onLogin={handleLoginClick}
             onLogout={handleLogout}
             onAboutClick={handleAboutUsClick}
+            onSellerDashboard={handleSellerDashboard}
             rateLimitExpiry={rateLimitExpiry}
             rateLimitMessage={rateLimitMessage}
           />
@@ -1426,6 +1434,7 @@ export default function App() {
                 onLogin={handleLoginClick}
                 onLogout={handleLogout}
                 onAboutClick={handleAboutUsClick}
+                onSellerDashboard={handleSellerDashboard}
               />
             )}
           </>
@@ -1444,6 +1453,7 @@ export default function App() {
             onLogin={handleLoginClick}
             onLogout={handleLogout}
             onAboutClick={handleAboutUsClick}
+            onSellerDashboard={handleSellerDashboard}
           />
         )}
 
@@ -1459,6 +1469,7 @@ export default function App() {
             onLogin={handleLoginClick}
             onLogout={handleLogout}
             onAboutClick={handleAboutUsClick}
+            onSellerDashboard={handleSellerDashboard}
           />
         )}
 
@@ -1571,6 +1582,7 @@ export default function App() {
               onLogin={handleLoginClick}
               onLogout={handleLogout}
               onAboutClick={handleAboutUsClick}
+              onSellerDashboard={handleSellerDashboard}
             />
           )}
 

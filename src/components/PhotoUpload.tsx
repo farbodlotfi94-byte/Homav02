@@ -25,6 +25,7 @@ interface PhotoUploadProps {
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
+  onSellerDashboard?: () => void;
 }
 
 export function PhotoUpload({
@@ -34,7 +35,8 @@ export function PhotoUpload({
   user,
   onLogin,
   onLogout,
-  onAboutClick
+  onAboutClick,
+  onSellerDashboard
 }: PhotoUploadProps) {
   const shouldAnimate = useAnimationPreference();
   const [isDragging, setIsDragging] = useState(false);
@@ -201,6 +203,7 @@ export function PhotoUpload({
         onLogin={onLogin}
         onLogout={onLogout}
         onAboutClick={onAboutClick}
+        onSellerDashboard={onSellerDashboard}
       />
 
       <div className="pt-14">

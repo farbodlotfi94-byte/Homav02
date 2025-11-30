@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Edit, Trash2, Search, Eye } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { SellerProductImage } from './SellerProductImage';
 import type { SellerProduct, Seller } from '../types/seller';
 import { SellerProfileCard } from './SellerProfileCard';
 import { ProductDetailModal } from './ProductDetailModal';
@@ -322,21 +322,20 @@ export function ProductsPage({
                     }}
                   >
                     {/* Product Image */}
-                    <div 
+                    <div
                       className="relative aspect-square overflow-hidden"
                       style={{ background: 'rgba(255, 255, 255, 0.05)' }}
                     >
-                      {product.images[0] ? (
-                        <ImageWithFallback
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-black/30">
-                          <Plus className="w-14 h-14" strokeWidth={1.5} />
-                        </div>
-                      )}
+                      <SellerProductImage
+                        imageUrl={product.images[0] || null}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        fallbackIcon={
+                          <div className="w-full h-full flex items-center justify-center text-black/30">
+                            <Plus className="w-14 h-14" strokeWidth={1.5} />
+                          </div>
+                        }
+                      />
                       
                       {/* Status Badge */}
                       <div className="absolute top-3 right-3">
