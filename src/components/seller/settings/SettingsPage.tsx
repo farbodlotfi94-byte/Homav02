@@ -377,7 +377,7 @@ export function SettingsPage({ onLogout }: SettingsPageProps) {
       {/* Account Info */}
       <div className="bg-[#f5f5f5] rounded-[12px] sm:rounded-[14px] md:rounded-[16px] p-3 sm:p-4">
         <p className="text-[12px] sm:text-[13px] text-[#666] text-center">
-          عضویت از: {new Date(seller.createdAt).toLocaleDateString('fa-IR')}
+          عضویت از: {seller.createdAt}
         </p>
       </div>
     </div>
