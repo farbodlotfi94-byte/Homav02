@@ -134,3 +134,62 @@ export function formatPhoneForDisplay(phone: string): string {
   }
   return phone;
 }
+
+/**
+ * URL validation result interface
+ */
+export interface UrlValidationResult {
+  isValid: boolean;
+  normalized?: string;  // Normalized with https:// prefix
+  error?: string;
+}
+
+/**
+ * Validate URL format
+ * Accepts: http://, https://, or without protocol (adds https://)
+ */
+export function validateAndNormalizeUrl(url: string): UrlValidationResult {
+  if (!url || typeof url !== 'string') {
+    return { isValid: true, normalized: '' };
+  }
+
+  const trimmed = url.trim();
+  if (trimmed === '') {
+    return { isValid: true, normalized: '' };
+  }
+
+  // Add protocol if missing
+  let normalizedUrl = trimmed;
+  if (!normalizedUrl.match(/^https?:\/\//i)) {
+    normalizedUrl = `https://${normalizedUrl}`;
+  }
+
+  // Validate URL format
+  try {
+    const urlObj = new URL(normalizedUrl);
+
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      return {
+        isValid: false,
+        error: 'آدرس وب‌سایت باید با http:// یا https:// شروع شود',
+      };
+    }
+
+    if (!urlObj.hostname || urlObj.hostname.length < 3) {
+      return {
+        isValid: false,
+        error: 'آدرس وب‌سایت معتبر نیست',
+      };
+    }
+
+    return {
+      isValid: true,
+      normalized: normalizedUrl,
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      error: 'آدرس وب‌سایت معتبر نیست. مثال: https://example.com',
+    };
+  }
+}

@@ -9,13 +9,12 @@ export type { ProductAnalyticsItem };
 
 export interface Seller {
   id: string;
-  name: string;
-  shopName: string;
-  instagram?: string;
-  whatsapp?: string;
-  email: string;
+  name: string;              // Maps to username
+  shopName: string;          // Maps to shop_name
+  phoneNumber: string;       // NEW: Maps to phone_number (read-only, +98 format)
+  shopWebsiteLink?: string;  // NEW: Maps to shop_website_link (editable)
   logo?: string;
-  createdAt: string;
+  createdAt: string;         // Maps to registered_since_display
 }
 
 export interface ProductSpec {

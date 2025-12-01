@@ -9,6 +9,8 @@ interface ProductsPageProps {
   products: SellerProduct[];
   seller: Seller;
   isLoadingProducts: boolean;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
   onAddProduct: () => void;
   onEditProduct: (product: SellerProduct) => void;
   onDeleteProduct: (productId: string) => void;
@@ -18,25 +20,18 @@ export function ProductsPage({
   products,
   seller,
   isLoadingProducts,
+  searchQuery,
+  onSearchChange,
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
 }: ProductsPageProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [selectedProduct, setSelectedProduct] = useState<SellerProduct | null>(null);
 
   // Get unique categories
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-
-  // Filter products
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || product.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
 
   return (
     <div 
@@ -103,6 +98,124 @@ export function ProductsPage({
         </button>
       </div>
 
+      {/* Toolbar - Always visible when there are products or during search */}
+      {(products.length > 0 || searchQuery || isLoadingProducts) && (
+        <div
+          className="rounded-[24px] p-5"
+          style={{
+            background: 'var(--jet-black)',
+            border: '1px solid rgba(255, 255, 255, 0.08)'
+          }}
+        >
+          <div className="flex flex-col md:flex-row md:items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                style={{ color: 'rgba(255, 255, 255, 0.3)' }}
+              />
+              <input
+                type="text"
+                placeholder="جستجوی نام محصول..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full border transition-all duration-200"
+                dir="rtl"
+                style={{
+                  height: '46px',
+                  borderRadius: '16px',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  fontSize: '14px',
+                  fontWeight: 'var(--font-weight-normal)',
+                  color: '#FFFFFF',
+                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  outline: 'none',
+                  paddingRight: '40px',
+                  paddingLeft: '16px',
+                  textAlign: 'right'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--old-flax)';
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                }}
+              />
+            </div>
+
+            {/* Filters */}
+            <div className="flex gap-2">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
+                className="border transition-all duration-200"
+                style={{
+                  paddingLeft: '16px',
+                  paddingRight: '16px',
+                  height: '46px',
+                  borderRadius: '16px',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  fontSize: '14px',
+                  fontWeight: 'var(--font-weight-normal)',
+                  color: '#FFFFFF',
+                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--old-flax)';
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                }}
+              >
+                <option value="all">همه وضعیت‌ها</option>
+                <option value="active">فعال</option>
+                <option value="inactive">غیرفعال</option>
+              </select>
+
+              {categories.length > 0 && (
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="border transition-all duration-200"
+                  style={{
+                    paddingLeft: '16px',
+                    paddingRight: '16px',
+                    height: '46px',
+                    borderRadius: '16px',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    fontSize: '14px',
+                    fontWeight: 'var(--font-weight-normal)',
+                    color: '#FFFFFF',
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--old-flax)';
+                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                  }}
+                >
+                  <option value="all">همه دسته‌بندی‌ها</option>
+                  {categories.map((cat, idx) => (
+                    <option key={`category-${cat}-${idx}`} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Products Grid */}
       {isLoadingProducts ? (
         <div
@@ -123,7 +236,7 @@ export function ProductsPage({
             در حال بارگذاری محصولات...
           </h3>
         </div>
-      ) : products.length === 0 ? (
+      ) : products.length === 0 && !searchQuery ? (
         <div
           className="rounded-[28px] p-14 text-center space-y-5"
           style={{
@@ -181,129 +294,13 @@ export function ProductsPage({
             </button>
           </div>
         </div>
-      ) : (
+      ) : products.length > 0 ? (
         <div className="space-y-5">
-          {/* Toolbar */}
-          <div 
-            className="rounded-[24px] p-5"
-            style={{
-              background: 'var(--jet-black)',
-              border: '1px solid rgba(255, 255, 255, 0.08)'
-            }}
-          >
-            <div className="flex flex-col md:flex-row md:items-center gap-3">
-              {/* Search */}
-              <div className="relative flex-1 max-w-md">
-                <Search 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                  style={{ color: 'rgba(255, 255, 255, 0.3)' }}
-                />
-                <input
-                  type="text"
-                  placeholder="جستجوی نام محصول..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full border transition-all duration-200"
-                  dir="rtl"
-                  style={{
-                    height: '46px',
-                    borderRadius: '16px',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    fontSize: '14px',
-                    fontWeight: 'var(--font-weight-normal)',
-                    color: '#FFFFFF',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                    outline: 'none',
-                    paddingRight: '40px',
-                    paddingLeft: '16px',
-                    textAlign: 'right'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--old-flax)';
-                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
-                  }}
-                />
-              </div>
-
-              {/* Filters */}
-              <div className="flex gap-2">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'inactive')}
-                  className="border transition-all duration-200"
-                  style={{
-                    paddingLeft: '16px',
-                    paddingRight: '16px',
-                    height: '46px',
-                    borderRadius: '16px',
-                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                    fontSize: '14px',
-                    fontWeight: 'var(--font-weight-normal)',
-                    color: '#FFFFFF',
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--old-flax)';
-                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                    e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
-                  }}
-                >
-                  <option value="all">همه وضعیت‌ها</option>
-                  <option value="active">فعال</option>
-                  <option value="inactive">غیرفعال</option>
-                </select>
-
-                {categories.length > 0 && (
-                  <select
-                    value={filterCategory}
-                    onChange={(e) => setFilterCategory(e.target.value)}
-                    className="border transition-all duration-200"
-                    style={{
-                      paddingLeft: '16px',
-                      paddingRight: '16px',
-                      height: '46px',
-                      borderRadius: '16px',
-                      borderColor: 'rgba(255, 255, 255, 0.1)',
-                      fontSize: '14px',
-                      fontWeight: 'var(--font-weight-normal)',
-                      color: '#FFFFFF',
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = 'var(--old-flax)';
-                      e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                      e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
-                    }}
-                  >
-                    <option value="all">همه دسته‌بندی‌ها</option>
-                    {categories.map((cat, idx) => (
-                      <option key={`category-${cat}-${idx}`} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Products Cards Grid */}
-          {filteredProducts.length > 0 ? (
+          {products.length > 0 ? (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <div
                     key={product.id}
                     onClick={() => setSelectedProduct(product)}
@@ -519,22 +516,24 @@ export function ProductsPage({
                       fontWeight: 'var(--font-weight-bold)'
                     }}
                   >
-                    {filteredProducts.length.toLocaleString('fa-IR')} محصول
+                    {products.length.toLocaleString('fa-IR')} محصول
                   </p>
-                  <p
-                    className="text-white/70 mt-1"
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 'var(--font-weight-normal)'
-                    }}
-                  >
-                    از مجموع {products.length.toLocaleString('fa-IR')} محصول
-                  </p>
+                  {searchQuery && (
+                    <p
+                      className="text-white/70 mt-1"
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 'var(--font-weight-normal)'
+                      }}
+                    >
+                      نتایج جستجو برای "{searchQuery}"
+                    </p>
+                  )}
                 </div>
-                {filteredProducts.length !== products.length && (
+                {searchQuery && (
                   <button
                     onClick={() => {
-                      setSearchQuery('');
+                      onSearchChange('');
                       setFilterStatus('all');
                       setFilterCategory('all');
                     }}
@@ -574,6 +573,24 @@ export function ProductsPage({
               </p>
             </div>
           )}
+        </div>
+      ) : (
+        <div
+          className="rounded-[24px] p-12 text-center"
+          style={{
+            background: 'var(--jet-black)',
+            border: '1px solid rgba(255, 255, 255, 0.08)'
+          }}
+        >
+          <p
+            className="text-white/70"
+            style={{
+              fontSize: '15px',
+              fontWeight: 'var(--font-weight-normal)'
+            }}
+          >
+            محصولی با این جستجو یافت نشد
+          </p>
         </div>
       )}
 

@@ -27,11 +27,10 @@ export const mapSettingsToSeller = (settings: ShopSettingsResponse): Seller => {
     id: '', // Not provided by settings endpoint
     name: settings.username,
     shopName: settings.shop_name,
-    instagram: '', // Not in backend response (may need to be added)
-    whatsapp: '', // Not in backend response (may need to be added)
-    email: '', // Not in backend response
+    phoneNumber: settings.phone_number, // Store +98 format
+    shopWebsiteLink: settings.shop_website_link || '', // Editable link with fallback
     logo: undefined, // Not in backend response
-    createdAt: settings.registered_since, // Persian date string
+    createdAt: settings.registered_since_display, // Use display format (Persian date)
   };
 };
 
