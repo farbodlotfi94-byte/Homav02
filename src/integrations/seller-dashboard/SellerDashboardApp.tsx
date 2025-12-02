@@ -177,6 +177,7 @@ export function SellerDashboardApp() {
             currency: 'IRR' as const,
             images: imageUrl ? [imageUrl] : [],
             tryLink: item.frontend_link || '',
+            uniqueLink: item.unique_link || '', // Store for fetching full details when editing
             specs: [],
             createdAt: '',
             updatedAt: '',
@@ -289,9 +290,39 @@ export function SellerDashboardApp() {
     setIsAddProductModalOpen(true);
   };
 
-  const handleEditProduct = (product: SellerProduct) => {
-    setEditingProduct(product);
-    setIsAddProductModalOpen(true);
+  const handleEditProduct = async (product: SellerProduct) => {
+    console.log('[SellerDashboardApp] Edit product clicked:', product.id, product.uniqueLink);
+
+    // If we have a uniqueLink, fetch full product details first
+    if (product.uniqueLink) {
+      setIsLoadingData(true);
+      try {
+        const result = await sellerApiService.getProductDetails(product.uniqueLink);
+        console.log('[SellerDashboardApp] Fetched full product details:', result);
+
+        if (result.success && result.data) {
+          // Map full product details to SellerProduct
+          const fullProduct = mapBackendProductToSeller(result.data);
+          // Preserve the uniqueLink from the list
+          fullProduct.uniqueLink = product.uniqueLink;
+          console.log('[SellerDashboardApp] Full product with description:', fullProduct.description);
+          setEditingProduct(fullProduct);
+          setIsAddProductModalOpen(true);
+        } else {
+          toast.error(result.error || 'خطا در بارگذاری اطلاعات محصول');
+        }
+      } catch (error) {
+        console.error('[SellerDashboardApp] Error fetching product details:', error);
+        toast.error('خطا در بارگذاری اطلاعات محصول');
+      } finally {
+        setIsLoadingData(false);
+      }
+    } else {
+      // Fallback: open modal with partial data (for temp products or when uniqueLink not available)
+      console.log('[SellerDashboardApp] No uniqueLink, using partial product data');
+      setEditingProduct(product);
+      setIsAddProductModalOpen(true);
+    }
   };
 
   const handleSaveProduct = async (

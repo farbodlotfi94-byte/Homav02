@@ -221,7 +221,7 @@ class SellerApiService {
 
   /**
    * Update product
-   * PATCH /api/shops/products/edit/{product_id}/
+   * PUT /api/shops/products/edit/{product_id}/
    */
   async updateProduct(productId: number, formData: FormData): Promise<ServiceResult<ProductDetailsResponse>> {
     console.log('[SellerAPI] Updating product:', productId);
@@ -236,7 +236,7 @@ class SellerApiService {
       const authHeaders = sellerAuthService.getAuthHeaders();
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/shops/products/edit/${productId}/`, {
-        method: 'PATCH', // Use PATCH for partial updates
+        method: 'PUT', // Full update (all required fields must be sent)
         headers: {
           ...authHeaders,
           // Don't set Content-Type - browser will set it with boundary for multipart/form-data

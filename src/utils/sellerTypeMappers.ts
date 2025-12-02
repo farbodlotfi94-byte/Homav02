@@ -71,11 +71,12 @@ export const mapBackendProductToSeller = (product: ProductDetailsResponse): Sell
     sellerId: '', // Not provided by backend
     name: product.name,
     description: product.description,
-    category: product.category_display, // Use display value for UI
+    category: product.category.toString(), // Use raw integer value as string for form compatibility
     price: product.price,
     currency: 'IRR',
     images: [product.image_url],
     tryLink: product.frontend_link || '', // Shareable customer link (may be undefined)
+    uniqueLink: product.unique_link, // UUID for fetching full details
     specs: mapExtraDetailsToSpecs(product.extra_details),
     createdAt: product.created_at,
     updatedAt: product.updated_at,

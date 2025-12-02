@@ -68,6 +68,7 @@ export interface SellerProduct {
   status?: 'active' | 'inactive'; // وضعیت
   images: string[];
   tryLink: string; // Generated HOMA try link
+  uniqueLink?: string; // Backend unique_link (UUID) for fetching full product details
   promptMetadata?: PromptMetadata; // Metadata for AI prompt generation
   views?: number; // تعداد بازدید
   createdAt: string;
