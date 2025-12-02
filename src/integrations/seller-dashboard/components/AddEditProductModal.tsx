@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
 import { SellerProductImage } from './SellerProductImage';
+import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ProductSpecsInput } from './ProductSpecsInput';
 import { ProductPreviewModal } from './ProductPreviewModal';
 import type { SellerProduct, ProductSpec } from '../types/seller';

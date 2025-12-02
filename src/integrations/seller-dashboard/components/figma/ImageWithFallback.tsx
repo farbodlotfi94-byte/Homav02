@@ -31,23 +31,21 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className={`flex items-center justify-center bg-gray-100 ${className ?? ''}`} style={style}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-      </div>
-    )
-  }
-
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      style={style}
-      {...rest}
-      onError={handleError}
-      onLoad={handleLoad}
-    />
+    <div className={`relative ${className ?? ''}`} style={style}>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`w-full h-full object-cover ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        {...rest}
+        onError={handleError}
+        onLoad={handleLoad}
+      />
+    </div>
   )
 }
