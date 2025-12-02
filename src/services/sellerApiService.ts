@@ -221,16 +221,22 @@ class SellerApiService {
 
   /**
    * Update product
-   * PUT /api/shops/products/edit/{product_id}/
+   * PATCH /api/shops/products/edit/{product_id}/
    */
   async updateProduct(productId: number, formData: FormData): Promise<ServiceResult<ProductDetailsResponse>> {
     console.log('[SellerAPI] Updating product:', productId);
+
+    // Log form data for debugging
+    console.log('[SellerAPI] Update FormData contents:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+    }
 
     try {
       const authHeaders = sellerAuthService.getAuthHeaders();
 
       const response = await fetch(`${API_CONFIG.BASE_URL}/api/shops/products/edit/${productId}/`, {
-        method: 'PUT',
+        method: 'PATCH', // Use PATCH for partial updates
         headers: {
           ...authHeaders,
           // Don't set Content-Type - browser will set it with boundary for multipart/form-data
