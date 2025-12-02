@@ -75,7 +75,7 @@ export const mapBackendProductToSeller = (product: ProductDetailsResponse): Sell
     price: product.price,
     currency: 'IRR',
     images: [product.image_url],
-    tryLink: product.frontend_link, // Shareable customer link
+    tryLink: product.frontend_link || '', // Shareable customer link (may be undefined)
     specs: mapExtraDetailsToSpecs(product.extra_details),
     createdAt: product.created_at,
     updatedAt: product.updated_at,

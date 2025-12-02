@@ -91,21 +91,22 @@ export function LinkPreviewModal({
             </p>
           </div>
 
-          {/* Try Link Box - Minimal Dark */}
-          <div 
+          {/* Try Link Box */}
+          <div
             className="text-center mb-6"
             style={{
-              background: 'rgba(0, 0, 0, 0.05)',
+              background: '#1a1a1a',
               borderRadius: '20px',
               padding: '20px',
               border: '1px solid rgba(0, 0, 0, 0.1)'
             }}
           >
             <p
-              className="text-white mb-3"
+              className="mb-3"
               style={{
                 fontSize: '13px',
-                fontWeight: 'var(--font-weight-medium)'
+                fontWeight: 'var(--font-weight-medium)',
+                color: 'rgba(255, 255, 255, 0.7)'
               }}
             >
               لینک Try
@@ -116,11 +117,10 @@ export function LinkPreviewModal({
                 fontSize: '13px',
                 color: '#FFFFFF',
                 fontFamily: 'ui-monospace, monospace',
-                fontWeight: 'var(--font-weight-medium)',
-                opacity: '0.9'
+                fontWeight: 'var(--font-weight-medium)'
               }}
             >
-              {tryLink}
+              {tryLink || 'در حال ایجاد لینک...'}
             </code>
           </div>
 
@@ -161,7 +161,7 @@ export function LinkPreviewModal({
           </button>
 
           {/* Next Steps - Minimal List */}
-          <div 
+          <div
             className="text-right mb-8"
             style={{
               background: 'rgba(0, 0, 0, 0.03)',
@@ -171,10 +171,11 @@ export function LinkPreviewModal({
             }}
           >
             <p
-              className="mb-4 text-white"
+              className="mb-4"
               style={{
                 fontSize: '15px',
-                fontWeight: 'var(--font-weight-bold)'
+                fontWeight: 'var(--font-weight-bold)',
+                color: '#1a1a1a'
               }}
             >
               گام‌های بعدی
@@ -186,7 +187,7 @@ export function LinkPreviewModal({
                 'آمار را از پنل مشاهده کنید'
               ].map((step, index) => (
                 <div key={index} className="flex items-start gap-3">
-                  <div 
+                  <div
                     className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
                     style={{
                       background: 'var(--old-flax)',
@@ -198,11 +199,11 @@ export function LinkPreviewModal({
                     {index + 1}
                   </div>
                   <p
-                    className="text-white"
                     style={{
                       fontSize: '14px',
                       fontWeight: 'var(--font-weight-normal)',
-                      lineHeight: '1.5'
+                      lineHeight: '1.5',
+                      color: '#333333'
                     }}
                   >
                     {step}

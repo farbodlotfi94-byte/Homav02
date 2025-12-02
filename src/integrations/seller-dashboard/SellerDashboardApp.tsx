@@ -339,14 +339,21 @@ export function SellerDashboardApp() {
         // Add new product
         const result = await sellerApiService.createProduct(formData);
 
+        console.log('[SellerDashboardApp] Create product response:', result);
+
         if (result.success && result.data) {
+          console.log('[SellerDashboardApp] Backend response data:', result.data);
+          console.log('[SellerDashboardApp] frontend_link from backend:', result.data.frontend_link);
+
           const newProduct = mapBackendProductToSeller(result.data);
+          console.log('[SellerDashboardApp] Mapped product tryLink:', newProduct.tryLink);
+
           setProducts([...products, newProduct]);
 
           // Show Link Preview Modal
           setLinkPreviewData({
             isOpen: true,
-            tryLink: newProduct.tryLink,
+            tryLink: newProduct.tryLink || result.data.frontend_link || '',
             productName: newProduct.name,
           });
 
