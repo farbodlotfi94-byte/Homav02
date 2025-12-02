@@ -11,9 +11,16 @@ import { toast } from 'sonner';
 interface AddEditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: Partial<SellerProduct>) => void;
+  onSave: (product: Partial<SellerProduct>, productImage?: File | null) => void;
   product?: SellerProduct | null;
 }
+
+// Category options for products (must match backend ProductCategory IntegerChoices)
+const CATEGORY_OPTIONS = [
+  { value: '1', label: 'مبلمان' },
+  { value: '2', label: 'فرش و قالی' },
+  { value: '3', label: 'روتختی' },
+];
 
 export function AddEditProductModal({
   isOpen,
@@ -26,17 +33,20 @@ export function AddEditProductModal({
     name: product?.name || '',
     description: product?.description || '',
     price: product?.price?.toString() || '',
+    category: product?.category || '2', // Default to 'فرش و قالی'
     specs: product?.specs || [] as ProductSpec[],
   });
   const [imagePreview, setImagePreview] = useState<string | null>(
     product?.images[0] || null
   );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -53,7 +63,14 @@ export function AddEditProductModal({
       return;
     }
 
-    if (!imagePreview) {
+    if (!formData.category) {
+      toast.error('لطفاً دسته‌بندی محصول را انتخاب کنید');
+      return;
+    }
+
+    // For new products, image file is required
+    // For edit, image file is optional (keep existing image if not changed)
+    if (!isEdit && !selectedFile) {
       toast.error('لطفاً عکس محصول را آپلود کنید');
       return;
     }
@@ -62,13 +79,14 @@ export function AddEditProductModal({
       id: product?.id,
       name: formData.name,
       description: formData.description,
+      category: formData.category,
       price: parseFloat(formData.price),
       currency: 'IRR',
-      images: [imagePreview],
-      specs: formData.specs.filter(spec => spec.key && spec.value), // فقط specs کامل رو ذخیره کن
+      images: imagePreview ? [imagePreview] : [],
+      specs: formData.specs.filter(spec => spec.key && spec.value),
     };
 
-    onSave(productData);
+    onSave(productData, selectedFile);
     onClose();
   };
 
@@ -134,6 +152,27 @@ export function AddEditProductModal({
                 dir="rtl"
                 required
               />
+            </div>
+
+            {/* Category - RTL */}
+            <div dir="rtl">
+              <label htmlFor="category" className="block mb-1 text-foreground text-right">
+                دسته‌بندی *
+              </label>
+              <select
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-input-background border border-border rounded-[8px] sm:rounded-[12px] text-foreground text-right focus:outline-none focus:border-accent transition-all duration-300"
+                dir="rtl"
+                required
+              >
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Description - RTL */}
