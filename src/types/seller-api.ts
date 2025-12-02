@@ -61,10 +61,13 @@ export interface DashboardResponse {
 // ====================
 
 export interface ProductListItem {
+  id: number;
   image_url: string;
   name: string;
   total_views: number;
   price: number;
+  unique_link?: string;
+  frontend_link?: string;
 }
 
 export interface PaginatedProductsResponse {

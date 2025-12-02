@@ -163,10 +163,10 @@ export function SellerDashboardApp() {
 
         const productsData = result.data.results.map((item, index) => {
           const imageUrl = item.image_url;
-          console.log(`[SellerDashboardApp] Product ${index}: name=${item.name}, image_url=${imageUrl}`);
+          console.log(`[SellerDashboardApp] Product ${index}: id=${item.id}, name=${item.name}, image_url=${imageUrl}`);
 
           return {
-            id: `temp-${index}`,
+            id: item.id.toString(),
             sellerId: '',
             name: item.name,
             description: '',
@@ -174,7 +174,7 @@ export function SellerDashboardApp() {
             price: item.price,
             currency: 'IRR' as const,
             images: imageUrl ? [imageUrl] : [],
-            tryLink: '',
+            tryLink: item.frontend_link || '',
             specs: [],
             createdAt: '',
             updatedAt: '',
