@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
 import { SellerProductImage } from './SellerProductImage';
@@ -42,6 +42,25 @@ export function AddEditProductModal({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  // Reset form when modal opens or product changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        name: product?.name || '',
+        description: product?.description || '',
+        price: product?.price?.toString() || '',
+        category: product?.category || '2',
+        specs: product?.specs || [],
+      });
+      setImagePreview(product?.images?.[0] || null);
+      setSelectedFile(null);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }, [isOpen, product]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
