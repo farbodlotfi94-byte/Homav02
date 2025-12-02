@@ -163,10 +163,12 @@ export function SellerDashboardApp() {
 
         const productsData = result.data.results.map((item, index) => {
           const imageUrl = item.image_url;
-          console.log(`[SellerDashboardApp] Product ${index}: id=${item.id}, name=${item.name}, image_url=${imageUrl}`);
+          // Note: Backend may not return id in list endpoint - use fallback
+          const productId = item.id !== undefined ? item.id.toString() : `temp-${index}`;
+          console.log(`[SellerDashboardApp] Product ${index}: id=${productId}, name=${item.name}, image_url=${imageUrl}`);
 
           return {
-            id: item.id.toString(),
+            id: productId,
             sellerId: '',
             name: item.name,
             description: '',

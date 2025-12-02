@@ -61,7 +61,7 @@ export interface DashboardResponse {
 // ====================
 
 export interface ProductListItem {
-  id: number;
+  id?: number; // May not be returned by backend list endpoint
   image_url: string;
   name: string;
   total_views: number;
