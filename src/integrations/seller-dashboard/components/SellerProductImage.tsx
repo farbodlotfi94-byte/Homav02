@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { sellerApiService } from '../../../services/sellerApiService';
 
 interface SellerProductImageProps extends Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> {
@@ -26,14 +26,26 @@ export function SellerProductImage({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
+  // Use ref to track the current blob URL for proper cleanup
+  const blobUrlRef = useRef<string | null>(null);
+
   // Load image blob URL when imageUrl changes
   useEffect(() => {
     let isMounted = true;
 
-    const loadImage = async () => {
-      setIsLoading(true);
-      setHasError(false);
+    // Revoke previous blob URL before loading new one
+    if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
+      console.log('[SellerProductImage] Revoking old blob URL');
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
 
+    // Reset state immediately when imageUrl changes
+    setBlobUrl(null);
+    setIsLoading(true);
+    setHasError(false);
+
+    const loadImage = async () => {
       if (!imageUrl) {
         console.log('[SellerProductImage] No image URL provided');
         if (isMounted) {
@@ -50,6 +62,7 @@ export function SellerProductImage({
         if (isMounted) {
           if (url) {
             console.log('[SellerProductImage] Image loaded successfully');
+            blobUrlRef.current = url;
             setBlobUrl(url);
             setHasError(false);
           } else {
@@ -69,14 +82,23 @@ export function SellerProductImage({
 
     loadImage();
 
-    // Cleanup blob URL on unmount
+    // Cleanup blob URL on unmount or when imageUrl changes
     return () => {
       isMounted = false;
-      if (blobUrl && blobUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(blobUrl);
-      }
+      // Note: Don't revoke here - the next effect run will handle it
+      // This prevents race conditions where we revoke a URL still in use
     };
   }, [imageUrl]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current && blobUrlRef.current.startsWith('blob:')) {
+        console.log('[SellerProductImage] Unmount - Revoking blob URL');
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
+    };
+  }, []);
 
   // Loading state
   if (isLoading) {

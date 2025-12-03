@@ -61,6 +61,9 @@ export function SellerDashboardApp() {
     productName: '',
   });
 
+  // Ref to store shopLink for use in callbacks
+  const shopLinkRef = useRef<string>('');
+
 
   // Load all dashboard data
   const loadDashboardData = async () => {
@@ -90,7 +93,10 @@ export function SellerDashboardApp() {
       if (settingsResult.success && settingsResult.data) {
         const sellerData = mapSettingsToSeller(settingsResult.data);
         setSeller(sellerData);
+        // Store shopLink in ref for use in callbacks
+        shopLinkRef.current = sellerData.shopLink || '';
         console.log('[SellerDashboardApp] Seller data loaded:', sellerData);
+        console.log('[SellerDashboardApp] Shop link:', sellerData.shopLink);
       } else {
         // Check if this is an authentication error
         if (settingsResult.error?.includes('منقضی شده') || settingsResult.error?.includes('expired')) {
@@ -165,7 +171,13 @@ export function SellerDashboardApp() {
           const imageUrl = item.image_url;
           // Note: Backend may not return id in list endpoint - use fallback
           const productId = item.id !== undefined ? item.id.toString() : `temp-${index}`;
-          console.log(`[SellerDashboardApp] Product ${index}: id=${productId}, name=${item.name}, image_url=${imageUrl}`);
+          console.log(`[SellerDashboardApp] Product ${index}: id=${productId}, name=${item.name}, image_url=${imageUrl}, unique_link=${item.unique_link}`);
+
+          // Construct tryLink from frontend_link or shopLink + unique_link
+          // Format: https://myhoma.ir/{shop_slug}/{unique_link}
+          // shopLink from settings is like: https://myhoma.ir/carpet-market/
+          const shopLink = shopLinkRef.current;
+          const tryLink = item.frontend_link || (item.unique_link && shopLink ? `${shopLink}${item.unique_link}` : '');
 
           return {
             id: productId,
@@ -176,7 +188,7 @@ export function SellerDashboardApp() {
             price: item.price,
             currency: 'IRR' as const,
             images: imageUrl ? [imageUrl] : [],
-            tryLink: item.frontend_link || '',
+            tryLink: tryLink,
             uniqueLink: item.unique_link || '', // Store for fetching full details when editing
             specs: [],
             createdAt: '',
@@ -302,7 +314,7 @@ export function SellerDashboardApp() {
 
         if (result.success && result.data) {
           // Map full product details to SellerProduct
-          const fullProduct = mapBackendProductToSeller(result.data);
+          const fullProduct = mapBackendProductToSeller(result.data, shopLinkRef.current);
           // Preserve the uniqueLink from the list
           fullProduct.uniqueLink = product.uniqueLink;
           console.log('[SellerDashboardApp] Full product with description:', fullProduct.description);
@@ -358,9 +370,24 @@ export function SellerDashboardApp() {
         }
 
         const result = await sellerApiService.updateProduct(productId, formData);
+        console.log('[SellerDashboardApp] Update response:', result.data);
 
         if (result.success && result.data) {
-          const updatedProduct = mapBackendProductToSeller(result.data);
+          const updatedProduct = mapBackendProductToSeller(result.data, shopLinkRef.current);
+
+          // Preserve existing image if backend didn't return one (no new image uploaded)
+          // The mapper now sets images to [] if image_url is empty
+          if (updatedProduct.images.length === 0 && editingProduct.images && editingProduct.images.length > 0 && editingProduct.images[0]) {
+            console.log('[SellerDashboardApp] Preserving existing image:', editingProduct.images[0]);
+            updatedProduct.images = editingProduct.images;
+          }
+
+          // Preserve uniqueLink from editingProduct if not in response
+          if (!updatedProduct.uniqueLink && editingProduct.uniqueLink) {
+            updatedProduct.uniqueLink = editingProduct.uniqueLink;
+          }
+
+          console.log('[SellerDashboardApp] Final updated product:', updatedProduct);
           setProducts(products.map((p) => (p.id === editingProduct.id ? updatedProduct : p)));
           toast.success('محصول به‌روز شد');
         } else {
@@ -376,7 +403,7 @@ export function SellerDashboardApp() {
           console.log('[SellerDashboardApp] Backend response data:', result.data);
           console.log('[SellerDashboardApp] frontend_link from backend:', result.data.frontend_link);
 
-          const newProduct = mapBackendProductToSeller(result.data);
+          const newProduct = mapBackendProductToSeller(result.data, shopLinkRef.current);
           console.log('[SellerDashboardApp] Mapped product tryLink:', newProduct.tryLink);
 
           setProducts([...products, newProduct]);

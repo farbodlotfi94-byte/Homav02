@@ -106,7 +106,8 @@ export function AddEditProductModal({
     };
 
     onSave(productData, selectedFile);
-    onClose();
+    // Note: onClose is called by parent after save completes, not here
+    // This ensures the modal stays open during the save operation
   };
 
   return (

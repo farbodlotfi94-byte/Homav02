@@ -11,8 +11,9 @@ export interface Seller {
   id: string;
   name: string;              // Maps to username
   shopName: string;          // Maps to shop_name
-  phoneNumber: string;       // NEW: Maps to phone_number (read-only, +98 format)
-  shopWebsiteLink?: string;  // NEW: Maps to shop_website_link (editable)
+  phoneNumber: string;       // Maps to phone_number (read-only, +98 format)
+  shopLink: string;          // Maps to shop_link (auto-generated base URL for products)
+  shopWebsiteLink?: string;  // Maps to shop_website_link (editable)
   logo?: string;
   createdAt: string;         // Maps to registered_since_display
 }

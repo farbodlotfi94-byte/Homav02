@@ -28,6 +28,7 @@ export const mapSettingsToSeller = (settings: ShopSettingsResponse): Seller => {
     name: settings.username,
     shopName: settings.shop_name,
     phoneNumber: settings.phone_number, // Store +98 format
+    shopLink: settings.shop_link, // Auto-generated base URL (e.g., https://myhoma.ir/carpet-market/)
     shopWebsiteLink: settings.shop_website_link || '', // Editable link with fallback
     logo: undefined, // Not in backend response
     createdAt: settings.registered_since_display, // Use display format (Persian date)
@@ -64,8 +65,18 @@ export const mapSpecsToExtraDetails = (specs: ProductSpec[] | undefined): Record
 
 /**
  * Map backend ProductDetailsResponse to frontend SellerProduct
+ * @param product - Backend product response
+ * @param shopLink - Optional shop base URL (e.g., https://myhoma.ir/carpet-market/)
  */
-export const mapBackendProductToSeller = (product: ProductDetailsResponse): SellerProduct => {
+export const mapBackendProductToSeller = (product: ProductDetailsResponse, shopLink?: string): SellerProduct => {
+  // Construct tryLink from frontend_link or shopLink + unique_link
+  // Format: https://myhoma.ir/{shop_slug}/{unique_link}
+  const tryLink = product.frontend_link || (product.unique_link && shopLink ? `${shopLink}${product.unique_link}` : '');
+
+  // Handle image_url - filter out null, undefined, and empty strings
+  const imageUrl = product.image_url && product.image_url.trim() !== '' ? product.image_url : null;
+  const images = imageUrl ? [imageUrl] : [];
+
   return {
     id: product.id.toString(),
     sellerId: '', // Not provided by backend
@@ -74,8 +85,8 @@ export const mapBackendProductToSeller = (product: ProductDetailsResponse): Sell
     category: product.category.toString(), // Use raw integer value as string for form compatibility
     price: product.price,
     currency: 'IRR',
-    images: [product.image_url],
-    tryLink: product.frontend_link || '', // Shareable customer link (may be undefined)
+    images: images,
+    tryLink: tryLink, // Shareable customer link
     uniqueLink: product.unique_link, // UUID for fetching full details
     specs: mapExtraDetailsToSpecs(product.extra_details),
     createdAt: product.created_at,

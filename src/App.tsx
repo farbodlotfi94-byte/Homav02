@@ -186,6 +186,15 @@ export default function App() {
       console.log("[App] Initializing...");
       console.log("[App] Current URL:", window.location.href);
 
+      // Skip initialization for reserved routes (handled by React Router)
+      // These routes have their own components and don't need main app initialization
+      const pathname = window.location.pathname;
+      const reservedRoutes = ['/seller', '/admin', '/health'];
+      if (reservedRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+        console.log("[App] Reserved route detected, skipping initialization:", pathname);
+        return;
+      }
+
       // Reset shop filter
       setShopFilter(null);
       setInvalidShopError(false);
@@ -326,6 +335,14 @@ export default function App() {
     const handlePopState = (event: PopStateEvent) => {
       console.log("[App] Browser navigation detected:", window.location.href);
       console.log("[App] PopState event state:", event.state);
+
+      // Skip for reserved routes (handled by React Router)
+      const pathname = window.location.pathname;
+      const reservedRoutes = ['/seller', '/admin', '/health'];
+      if (reservedRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+        console.log("[App] Reserved route, skipping popstate handling:", pathname);
+        return;
+      }
 
       // Parse the current URL to determine what to show
       const entryContext = parseEntryParams(window.location.href);

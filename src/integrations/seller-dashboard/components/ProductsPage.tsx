@@ -324,6 +324,7 @@ export function ProductsPage({
                       style={{ background: 'rgba(255, 255, 255, 0.05)' }}
                     >
                       <SellerProductImage
+                        key={`${product.id}-${product.images[0] || 'no-image'}`}
                         imageUrl={product.images[0] || null}
                         alt={product.name}
                         className="w-full h-full object-cover"
