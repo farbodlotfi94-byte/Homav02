@@ -12,6 +12,7 @@ import { API_CONFIG } from "../config/api";
 import type { BackendProcessResponse } from "../types/product";
 import { stripExifData } from "./stripExif";
 import { userAuthService } from "../services/userAuthService";
+import { ImageProcessingScope } from "./imageProcessingSentry";
 
 export interface ProcessImageRequest {
   imageFile: File;
@@ -78,7 +79,16 @@ export async function processImageWithAI(
   
   try {
     const startTime = Date.now();
-    
+
+    // Initialize Sentry tracking for this processing session
+    ImageProcessingScope.startProcessing({
+      productId: parseInt(request.productId.replace('prod_', '')) || 0,
+      fileName: request.imageFile.name,
+      fileSize: request.imageFile.size,
+      sessionId: request.sessionId,
+      uniqueLink: request.uniqueLink,
+    });
+
     // Validate request parameters
     if (!request.uniqueLink || request.uniqueLink.trim() === '') {
       console.error('[AI Processing] uniqueLink is empty or invalid:', request.uniqueLink);
@@ -121,12 +131,15 @@ export async function processImageWithAI(
 
     // Strip EXIF data to prevent backend from auto-rotating the image
     console.log('[AI Processing] Stripping EXIF metadata from image...');
+    ImageProcessingScope.trackStep('exif_stripping', { fileName: request.imageFile.name });
     let imageFileWithoutExif: File;
 
     try {
       imageFileWithoutExif = await stripExifData(request.imageFile);
+      ImageProcessingScope.trackStep('exif_stripping_complete', { success: true });
     } catch (stripError) {
       console.error('[AI Processing] EXIF stripping failed:', stripError);
+      ImageProcessingScope.trackStep('exif_stripping_fallback', { error: String(stripError) });
       // If EXIF stripping fails completely, try with original file
       console.warn('[AI Processing] Using original file as fallback');
       imageFileWithoutExif = request.imageFile;
@@ -169,6 +182,7 @@ export async function processImageWithAI(
     }
 
     // Create FormData for multipart upload
+    ImageProcessingScope.trackStep('formdata_creation');
     const formData = new FormData();
 
     // Ensure we're appending a proper File/Blob object
@@ -257,6 +271,7 @@ export async function processImageWithAI(
     });
 
     // Call backend API with progress tracking
+    ImageProcessingScope.trackStep('api_request_start', { url: fullUrl });
     console.log('[AI Processing] ارسال درخواست به:', fullUrl);
     
     // Add a progress indicator for long-running requests
@@ -279,6 +294,10 @@ export async function processImageWithAI(
       throw error;
     }
     
+    ImageProcessingScope.trackStep('api_response_received', {
+      success: response.success,
+      status: response.status
+    });
     console.log('[AI Processing] پاسخ دریافت شد:', {
       success: response.success,
       status: response.status,
@@ -297,6 +316,7 @@ export async function processImageWithAI(
     // Handle 401 error (token expired, already handled by api.ts but might fail)
     if (response.status === 401 && response.requiresLogin) {
       console.error('[AI Processing] نیاز به ورود مجدد');
+      ImageProcessingScope.trackAuthError('Token expired or invalid');
       return {
         success: false,
         visualizedImageUrl: '',
@@ -312,6 +332,10 @@ export async function processImageWithAI(
     // Handle 429 rate limit error - DO NOT retry
     if (response.status === 429 && response.isRateLimited) {
       console.log('[AI Processing] محدودیت تعداد درخواست رسیده است');
+      ImageProcessingScope.trackRateLimit(
+        response.rateLimitInfo?.retryAfter || 0,
+        response.rateLimitInfo?.message || 'Rate limit exceeded'
+      );
       return {
         success: false,
         visualizedImageUrl: '',
@@ -344,9 +368,11 @@ export async function processImageWithAI(
       // Construct full URL using backend endpoint for serving images
       const imageEndpoint = API_CONFIG.ENDPOINTS.IMAGE_SERVE(imagePath);
       console.log('[AI Processing] Fetching image from endpoint:', imageEndpoint);
+      ImageProcessingScope.trackStep('blob_fetch_start', { imagePath });
 
       // Fetch image as blob URL through backend
       const visualizedImageUrl = await apiGetImageBlob(imageEndpoint) || '';
+      ImageProcessingScope.trackStep('blob_fetch_complete', { success: !!visualizedImageUrl });
 
       if (!visualizedImageUrl) {
         console.error('[AI Processing] Failed to fetch image blob');
@@ -373,6 +399,13 @@ export async function processImageWithAI(
         blobUrl: visualizedImageUrl,
       });
 
+      // Track successful completion
+      ImageProcessingScope.trackSuccess({
+        processingTime: Math.round(processingTime),
+        imageId: processedImageId || 0,
+        imagePath: imagePath,
+      });
+
       return {
         success: true,
         visualizedImageUrl,
@@ -383,6 +416,11 @@ export async function processImageWithAI(
       };
     } else {
       console.error('[AI Processing] خطا در پردازش:', response.error);
+      ImageProcessingScope.trackApiError(
+        response.status || 500,
+        response.error || 'Server processing error',
+        { responseData: response.data }
+      );
       return {
         success: false,
         visualizedImageUrl: '',
@@ -395,6 +433,17 @@ export async function processImageWithAI(
     }
   } catch (error) {
     console.error('[AI Processing] خطا در پردازش تصویر:', error);
+
+    // Track the error in Sentry
+    const errorObj = error instanceof Error ? error : new Error(String(error));
+    ImageProcessingScope.trackError(errorObj, {
+      step: 'processing_exception',
+      productId: parseInt(request.productId.replace('prod_', '')) || 0,
+      fileName: request.imageFile?.name,
+      fileSize: request.imageFile?.size,
+      retryCount,
+      errorMessage: errorObj.message,
+    });
     
     // Check if we should retry
     const shouldRetry = retryCount < maxRetries && error instanceof Error && (
