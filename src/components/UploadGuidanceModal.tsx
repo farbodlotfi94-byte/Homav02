@@ -139,19 +139,19 @@ export function UploadGuidanceModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogPortal>
         <DialogOverlay className="backdrop-blur-md bg-black/10" />
-        <DialogPrimitive.Content className="fixed top-[50%] left-[50%] z-50 grid w-[calc(100%-2rem)] max-w-sm translate-x-[-50%] translate-y-[-50%] gap-3 rounded-2xl border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl p-4 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+        <DialogPrimitive.Content className="fixed top-[50%] left-[50%] z-50 grid w-[calc(100%-2rem)] max-w-sm sm:max-w-md translate-x-[-50%] translate-y-[-50%] gap-3 sm:gap-4 rounded-2xl sm:rounded-3xl border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl p-4 sm:p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
         <DialogHeader>
           <DialogTitle className="text-gray-900 text-right">
             {step === 1 ? "برای بهترین نتیجه، این نکات را رعایت کنید" : "مثال‌های نادرست"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 mt-2">
+        <div className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
           {step === 1 ? (
             /* Step 1: Correct Example */
             <div className="space-y-2">
               <div className="relative rounded-lg overflow-hidden ring-2 ring-green-200 bg-gray-100">
-                <div className="relative w-full aspect-[3/2] bg-gray-200 flex items-center justify-center">
+                <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-200 flex items-center justify-center">
                   {correctImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
                       <div className="text-center p-4">
@@ -197,7 +197,7 @@ export function UploadGuidanceModal({
             /* Step 2: Incorrect Example */
             <div className="space-y-2">
               <div className="relative rounded-lg overflow-hidden ring-2 ring-red-200 bg-gray-100">
-                <div className="relative w-full aspect-[3/2] bg-gray-200 flex items-center justify-center">
+                <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-200 flex items-center justify-center">
                   {incorrectImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                       <div className="text-center p-4">
@@ -243,7 +243,7 @@ export function UploadGuidanceModal({
           {/* Confirm Button */}
           <button
             onClick={step === 1 ? handleStep1Confirm : handleStep2Confirm}
-            className="w-full h-12 rounded-full font-medium text-sm transition-all bg-gray-900 hover:bg-gray-800 text-white cursor-pointer mt-6"
+            className="w-full h-11 sm:h-12 rounded-full font-medium text-sm transition-all bg-gray-900 hover:bg-gray-800 text-white cursor-pointer mt-2 sm:mt-4"
           >
             متوجه شدم، بزن بریم!
           </button>
