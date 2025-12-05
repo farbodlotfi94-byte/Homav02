@@ -159,10 +159,7 @@ export default function App() {
     setRateLimitMessage('');
   });
 
-  // Initialize PostHog with environment-aware settings
-  useEffect(() => {
-    posthogService.init();
-  }, []);
+  // PostHog is initialized in main.tsx before React renders
 
   // Initialize: Load auth state from storage
   useEffect(() => {

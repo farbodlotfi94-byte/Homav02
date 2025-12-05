@@ -51,7 +51,10 @@ class PostHogService {
    * Track an event
    */
   track(event: string, properties?: Record<string, any>) {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      console.log('[PostHog] Track skipped - not enabled:', event);
+      return;
+    }
 
     try {
       posthog.capture(event, {
@@ -59,6 +62,7 @@ class PostHogService {
         timestamp: new Date().toISOString(),
         environment: import.meta.env.MODE,
       });
+      console.log('[PostHog] Event captured:', event);
     } catch (error) {
       console.error('[PostHog] Track error:', error);
     }
