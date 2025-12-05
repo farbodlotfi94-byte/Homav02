@@ -30,13 +30,6 @@ export const POSTHOG_CONFIG = {
     },
 };
 
-// debug: runtime visibility check
-console.log(
-    '[PostHog DEBUG] KEY=', import.meta.env.VITE_PUBLIC_POSTHOG_KEY,
-    'HOST=', import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
-    'DEV=', import.meta.env.DEV
-);
-
 export const isPostHogEnabled = (): boolean => {
     // disable in dev unless explicitly enabled via env
     if (!POSTHOG_CONFIG.API_KEY) return false;
