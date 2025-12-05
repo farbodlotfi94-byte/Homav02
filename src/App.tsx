@@ -1429,33 +1429,20 @@ export default function App() {
           />
         )}
 
-        {/* Upload - Guard: Only allow authenticated users */}
+        {/* Upload - Auth is checked in handleStartUpload before transitioning here */}
         {currentStep === "upload" && (
-          <>
-          {!isAuthenticated ? (
-            // Redirect to auth if not authenticated
-            <OTPLogin
-              key="upload-auth-guard"
-              isOpen={true}
-              initialPhoneNumber={user?.phone_number || undefined}
-              onClose={handleAuthClose}
-              onSuccess={handleAuthSuccess}
-            />
-          ) : (
-              <PhotoUpload
-                key="upload"
-                onUploadComplete={handleFileSelected}
-                onBack={() => setCurrentStep("product-landing")}
-                product={product}
-                isAuthenticated={isAuthenticated}
-                user={user}
-                onLogin={handleLoginClick}
-                onLogout={handleLogout}
-                onAboutClick={handleAboutUsClick}
-                onSellerDashboard={handleSellerDashboard}
-              />
-            )}
-          </>
+          <PhotoUpload
+            key="upload"
+            onUploadComplete={handleFileSelected}
+            onBack={() => setCurrentStep("product-landing")}
+            product={product}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={handleLoginClick}
+            onLogout={handleLogout}
+            onAboutClick={handleAboutUsClick}
+            onSellerDashboard={handleSellerDashboard}
+          />
         )}
 
         {/* Precheck */}
