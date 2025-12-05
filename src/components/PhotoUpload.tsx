@@ -14,12 +14,14 @@ import { Upload, Camera } from "lucide-react";
 import { Header } from "./Header";
 import { UploadGuidanceModal } from "./UploadGuidanceModal";
 import type { User } from "../types/auth";
+import type { Product } from "../types/product";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 // import { optimizeImage } from "../utils/imageOptimizer";
 
 interface PhotoUploadProps {
   onUploadComplete: (file: File) => void;
   onBack: () => void;
+  product?: Product | null;
   isAuthenticated?: boolean;
   user?: User | null;
   onLogin?: () => void;
@@ -31,6 +33,7 @@ interface PhotoUploadProps {
 export function PhotoUpload({
   onUploadComplete,
   onBack,
+  product,
   isAuthenticated,
   user,
   onLogin,
@@ -38,6 +41,12 @@ export function PhotoUpload({
   onAboutClick,
   onSellerDashboard
 }: PhotoUploadProps) {
+  // Categories that require guidance (numeric strings from backend)
+  // '2' = Carpet/Rug (فرش و قالی), '3' = Bedcover (روتختی)
+  const CATEGORIES_WITH_GUIDANCE = ['2', '3'];
+  const productCategory = product?.category || '';
+  const needsGuidance = CATEGORIES_WITH_GUIDANCE.includes(productCategory);
+
   const shouldAnimate = useAnimationPreference();
   const [isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -152,8 +161,9 @@ export function PhotoUpload({
   }, [onUploadComplete]);
 
   const handleFileButtonClick = useCallback(() => {
-    if (hasSeenGuidance()) {
-      // User has seen guidance before, directly open file picker
+    // Only show guidance for carpet and bedcover categories
+    if (!needsGuidance || hasSeenGuidance()) {
+      // No guidance needed or user has seen it before, directly open file picker
       fileInputRef.current?.click();
     } else {
       // Show guidance modal for first time
@@ -161,11 +171,12 @@ export function PhotoUpload({
       setShowGuidanceModal(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [needsGuidance]);
 
   const handleCameraButtonClick = useCallback(() => {
-    if (hasSeenGuidance()) {
-      // User has seen guidance before, directly open camera
+    // Only show guidance for carpet and bedcover categories
+    if (!needsGuidance || hasSeenGuidance()) {
+      // No guidance needed or user has seen it before, directly open camera
       cameraInputRef.current?.click();
     } else {
       // Show guidance modal for first time
@@ -173,7 +184,7 @@ export function PhotoUpload({
       setShowGuidanceModal(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [needsGuidance]);
 
   const handleGuidanceConfirm = useCallback(() => {
     // Mark guidance as seen
@@ -221,6 +232,7 @@ export function PhotoUpload({
               setPendingAction(null);
             }}
             onConfirm={handleGuidanceConfirm}
+            category={product?.category}
           />
 
           {/* Upload Circle */}

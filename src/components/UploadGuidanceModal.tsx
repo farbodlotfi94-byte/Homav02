@@ -20,16 +20,38 @@ interface UploadGuidanceModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  category?: string;
 }
+
+// Get category-specific image paths
+// Categories use numeric strings from backend: '2' = Carpet, '3' = Bedcover
+const getImagePaths = (category?: string) => {
+  if (category === '3') {
+    // Bedcover (روتختی)
+    return {
+      correct: '/guidance-examples/bedcover-correct.webp',
+      correctFallback: '/guidance-examples/bedcover-correct.webp',
+      incorrect: '/guidance-examples/bedcover-incorrect.webp',
+    };
+  }
+  // Default: Carpet ('2' = فرش و قالی) or undefined
+  return {
+    correct: '/guidance-examples/correct-room-modern.webp',
+    correctFallback: '/guidance-examples/correct-room.webp',
+    incorrect: '/guidance-examples/incorrect-tilted.webp',
+  };
+};
 
 export function UploadGuidanceModal({
   open,
   onClose,
   onConfirm,
+  category,
 }: UploadGuidanceModalProps) {
+  const imagePaths = getImagePaths(category);
   const [step, setStep] = useState<1 | 2>(1); // 1: correct image, 2: incorrect image
   const [correctImageError, setCorrectImageError] = useState(false);
-  const [correctImageSrc, setCorrectImageSrc] = useState("/guidance-examples/correct-room-modern.webp");
+  const [correctImageSrc, setCorrectImageSrc] = useState(imagePaths.correct);
   const [correctImageLoading, setCorrectImageLoading] = useState(true);
   const [incorrectImageError, setIncorrectImageError] = useState(false);
   const [incorrectImageLoading, setIncorrectImageLoading] = useState(true);
@@ -37,16 +59,17 @@ export function UploadGuidanceModal({
   // Preload images when modal opens
   useEffect(() => {
     if (open) {
+      const paths = getImagePaths(category);
       setStep(1);
       setCorrectImageError(false);
-      setCorrectImageSrc("/guidance-examples/correct-room-modern.webp");
+      setCorrectImageSrc(paths.correct);
       setCorrectImageLoading(true);
       setIncorrectImageError(false);
       setIncorrectImageLoading(true);
 
       // Preload correct image
       const correctImg = new Image();
-      correctImg.src = "/guidance-examples/correct-room-modern.webp";
+      correctImg.src = paths.correct;
       correctImg.onload = () => {
         setCorrectImageLoading(false);
         console.log('[UploadGuidanceModal] Correct image preloaded');
@@ -54,9 +77,9 @@ export function UploadGuidanceModal({
       correctImg.onerror = () => {
         console.log('[UploadGuidanceModal] Primary image failed, trying fallback...');
         const fallbackImg = new Image();
-        fallbackImg.src = "/guidance-examples/correct-room.webp";
+        fallbackImg.src = paths.correctFallback;
         fallbackImg.onload = () => {
-          setCorrectImageSrc("/guidance-examples/correct-room.webp");
+          setCorrectImageSrc(paths.correctFallback);
           setCorrectImageLoading(false);
         };
         fallbackImg.onerror = () => {
@@ -67,7 +90,7 @@ export function UploadGuidanceModal({
 
       // Preload incorrect image
       const incorrectImg = new Image();
-      incorrectImg.src = "/guidance-examples/incorrect-tilted.webp";
+      incorrectImg.src = paths.incorrect;
       incorrectImg.onload = () => {
         setIncorrectImageLoading(false);
         console.log('[UploadGuidanceModal] Incorrect image preloaded');
@@ -77,7 +100,7 @@ export function UploadGuidanceModal({
         setIncorrectImageLoading(false);
       };
     }
-  }, [open]);
+  }, [open, category]);
 
   const handleStep1Confirm = () => {
     // Move to step 2 (incorrect image)
@@ -93,12 +116,12 @@ export function UploadGuidanceModal({
   const handleCorrectImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
     console.log('[UploadGuidanceModal] Image error:', target.src);
-    
-    if (correctImageSrc.includes('correct-room-modern.webp')) {
-      // Try fallback image
+
+    // Try fallback if not already on fallback
+    if (correctImageSrc === imagePaths.correct && imagePaths.correct !== imagePaths.correctFallback) {
       console.log('[UploadGuidanceModal] Trying fallback image...');
       setCorrectImageLoading(true);
-      setCorrectImageSrc('/guidance-examples/correct-room.webp');
+      setCorrectImageSrc(imagePaths.correctFallback);
     } else {
       // Both failed, show placeholder
       console.log('[UploadGuidanceModal] Both images failed, showing placeholder');
@@ -116,19 +139,19 @@ export function UploadGuidanceModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogPortal>
         <DialogOverlay className="backdrop-blur-md bg-black/10" />
-        <DialogPrimitive.Content className="fixed top-[50%] left-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 rounded-3xl border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
+        <DialogPrimitive.Content className="fixed top-[50%] left-[50%] z-50 grid w-[calc(100%-2rem)] max-w-sm translate-x-[-50%] translate-y-[-50%] gap-3 rounded-2xl border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl p-4 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
         <DialogHeader>
           <DialogTitle className="text-gray-900 text-right">
             {step === 1 ? "برای بهترین نتیجه، این نکات را رعایت کنید" : "مثال‌های نادرست"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-3 mt-2">
           {step === 1 ? (
             /* Step 1: Correct Example */
             <div className="space-y-2">
               <div className="relative rounded-lg overflow-hidden ring-2 ring-green-200 bg-gray-100">
-                <div className="relative w-full aspect-[4/3] bg-gray-200 flex items-center justify-center">
+                <div className="relative w-full aspect-[3/2] bg-gray-200 flex items-center justify-center">
                   {correctImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
                       <div className="text-center p-4">
@@ -174,7 +197,7 @@ export function UploadGuidanceModal({
             /* Step 2: Incorrect Example */
             <div className="space-y-2">
               <div className="relative rounded-lg overflow-hidden ring-2 ring-red-200 bg-gray-100">
-                <div className="relative w-full aspect-[4/3] bg-gray-200 flex items-center justify-center">
+                <div className="relative w-full aspect-[3/2] bg-gray-200 flex items-center justify-center">
                   {incorrectImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                       <div className="text-center p-4">
@@ -191,7 +214,7 @@ export function UploadGuidanceModal({
                     </div>
                   ) : (
                     <img
-                      src="/guidance-examples/incorrect-tilted.webp"
+                      src={imagePaths.incorrect}
                       alt="مثال نادرست: عکس کج و نامناسب"
                       className="w-full h-full object-cover"
                       loading="eager"

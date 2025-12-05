@@ -1446,6 +1446,7 @@ export default function App() {
                 key="upload"
                 onUploadComplete={handleFileSelected}
                 onBack={() => setCurrentStep("product-landing")}
+                product={product}
                 isAuthenticated={isAuthenticated}
                 user={user}
                 onLogin={handleLoginClick}
