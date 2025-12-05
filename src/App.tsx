@@ -413,8 +413,11 @@ export default function App() {
 
     console.log(`[KPI] ${event}`, eventData);
 
-    // Track in analytics service
+    // Track in analytics service (local)
     trackAnalytics(event, eventData);
+
+    // Track in PostHog (remote)
+    posthogService.track(event, eventData);
   };
 
   // Product Selection Handler
