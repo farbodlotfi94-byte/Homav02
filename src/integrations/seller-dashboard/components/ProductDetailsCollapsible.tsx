@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import svgPaths from '../imports/svg-0dkvqyt6k5';
+import { ChevronDown } from 'lucide-react';
 import { ProductSpecsInput } from './ProductSpecsInput';
 import { ProductSpecsPreview } from './ProductSpecsPreview';
 import type { ProductSpec } from '../types/seller';
@@ -11,16 +11,12 @@ interface ProductDetailsCollapsibleProps {
 
 function KeyboardArrowDown({ isOpen }: { isOpen: boolean }) {
   return (
-    <div 
+    <div
       className="relative shrink-0 size-[24px] transition-transform duration-300"
       style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
       data-name="keyboard_arrow_down"
     >
-      <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 24 24">
-        <g id="keyboard_arrow_down">
-          <path d={svgPaths.p2b1b0180} fill="var(--foreground)" id="icon" />
-        </g>
-      </svg>
+      <ChevronDown className="size-full text-foreground" />
     </div>
   );
 }
