@@ -30,7 +30,7 @@ export function ProductDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto bg-white rounded-3xl border-gray-200">
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-3xl max-h-[85vh] overflow-y-auto bg-white rounded-3xl border-gray-200">
         <DialogHeader>
           <DialogTitle className="text-gray-900">جزئیات محصول</DialogTitle>
           <DialogDescription className="text-gray-600">اطلاعات کامل محصول را در اینجا مشاهده کنید.</DialogDescription>

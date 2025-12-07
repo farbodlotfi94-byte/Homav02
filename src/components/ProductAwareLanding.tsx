@@ -1,11 +1,8 @@
-import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { Upload, Info, X, Check, Clock } from "lucide-react";
+import { Upload, ChevronDown, Clock } from "lucide-react";
 import type { Product } from "../types/product";
-import type { User } from "../types/auth";
-import { Header } from "./Header";
-import { useState, useEffect } from "react";
-import svgPaths from "../imports/svg-an2xierte7";
+import type { User as UserType } from "../types/auth";
+import { useState } from "react";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { useCountdown } from "../hooks/useCountdown";
 
@@ -16,7 +13,7 @@ interface ProductAwareLandingProps {
   onShowTerms: () => void;
   onBack?: () => void;
   isAuthenticated?: boolean;
-  user?: User | null;
+  user?: UserType | null;
   onLogin?: () => void;
   onLogout?: () => void;
   onAboutClick?: () => void;
@@ -37,199 +34,140 @@ export function ProductAwareLanding({
   onAboutClick,
   onSellerDashboard,
   rateLimitExpiry,
-  rateLimitMessage
 }: ProductAwareLandingProps) {
   const shouldAnimate = useAnimationPreference();
-  const [showSnackbar, setShowSnackbar] = useState(true);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   // Rate limit countdown
   const countdown = useCountdown(rateLimitExpiry || null);
   const isRateLimited = rateLimitExpiry && !countdown.isExpired;
-  
-  // Auto-hide snackbar after 5 seconds
-  useEffect(() => {
-    if (showSnackbar) {
-      const timer = setTimeout(() => {
-        setShowSnackbar(false);
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [showSnackbar]);
-  
+
   const displayPrice = product.price && product.price > 0
-    ? `${product.price.toLocaleString('fa-IR')} ${product.currency || 'ریال'}`
+    ? `${product.price.toLocaleString('fa-IR')} ${product.currency || 'تومان'}`
     : product.priceRange
     ? `${product.priceRange.min.toLocaleString('fa-IR')} - ${product.priceRange.max.toLocaleString('fa-IR')} ${product.currency || 'تومان'}`
     : null;
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header
-        showBackButton={true}
-        onBack={onBack}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        onAboutClick={onAboutClick}
-        onSellerDashboard={onSellerDashboard}
-      />
-
-      {/* Snackbar */}
-      <AnimatePresence>
-        {showSnackbar && (
+    <div className="min-h-screen bg-[#F9FAFB]" dir="rtl">
+      {/* Main Content - Two Column Split */}
+      <main className="min-h-screen">
+        <div className="lg:flex lg:min-h-screen">
+          {/* Right Column - Product Image (First in RTL) */}
           <motion.div
-            initial={shouldAnimate ? { opacity: 0, y: -20 } : false}
-            animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
-            exit={shouldAnimate ? { opacity: 0, y: -20 } : false}
-            transition={shouldAnimate ? { duration: 0.3 } : undefined}
-            className="fixed top-14 left-0 right-0 z-40"
+            initial={shouldAnimate ? { opacity: 0, scale: 0.95 } : false}
+            animate={shouldAnimate ? { opacity: 1, scale: 1 } : false}
+            transition={shouldAnimate ? { duration: 0.6, ease: "easeOut" } : undefined}
+            className="lg:w-1/2 lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] p-4 sm:p-6 lg:p-8 flex items-center justify-center bg-gray-50"
           >
-            <div className="max-w-lg mx-auto px-6 pt-4">
-              <div className="glass border border-border rounded-[var(--radius-card)] p-4 flex items-start gap-3">
-                <Info className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#1a1a1a' }} />
-                <p className="flex-1 text-start" style={{ color: '#1a1a1a' }}>
-با آپلود عکس فضای خودت، می‌تونی ببینی که این محصول تو خونه‌ات چطور به نظر میاد!
-                </p>
-                <button
-                  onClick={() => setShowSnackbar(false)}
-                  className="flex-shrink-0 transition-colors"
-                  style={{ color: '#1a1a1a' }}
-                  aria-label="بستن"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <div className="relative w-full h-full max-w-2xl flex items-center justify-center">
+              {/* Product Image Container - Full height on desktop */}
+              <div className="relative w-full h-full max-h-[70vh] lg:max-h-full rounded-2xl lg:rounded-3xl overflow-hidden bg-white shadow-2xl shadow-gray-900/10">
+                <img
+                  src={product.thumbnail}
+                  alt={product.name}
+                  className="w-full h-full object-cover object-center"
+                  fetchPriority="high"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.backgroundColor = '#f3f4f6';
+                  }}
+                />
 
-      {/* Main Content */}
-      <main className="pt-14 pb-32">
-        <div className="max-w-lg mx-auto px-6">
-          <motion.div
-            initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
-            animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
-            transition={shouldAnimate ? { duration: 0.4 } : undefined}
-          >
-            {/* Product Image */}
-            <div className="aspect-[4/5] bg-gray-50 rounded-3xl overflow-hidden mb-6 mt-6">
-              <img
-                src={product.thumbnail}
-                alt={product.name}
-                className="w-full h-full object-cover"
-                width={400}
-                height={400}
-                fetchPriority="high"
-                onError={(e) => {
-                  console.error('[ProductAwareLanding] Image load error:', {
-                    src: product.thumbnail,
-                    productId: product.id,
-                    imagePath: product.image_path
-                  });
-                  // Set a placeholder or retry
-                  const target = e.target as HTMLImageElement;
-                  target.style.backgroundColor = '#f3f4f6';
-                }}
-                onLoad={() => {
-                  console.log('[ProductAwareLanding] Image loaded successfully:', product.thumbnail);
-                }}
-              />
-            </div>
-
-            {/* Product Info */}
-            <div className="mb-8">
-              {/* Seller Name - Small and Gray */}
-              <p className="text-gray-500 mb-2 text-start" style={{ fontSize: '14px' }}>
-                {product.seller.name}
-              </p>
-
-              {/* Product Name and Price - Inline */}
-              <div className="flex items-baseline gap-4 mb-4">
-                {/* Product Name */}
-                <h1 className="text-gray-900 text-start" style={{ fontSize: '20px', fontWeight: 700 }}>
-                  {product.name}
-                </h1>
-
-                {/* Price */}
-                {displayPrice && (
-                  <p className="text-gray-900 text-start" style={{ fontSize: '18px', fontWeight: 600 }}>{displayPrice}</p>
+                {/* Category Badge - Inside image */}
+                {product.category_display && (
+                  <div className="absolute top-4 right-4 lg:top-6 lg:right-6">
+                    <span className="px-3 py-1.5 lg:px-4 lg:py-2 bg-white/95 backdrop-blur-sm rounded-full text-xs lg:text-sm font-medium text-gray-700 shadow-lg">
+                      {product.category_display}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
+          </motion.div>
 
-            {/* Product Details Accordion */}
-            <div className="mb-6 bg-white rounded-[24px] overflow-hidden">
-              {/* Toggle Button */}
-              <button
-                onClick={() => setIsDetailsOpen(!isDetailsOpen)}
-                className="w-full bg-gray-100 h-12 rounded-[16px] flex items-center justify-center gap-2 px-4 py-2 transition-colors hover:bg-gray-200"
-              >
-                <motion.svg
-                  animate={shouldAnimate ? { rotate: isDetailsOpen ? 180 : 0 } : false}
-                  transition={shouldAnimate ? { duration: 0.3, ease: "easeInOut" } : undefined}
-                  className="block size-6 shrink-0"
-                  fill="none"
-                  preserveAspectRatio="none"
-                  viewBox="0 0 24 24"
+          {/* Left Column - Product Details (Second in RTL) */}
+          <motion.div
+            initial={shouldAnimate ? { opacity: 0, x: -20 } : false}
+            animate={shouldAnimate ? { opacity: 1, x: 0 } : false}
+            transition={shouldAnimate ? { duration: 0.6, delay: 0.2, ease: "easeOut" } : undefined}
+            className="lg:w-1/2 flex flex-col justify-center p-6 lg:p-12 xl:p-16"
+          >
+            {/* Right-aligned content for RTL */}
+            <div className="max-w-lg w-full text-right">
+              {/* Seller/Brand */}
+              <p className="text-gray-500 text-sm lg:text-base mb-2">
+                {product.seller.name}
+              </p>
+
+              {/* Product Title */}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+                {product.name}
+              </h1>
+
+              {/* Price - Large and Bold */}
+              {displayPrice && (
+                <div className="mb-6 lg:mb-8">
+                  <p className="text-3xl lg:text-4xl font-extrabold text-gray-900">
+                    {displayPrice}
+                  </p>
+                </div>
+              )}
+
+              {/* Short Description */}
+              {product.description && (
+                <p className="text-gray-600 text-base lg:text-lg leading-relaxed mb-6 lg:mb-8 line-clamp-3">
+                  {product.description}
+                </p>
+              )}
+
+              {/* Action Buttons */}
+              <div className="space-y-4 mb-8">
+                {/* Details Toggle - Clean Text Trigger with Chevron */}
+                <button
+                  onClick={() => setIsDetailsOpen(!isDetailsOpen)}
+                  className="w-full py-4 flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
                 >
-                  <path d={svgPaths.p2b1b0180} fill="#101828" />
-                </motion.svg>
-                <span className="text-[#101828] text-[14px] leading-[20px] font-medium whitespace-nowrap" style={{ fontFamily: 'var(--font-family-vazirmatn)' }}>
-                  جزئیات محصول
-                </span>
-              </button>
+                  <span>مشاهده جزئیات محصول</span>
+                  <motion.div
+                    animate={{ rotate: isDetailsOpen ? 180 : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronDown className="w-5 h-5" />
+                  </motion.div>
+                </button>
+              </div>
 
-              {/* Accordion Content */}
+              {/* Expandable Details Section */}
               <AnimatePresence>
                 {isDetailsOpen && (
                   <motion.div
-                    initial={shouldAnimate ? { height: 0, opacity: 0 } : false}
-                    animate={shouldAnimate ? { height: "auto", opacity: 1 } : false}
-                    exit={shouldAnimate ? { height: 0, opacity: 0 } : false}
-                    transition={shouldAnimate ? { duration: 0.3, ease: "easeInOut" } : undefined}
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="px-6 py-6 space-y-6" style={{ fontFamily: 'var(--font-family-vazirmatn)' }}>
+                    <div className="border-t border-gray-200 pt-6 space-y-6">
                       {/* Description */}
                       {product.description && (
-                        <div className="space-y-2">
-                            {(product.category_display || product.category) && (
-                                <p className="text-gray-700 text-start" style={{ fontSize: '14px' }}>
-                                    دسته‌بندی:  {product.category_display}
-                                </p>
-                            )}
-                            <p className="text-gray-700 font-medium" style={{ fontSize: '14px' }}>
-                                توضیحات:
-                            </p>
-
-                            <p className="text-gray-600 leading-relaxed" style={{ fontSize: '14px', paddingRight: '2rem', direction: 'rtl' }}>
-                                {product.description}
-                            </p>
-                          {product.brand && (
-                            <p className="text-gray-500 text-start" style={{ fontSize: '14px' }}>
-                              برند: {product.brand}
-                            </p>
-                          )}
+                        <div>
+                          <h3 className="text-gray-900 font-semibold mb-2">توضیحات</h3>
+                          <p className="text-gray-600 leading-relaxed">
+                            {product.description}
+                          </p>
                         </div>
                       )}
 
                       {/* Extra Details */}
                       {product.extra_details && Object.keys(product.extra_details).length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
-                            توضیحات
-                          </h4>
+                        <div>
+                          <h3 className="text-gray-900 font-semibold mb-3">مشخصات</h3>
                           <div className="space-y-2">
                             {Object.entries(product.extra_details).map(([key, value]) => (
-                              <div key={key} className="flex items-start gap-2 text-start">
-                                <Check className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                                <span className="text-gray-700" style={{ fontSize: '14px' }}>
-                                  {key}: {value}
-                                </span>
+                              <div key={key} className="flex justify-between items-center py-2 border-b border-gray-100">
+                                <span className="text-gray-500">{key}</span>
+                                <span className="text-gray-900 font-medium">{value}</span>
                               </div>
                             ))}
                           </div>
@@ -238,24 +176,20 @@ export function ProductAwareLanding({
 
                       {/* Colors */}
                       {product.variants?.colors && product.variants.colors.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
-                            رنگ‌های موجود
-                          </h4>
-                          <div className="flex gap-2 flex-wrap">
+                        <div>
+                          <h3 className="text-gray-900 font-semibold mb-3">رنگ‌های موجود</h3>
+                          <div className="flex flex-wrap gap-2 justify-end">
                             {product.variants.colors.map((color, index) => (
-                              <div
+                              <span
                                 key={index}
-                                className={`px-4 py-2 rounded-full border ${
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                                   color.available
-                                    ? 'border-gray-300 bg-white'
-                                    : 'border-gray-200 bg-gray-50 opacity-50'
+                                    ? 'bg-gray-100 text-gray-900 hover:bg-gray-200 cursor-pointer'
+                                    : 'bg-gray-50 text-gray-400 line-through'
                                 }`}
                               >
-                                <span className="text-gray-700" style={{ fontSize: '14px' }}>
-                                  {color.name}
-                                </span>
-                              </div>
+                                {color.name}
+                              </span>
                             ))}
                           </div>
                         </div>
@@ -263,24 +197,20 @@ export function ProductAwareLanding({
 
                       {/* Sizes */}
                       {product.variants?.sizes && product.variants.sizes.length > 0 && (
-                        <div className="space-y-3">
-                          <h4 className="text-gray-900 text-start" style={{ fontSize: '16px', fontWeight: 600 }}>
-                            سایزهای موجود
-                          </h4>
-                          <div className="flex gap-2 flex-wrap">
+                        <div>
+                          <h3 className="text-gray-900 font-semibold mb-3">سایزهای موجود</h3>
+                          <div className="flex flex-wrap gap-2 justify-end">
                             {product.variants.sizes.map((size, index) => (
-                              <div
+                              <span
                                 key={index}
-                                className={`px-4 py-2 rounded-full border ${
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                                   size.available
-                                    ? 'border-gray-300 bg-white'
-                                    : 'border-gray-200 bg-gray-50 opacity-50'
+                                    ? 'bg-gray-100 text-gray-900 hover:bg-gray-200 cursor-pointer'
+                                    : 'bg-gray-50 text-gray-400 line-through'
                                 }`}
                               >
-                                <span className="text-gray-700" style={{ fontSize: '14px' }}>
-                                  {size.name}
-                                </span>
-                              </div>
+                                {size.name}
+                              </span>
                             ))}
                           </div>
                         </div>
@@ -289,32 +219,52 @@ export function ProductAwareLanding({
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Trust Badges - Right aligned */}
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-end gap-6 text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span>ضمانت اصالت</span>
+                    <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span>ارسال سریع</span>
+                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>
       </main>
 
-      {/* Fixed Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50">
-        <div className="max-w-lg mx-auto px-6 py-4">
-          <Button
-            onClick={onUploadStart}
-            disabled={!!isRateLimited}
-            className="w-full h-14 bg-gray-900 hover:bg-gray-800 text-white rounded-full transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {isRateLimited ? (
-              <>
-                <Clock className="w-5 h-5" />
-                امکان تلاش مجدد در {countdown.formattedTime}
-              </>
-            ) : (
-              <>
-                <Upload className="w-5 h-5" />
-                امتحان کن تو فضای خودت
-              </>
-            )}
-          </Button>
-        </div>
+      {/* Sticky CTA - Solid Dark Button */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-50">
+        <button
+          onClick={onUploadStart}
+          disabled={!!isRateLimited}
+          className="w-full h-14 bg-gray-900 hover:bg-gray-800 active:bg-black text-white rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 text-base font-bold shadow-xl shadow-gray-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isRateLimited ? (
+            <>
+              <Clock className="w-5 h-5" />
+              تلاش مجدد در {countdown.formattedTime}
+            </>
+          ) : (
+            <>
+              <Upload className="w-5 h-5" />
+              امتحان کن تو فضای خودت
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

@@ -32,15 +32,15 @@ export function Header({
 }: HeaderProps) {
   return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
-          <div className="relative max-w-lg mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="relative w-full px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
               {/* First: Hamburger Menu (will appear on RIGHT in RTL) */}
               <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                       <button
-                          className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-50 transition-colors"
+                          className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-gray-300 bg-gray-50 hover:bg-gray-50 transition-colors"
                           aria-label="منو"
                       >
-                          <Menu className="w-5 h-5 text-gray-900" />
+                          <Menu className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-gray-900" />
                       </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-56 bg-white" dir="rtl">
@@ -98,12 +98,12 @@ export function Header({
               {showBackButton ? (
                   <button
                       onClick={onBack}
-                      className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-900 transition-colors group"
+                      className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-900 transition-colors group"
                   >
-                      <ChevronLeft className="w-5 h-5 text-gray-900 group-hover:text-white transition-colors" />
+                      <ChevronLeft className="w-5 h-5 sm:w-[22px] sm:h-[22px] text-gray-900 group-hover:text-white transition-colors" />
                   </button>
               ) : (
-                  <div className="w-9" />
+                  <div className="w-9 sm:w-10" />
               )}
           </div>
       </header>

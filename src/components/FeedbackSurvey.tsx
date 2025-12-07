@@ -204,7 +204,7 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
       className="min-h-screen flex items-center justify-center overflow-hidden"
       style={{ fontFamily: 'var(--font-family-vazirmatn)' }}
     >
-      <div className="w-full max-w-[380px] h-[812px] px-10 py-10 flex flex-col items-center justify-between">
+      <div className="w-full max-w-[380px] sm:max-w-md md:max-w-lg min-h-screen md:min-h-0 md:h-auto px-6 sm:px-10 py-8 sm:py-10 flex flex-col items-center justify-between">
         {/* Content */}
         <div className="flex-1 flex flex-col items-center justify-center w-full">
           {/* Question */}

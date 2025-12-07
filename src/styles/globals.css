@@ -6,20 +6,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Typography Variables */
+  /* Typography Variables - Responsive using clamp() */
+  /* clamp(min, preferred, max) scales smoothly between breakpoints */
   --font-family-vazirmatn: 'Vazirmatn', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-family-sf-pro: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
-  --text-h1-size: 34px;
-  --text-h2-size: 22px;
-  --text-h3-size: 20px;
-  --text-h4-size: 17px;
-  --text-p-size: 17px;
-  --text-label-size: 15px;
-  --text-caption-size: 12px;
+  --text-h1-size: clamp(26px, 4vw + 0.5rem, 34px);
+  --text-h2-size: clamp(20px, 3vw + 0.25rem, 22px);
+  --text-h3-size: clamp(18px, 2.5vw + 0.25rem, 20px);
+  --text-h4-size: clamp(16px, 2vw + 0.25rem, 17px);
+  --text-p-size: clamp(15px, 2vw + 0.25rem, 17px);
+  --text-label-size: clamp(14px, 1.5vw + 0.25rem, 15px);
+  --text-caption-size: clamp(11px, 1.25vw + 0.125rem, 12px);
   --font-weight-bold: 700;
   --font-weight-semibold: 600;
   --font-weight-regular: 400;
-  --font-size: 16px;
+  --font-size: clamp(15px, 2vw + 0.25rem, 16px);
+
+  /* Responsive Spacing Scale */
+  --spacing-container: clamp(1rem, 3vw, 2rem);
+  --spacing-section: clamp(1.5rem, 4vw, 3rem);
+  --spacing-element: clamp(0.75rem, 2vw, 1.5rem);
   
   /* The default background color for the application. */
   --background: rgba(242, 242, 247, 1.00);
@@ -298,6 +304,180 @@ html {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
+}
+
+/* Custom Responsive Utilities - Added for desktop sidebar layout */
+/* These classes are not in the pre-bundled Tailwind CSS, so we add them manually */
+/* Responsive display utilities */
+@media (min-width: 768px) {
+    .md\:block {
+      display: block !important;
+    }
+    .md\:hidden {
+      display: none !important;
+    }
+    .md\:flex {
+      display: flex !important;
+    }
+    .md\:flex-row {
+      flex-direction: row !important;
+    }
+    .md\:w-64 {
+      width: 16rem !important;
+    }
+    .md\:max-w-2xl {
+      max-width: 42rem !important;
+    }
+    .md\:max-w-4xl {
+      max-width: 56rem !important;
+    }
+    .md\:max-w-xl {
+      max-width: 36rem !important;
+    }
+    .md\:w-\[400px\] {
+      width: 400px !important;
+    }
+    .md\:pt-6 {
+      padding-top: 1.5rem !important;
+    }
+    .md\:pt-8 {
+      padding-top: 2rem !important;
+    }
+    .md\:py-10 {
+      padding-top: 2.5rem !important;
+      padding-bottom: 2.5rem !important;
+    }
+    .md\:px-8 {
+      padding-left: 2rem !important;
+      padding-right: 2rem !important;
+    }
+    .md\:min-h-0 {
+      min-height: 0 !important;
+    }
+    .md\:h-auto {
+      height: auto !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .lg\:block {
+      display: block !important;
+    }
+    .lg\:hidden {
+      display: none !important;
+    }
+    .lg\:flex {
+      display: flex !important;
+    }
+    .lg\:static {
+      position: static !important;
+    }
+    .lg\:w-1\/2 {
+      width: 50% !important;
+    }
+    .lg\:w-2\/5 {
+      width: 40% !important;
+    }
+    .lg\:w-3\/5 {
+      width: 60% !important;
+    }
+    .lg\:w-\[480px\] {
+      width: 480px !important;
+    }
+    .lg\:gap-8 {
+      gap: 2rem !important;
+    }
+    .lg\:items-start {
+      align-items: flex-start !important;
+    }
+    .lg\:sticky {
+      position: sticky !important;
+    }
+    .lg\:top-6 {
+      top: 1.5rem !important;
+    }
+    .lg\:aspect-square {
+      aspect-ratio: 1 / 1 !important;
+    }
+    .lg\:mt-0 {
+      margin-top: 0 !important;
+    }
+    .lg\:mt-8 {
+      margin-top: 2rem !important;
+    }
+    .lg\:mb-0 {
+      margin-bottom: 0 !important;
+    }
+    .lg\:pb-8 {
+      padding-bottom: 2rem !important;
+    }
+    .lg\:max-w-3xl {
+      max-width: 48rem !important;
+    }
+    .lg\:max-w-4xl {
+      max-width: 56rem !important;
+    }
+    .lg\:max-w-5xl {
+      max-width: 64rem !important;
+    }
+    .lg\:max-w-6xl {
+      max-width: 72rem !important;
+    }
+    .lg\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    .lg\:gap-6 {
+      gap: 1.5rem !important;
+    }
+  }
+
+  /* sm breakpoint utilities */
+  @media (min-width: 640px) {
+    .sm\:max-w-md {
+      max-width: 28rem !important;
+    }
+    .sm\:max-w-lg {
+      max-width: 32rem !important;
+    }
+    .sm\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    .sm\:gap-5 {
+      gap: 1.25rem !important;
+    }
+    .sm\:px-6 {
+      padding-left: 1.5rem !important;
+      padding-right: 1.5rem !important;
+    }
+    .sm\:px-10 {
+      padding-left: 2.5rem !important;
+      padding-right: 2.5rem !important;
+    }
+    .sm\:py-10 {
+      padding-top: 2.5rem !important;
+      padding-bottom: 2.5rem !important;
+    }
+    .sm\:h-16 {
+      height: 4rem !important;
+    }
+    .sm\:w-10 {
+      width: 2.5rem !important;
+    }
+    .sm\:h-10 {
+      height: 2.5rem !important;
+    }
+    .sm\:w-28 {
+      width: 7rem !important;
+    }
+    .sm\:h-28 {
+      height: 7rem !important;
+    }
+    .md\:w-32 {
+      width: 8rem !important;
+    }
+    .md\:h-32 {
+      height: 8rem !important;
+    }
 }
 
 /* Seller Portal Theme - Yellow Accent */

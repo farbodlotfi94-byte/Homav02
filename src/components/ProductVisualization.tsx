@@ -80,31 +80,38 @@ export function ProductVisualization({
 
   return (
     <div className="min-h-screen bg-white">
-      <Header
-        showBackButton={true}
-        onBack={onBack}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        onAboutClick={onAboutClick}
-        onSellerDashboard={onSellerDashboard}
-      />
+      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
+      <div className="md:hidden">
+        <Header
+          showBackButton={true}
+          onBack={onBack}
+          isAuthenticated={isAuthenticated}
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          onAboutClick={onAboutClick}
+          onSellerDashboard={onSellerDashboard}
+        />
+      </div>
 
-      <div className="pt-14">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-lg mx-auto px-6 py-6"
-        >
-          {/* Title */}
-          <div className="mb-4">
+      <div className="pt-14 md:pt-6">
+        <div className="max-w-lg md:max-w-2xl lg:max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-10">
+          {/* Title - Mobile only */}
+          <div className="mb-4 lg:hidden">
             <h2 className="font-bold text-center text-[20px]">تصویر نهایی</h2>
           </div>
 
-          {/* Preview Image */}
-          <div className="relative mb-6">
+          {/* Two-column layout on desktop */}
+          <div className="lg:flex lg:gap-8 lg:items-start">
+            {/* Image Column - 60% on desktop */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="lg:w-3/5"
+            >
+              {/* Preview Image */}
+              <div className="relative mb-6 lg:mb-0">
             {apiStatus === 'success' && userImage ? (
               // Show processed image on success
               <div
@@ -153,19 +160,32 @@ export function ProductVisualization({
                 </div>
               </div>
             )}
-          </div>
+              </div>
+            </motion.div>
 
-          {/* Product Info Compact */}
-          <div className="pb-4 mt-4">
-            <ProductChip 
-              product={product}
-              onShowDetails={onViewProductDetails}
-              compact
-            />
-          </div>
+            {/* Actions Column - 40% on desktop */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="lg:w-2/5"
+            >
+              {/* Desktop Title */}
+              <div className="mb-4 hidden lg:block">
+                <h2 className="font-bold text-[20px]">تصویر نهایی</h2>
+              </div>
 
-          {/* Actions */}
-          <div className="pb-6">
+              {/* Product Info Compact */}
+              <div className="pb-4 mt-4 lg:mt-0">
+                <ProductChip
+                  product={product}
+                  onShowDetails={onViewProductDetails}
+                  compact
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="pb-6">
             {placementSuccess ? (
               <>
                 {/* Save Button - Full Width */}
@@ -248,8 +268,10 @@ export function ProductVisualization({
                 </div>
               </>
             )}
+              </div>
+            </motion.div>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Fullscreen Modal */}

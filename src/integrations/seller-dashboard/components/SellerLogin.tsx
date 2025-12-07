@@ -1271,8 +1271,10 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
       className="min-h-screen flex flex-col"
       style={{ background: '#ffffff' }}
     >
-      {/* Header */}
-      <HomaHeader />
+      {/* Header - Only show on mobile (sidebar shows HOMA logo on desktop) */}
+      <div className="md:hidden">
+        <HomaHeader />
+      </div>
 
       {/* Centered Login Content */}
       <div className="flex-1 flex items-center justify-center px-5 sm:px-6 pt-5 pb-8 sm:pt-8 sm:pb-12">

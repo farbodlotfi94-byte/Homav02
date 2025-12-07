@@ -284,14 +284,14 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(event) => event.stopPropagation()}
-          className="relative w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0px_25px_60px_rgba(0,0,0,0.25)] max-h-[calc(100vh-2rem)] overflow-y-auto"
+          className="relative w-full max-w-md rounded-[24px] bg-white p-6 shadow-[0px_25px_60px_rgba(0,0,0,0.25)]"
         >
           <button
             onClick={handleClose}
-            className="absolute left-4 top-4 h-10 w-10 rounded-full border border-border bg-muted text-gray-800 transition hover:bg-muted/80"
+            className="absolute left-4 top-4 w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all duration-200 flex items-center justify-center shadow-sm"
             aria-label="بستن"
           >
-            <X className="mx-auto h-5 w-5" />
+            <X className="h-4 w-4" strokeWidth={2.5} />
           </button>
 
           <div className="space-y-4 text-center">
@@ -355,7 +355,7 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
 
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
-                    <RefreshCcw className="h-4 w-4" />
+                    <RefreshCcw className={`h-4 w-4 transition-colors duration-300 ${canResend ? 'text-[#E31E24]' : ''}`} />
                     {!canResend && countdownExpiry ? (
                       <CountdownTimer
                         expiryTimestamp={countdownExpiry}
@@ -363,14 +363,18 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
                         format="seconds"
                       />
                     ) : (
-                      <span>ارسال مجدد</span>
+                      <span className="text-[#E31E24] font-medium">ارسال مجدد</span>
                     )}
                   </div>
                   <button
                     type="button"
                     onClick={handleResendOTP}
                     disabled={!canResend || resending}
-                    className="rounded-lg border border-muted px-3 py-1 text-xs transition disabled:border-gray-200 disabled:text-gray-300"
+                    className={`rounded-lg px-3 py-1.5 text-xs transition-all duration-300 ${
+                      canResend && !resending
+                        ? 'bg-[#E31E24] text-white font-semibold shadow-md hover:bg-[#c91a1f] border-transparent'
+                        : 'border border-gray-200 text-gray-300 bg-transparent'
+                    }`}
                   >
                     {resending ? "در حال ارسال..." : "ارسال مجدد کد"}
                   </button>

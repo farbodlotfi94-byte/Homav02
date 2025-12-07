@@ -305,17 +305,19 @@ export function ProductSelection({
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <Header
-          showBackButton={!!onBack}
-          onBack={onBack}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onAboutClick={onAboutClick}
-          onSellerDashboard={onSellerDashboard}
-        />
-        <div className="pt-14 flex items-center justify-center min-h-[50vh]">
+        <div className="md:hidden">
+          <Header
+            showBackButton={!!onBack}
+            onBack={onBack}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={onLogin}
+            onLogout={onLogout}
+            onAboutClick={onAboutClick}
+            onSellerDashboard={onSellerDashboard}
+          />
+        </div>
+        <div className="pt-14 md:pt-0 flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-600" />
             <p className="text-gray-600">در حال بارگذاری محصولات...</p>
@@ -328,17 +330,19 @@ export function ProductSelection({
   if (error) {
     return (
       <div className="min-h-screen bg-white">
-        <Header
-          showBackButton={!!onBack}
-          onBack={onBack}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onAboutClick={onAboutClick}
-          onSellerDashboard={onSellerDashboard}
-        />
-        <div className="pt-14 flex items-center justify-center min-h-[50vh]">
+        <div className="md:hidden">
+          <Header
+            showBackButton={!!onBack}
+            onBack={onBack}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            onLogin={onLogin}
+            onLogout={onLogout}
+            onAboutClick={onAboutClick}
+            onSellerDashboard={onSellerDashboard}
+          />
+        </div>
+        <div className="pt-14 md:pt-0 flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-sm mx-auto px-6">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">خطا در بارگذاری</h2>
@@ -354,19 +358,22 @@ export function ProductSelection({
 
   return (
     <div className="min-h-screen bg-white">
-      <Header
-        showBackButton={!!onBack}
-        onBack={onBack}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        onAboutClick={onAboutClick}
-        onSellerDashboard={onSellerDashboard}
-      />
+      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
+      <div className="md:hidden">
+        <Header
+          showBackButton={!!onBack}
+          onBack={onBack}
+          isAuthenticated={isAuthenticated}
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          onAboutClick={onAboutClick}
+          onSellerDashboard={onSellerDashboard}
+        />
+      </div>
 
-      <div className="pt-14 pb-6">
-        <div className="max-w-lg mx-auto px-6">
+      <div className="pt-14 md:pt-6 pb-6">
+        <div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
           {/* Header */}
           <motion.div
             initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
@@ -389,7 +396,7 @@ export function ProductSelection({
             initial={shouldAnimate ? { opacity: 0 } : false}
             animate={shouldAnimate ? { opacity: 1 } : false}
             transition={shouldAnimate ? { delay: 0.2 } : undefined}
-            className="space-y-4"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6"
           >
             <AnimatePresence>
               {products.map((product, index) => (
@@ -398,22 +405,22 @@ export function ProductSelection({
                   initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
                   animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
                   transition={shouldAnimate ? { delay: index * 0.05 } : undefined}
-                  className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow"
+                  className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-shadow h-full"
                 >
                   <button
                     onClick={() => handleProductSelect(product)}
-                    className="w-full text-right"
+                    className="w-full text-right h-full"
                     disabled={selectedProduct === product.unique_link}
                   >
-                    <div className="flex gap-4 p-4">
+                    <div className="flex gap-4 p-4 sm:p-5 h-full">
                       {/* Product Image */}
-                      <div className="w-24 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 relative">
+                      <div className="w-24 h-24 sm:w-28 sm:h-28 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 relative">
                         <img
                           src={getImageUrl(product.image_path)}
                           alt={product.name}
-                          className="w-full h-full object-contain"
-                          width={96}
-                          height={96}
+                          className="w-full h-full object-cover"
+                          width={112}
+                          height={112}
                           loading="lazy"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -432,24 +439,23 @@ export function ProductSelection({
                         />
                       </div>
 
-                      {/* Product Info */}
-                      <div className="flex-1 text-right">
-                        <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                          {product.description}
-                        </p>
-                        {product.price && (
-                          <p className="text-sm font-semibold text-[#E31E24] mb-2">
-                            {product.price.toLocaleString('fa-IR')} ریال
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {/* Product Info - Fixed height layout */}
+                      <div className="flex-1 flex flex-col justify-between text-right min-w-0">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">
+                            {product.name}
+                          </h3>
+                          {product.price && (
+                            <p className="text-sm font-bold text-gray-900">
+                              {product.price.toLocaleString('fa-IR')} ریال
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full truncate max-w-[120px]">
                             {product.category_display || product.category}
                           </span>
-                          <ArrowRight className="w-4 h-4 text-gray-400" />
+                          <ArrowRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
                         </div>
                       </div>
                     </div>

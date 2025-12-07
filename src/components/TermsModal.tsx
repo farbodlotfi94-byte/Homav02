@@ -14,7 +14,7 @@ interface TermsModalProps {
 export function TermsModal({ open, onClose }: TermsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto bg-white rounded-3xl border-gray-200">
+      <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl max-h-[80vh] overflow-y-auto bg-white rounded-3xl border-gray-200">
         <DialogHeader>
           <DialogTitle className="text-gray-900">شرایط استفاده و حریم خصوصی</DialogTitle>
           <DialogDescription className="text-gray-600">

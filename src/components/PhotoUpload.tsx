@@ -207,22 +207,25 @@ export function PhotoUpload({
 
   return (
     <div className="min-h-screen bg-white">
-      <Header
-        onBack={onBack}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        onAboutClick={onAboutClick}
-        onSellerDashboard={onSellerDashboard}
-      />
+      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
+      <div className="md:hidden">
+        <Header
+          onBack={onBack}
+          isAuthenticated={isAuthenticated}
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          onAboutClick={onAboutClick}
+          onSellerDashboard={onSellerDashboard}
+        />
+      </div>
 
-      <div className="pt-14">
+      <div className="pt-14 md:pt-6">
         <motion.div
           initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
           animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
           transition={shouldAnimate ? { duration: 0.5 } : undefined}
-          className="max-w-lg mx-auto px-6 py-6"
+          className="max-w-lg md:max-w-xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-10"
         >
           {/* Upload Guidance Modal */}
           <UploadGuidanceModal
@@ -240,7 +243,7 @@ export function PhotoUpload({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`w-full aspect-square rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${
+            className={`w-full md:w-[400px] lg:w-[480px] aspect-square mx-auto rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${
               isDragging
                 ? "bg-gray-200 border-2 border-gray-400 border-dashed"
                 : "bg-gradient-to-br from-gray-100 to-gray-50 border-2 border-gray-200 border-dashed"

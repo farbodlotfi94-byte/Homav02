@@ -175,19 +175,22 @@ export function FilePrecheck({
 
   return (
     <div className="bg-white relative min-h-screen">
-      <Header
-        onBack={onRetake}
-        showBackButton={true}
-        isAuthenticated={isAuthenticated}
-        user={user}
-        onLogin={onLogin}
-        onLogout={onLogout}
-        onAboutClick={onAboutClick}
-        onSellerDashboard={onSellerDashboard}
-      />
-      
+      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
+      <div className="md:hidden">
+        <Header
+          onBack={onRetake}
+          showBackButton={true}
+          isAuthenticated={isAuthenticated}
+          user={user}
+          onLogin={onLogin}
+          onLogout={onLogout}
+          onAboutClick={onAboutClick}
+          onSellerDashboard={onSellerDashboard}
+        />
+      </div>
+
       {/* Main Container */}
-      <div className="px-6 pt-[104px] pb-8">
+      <div className="max-w-lg md:max-w-xl mx-auto px-4 sm:px-6 md:px-8 pt-[104px] md:pt-8 pb-8">
         {/* Title */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

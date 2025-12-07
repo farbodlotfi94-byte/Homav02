@@ -521,13 +521,65 @@ export function SellerDashboardApp() {
     );
   }
 
-  // Show login if not logged in
+  // Show login if not logged in - with sidebar layout
   if (!isLoggedIn) {
     return (
-      <div className="bg-white min-h-screen text-black">
-        <Suspense fallback={<div>Loading...</div>}>
-          <SellerLogin onLoginSuccess={handleLoginSuccess} />
-        </Suspense>
+      <div className="flex flex-col md:flex-row min-h-screen bg-white text-black" dir="rtl">
+        {/* Desktop Sidebar */}
+        <aside
+          className="hidden md:flex md:flex-col flex-shrink-0 sticky top-0 h-screen border-l border-gray-100 bg-white z-40"
+          style={{ width: '256px', minWidth: '256px' }}
+        >
+          <div className="h-full flex flex-col">
+            {/* Logo Section - Centered */}
+            <div className="p-5 border-b border-gray-100" dir="ltr">
+              <a
+                href="/"
+                className="w-full hover:opacity-80 transition-opacity flex justify-center"
+              >
+                <div className="text-center">
+                  <div className="flex items-center justify-center">
+                    <span style={{
+                      fontSize: '32px',
+                      fontFamily: '"Inter", "Helvetica Neue", "Helvetica", Arial, sans-serif',
+                      fontWeight: 700,
+                      letterSpacing: '-1.5px',
+                      color: '#000',
+                      textTransform: 'uppercase',
+                      lineHeight: '1'
+                    }}>
+                      HOMA
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </div>
+
+            {/* Navigation placeholder for visual consistency */}
+            <nav className="flex-1 p-4">
+              <div className="flex flex-col gap-1">
+                <a
+                  href="/"
+                  className="flex items-center justify-start gap-3 px-4 py-3 rounded-2xl transition-all duration-200 hover:bg-gray-100"
+                  style={{ color: 'rgba(17, 24, 39, 0.6)', fontSize: '15px' }}
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <span>خانه</span>
+                </a>
+              </div>
+            </nav>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 min-w-0">
+          <Suspense fallback={<div>Loading...</div>}>
+            <SellerLogin onLoginSuccess={handleLoginSuccess} />
+          </Suspense>
+        </main>
+
         <Toaster position="top-center" richColors theme="light" />
       </div>
     );

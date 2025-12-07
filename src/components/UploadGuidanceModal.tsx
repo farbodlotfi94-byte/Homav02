@@ -139,19 +139,31 @@ export function UploadGuidanceModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogPortal>
         <DialogOverlay className="backdrop-blur-md bg-black/10" />
-        <DialogPrimitive.Content className="fixed top-[50%] left-[50%] z-50 grid w-[calc(100%-2rem)] max-w-sm sm:max-w-md translate-x-[-50%] translate-y-[-50%] gap-3 sm:gap-4 rounded-2xl sm:rounded-3xl border border-white/40 bg-white/60 backdrop-blur-xl shadow-2xl p-4 sm:p-6 duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95">
-        <DialogHeader>
-          <DialogTitle className="text-gray-900 text-right">
+        <DialogPrimitive.Content
+          className="fixed top-[50%] left-[50%] z-50 w-[94vw] max-w-[520px] translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-white/40 bg-white/95 backdrop-blur-xl shadow-2xl p-4 overflow-hidden duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          style={{ maxHeight: '90vh' }}
+        >
+        {/* Close button - positioned first for correct stacking */}
+        <DialogPrimitive.Close
+          className="absolute z-50 rounded-full w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all focus:outline-none shadow-md border border-gray-200"
+          style={{ top: '12px', left: '12px' }}
+        >
+          <X className="w-5 h-5" strokeWidth={2.5} />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-gray-900 text-right text-base pr-8">
             {step === 1 ? "برای بهترین نتیجه، این نکات را رعایت کنید" : "مثال‌های نادرست"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3 sm:space-y-4 mt-2 sm:mt-4">
+        <div className="space-y-3">
           {step === 1 ? (
             /* Step 1: Correct Example */
-            <div className="space-y-2">
-              <div className="relative rounded-lg overflow-hidden ring-2 ring-green-200 bg-gray-100">
-                <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-200 flex items-center justify-center">
+            <div>
+              <div className="relative rounded-xl overflow-hidden ring-2 ring-green-200 bg-gray-100">
+                <div className="relative w-full bg-gray-200 overflow-hidden" style={{ height: 'calc(70vh - 140px)', minHeight: '300px', maxHeight: '600px' }}>
                   {correctImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
                       <div className="text-center p-4">
@@ -186,8 +198,8 @@ export function UploadGuidanceModal({
                     <CheckCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
                   </div>
                 </div>
-                <div className="p-3 bg-white/80 backdrop-blur-sm">
-                  <p className="text-sm font-bold text-green-700 text-right">
+                <div className="p-3 bg-white">
+                  <p className="text-sm font-bold text-green-700 text-right leading-relaxed">
                     ✅ مثال صحیح: عکس مناسب از اتاق با نور کافی و نمای واضح
                   </p>
                 </div>
@@ -195,9 +207,9 @@ export function UploadGuidanceModal({
             </div>
           ) : (
             /* Step 2: Incorrect Example */
-            <div className="space-y-2">
-              <div className="relative rounded-lg overflow-hidden ring-2 ring-red-200 bg-gray-100">
-                <div className="relative w-full aspect-[3/2] sm:aspect-[4/3] bg-gray-200 flex items-center justify-center">
+            <div>
+              <div className="relative rounded-xl overflow-hidden ring-2 ring-red-200 bg-gray-100">
+                <div className="relative w-full bg-gray-200 overflow-hidden" style={{ height: 'calc(70vh - 140px)', minHeight: '300px', maxHeight: '600px' }}>
                   {incorrectImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                       <div className="text-center p-4">
@@ -231,8 +243,8 @@ export function UploadGuidanceModal({
                     <XCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
                   </div>
                 </div>
-                <div className="p-3 bg-white/80 backdrop-blur-sm">
-                  <p className="text-sm font-bold text-red-700 text-right">
+                <div className="p-3 bg-white">
+                  <p className="text-sm font-bold text-red-700 text-right leading-relaxed">
                     ❌ مثال نادرست: عکس کج و نامناسب
                   </p>
                 </div>
@@ -243,15 +255,11 @@ export function UploadGuidanceModal({
           {/* Confirm Button */}
           <button
             onClick={step === 1 ? handleStep1Confirm : handleStep2Confirm}
-            className="w-full h-11 sm:h-12 rounded-full font-medium text-sm transition-all bg-gray-900 hover:bg-gray-800 text-white cursor-pointer mt-2 sm:mt-4"
+            className="w-full h-12 rounded-full font-semibold text-base transition-all bg-gray-900 hover:bg-gray-800 text-white cursor-pointer shadow-lg"
           >
             متوجه شدم، بزن بریم!
           </button>
         </div>
-        <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <X className="w-4 h-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
       </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>

@@ -9,7 +9,8 @@ import { ProductVisualization } from "./components/ProductVisualization";
 import { ProductFallback } from "./components/ProductFallback";
 import { ErrorRecovery } from "./components/ErrorRecovery";
 import { OTPLogin } from "./components/OTPLogin";
-import { AboutUs } from "./components/AboutUs";
+import { AboutUsPage } from "./components/AboutUsPage";
+import { MainNavigation } from "./components/MainNavigation";
 import { AnimatePresence, motion } from "motion/react";
 import { toast, Toaster } from "sonner";
 
@@ -138,9 +139,6 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // About Us modal state
-  const [showAboutUs, setShowAboutUs] = useState(false);
-
   // Rate limit state
   const [rateLimitExpiry, setRateLimitExpiry] = useState<number | null>(null);
   const [rateLimitMessage, setRateLimitMessage] = useState<string>('');
@@ -186,7 +184,7 @@ export default function App() {
       // Skip initialization for reserved routes (handled by React Router)
       // These routes have their own components and don't need main app initialization
       const pathname = window.location.pathname;
-      const reservedRoutes = ['/seller', '/admin', '/health'];
+      const reservedRoutes = ['/seller', '/admin', '/health', '/about-us'];
       if (reservedRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
         console.log("[App] Reserved route detected, skipping initialization:", pathname);
         return;
@@ -335,7 +333,7 @@ export default function App() {
 
       // Skip for reserved routes (handled by React Router)
       const pathname = window.location.pathname;
-      const reservedRoutes = ['/seller', '/admin', '/health'];
+      const reservedRoutes = ['/seller', '/admin', '/health', '/about-us'];
       if (reservedRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
         console.log("[App] Reserved route, skipping popstate handling:", pathname);
         return;
@@ -574,10 +572,10 @@ export default function App() {
     }
   };
 
-  // About Us button handler (opens About Us modal)
+  // About Us button handler (navigates to About Us page for SEO)
   const handleAboutUsClick = () => {
-    console.log('[App] About Us button clicked');
-    setShowAboutUs(true);
+    console.log('[App] About Us button clicked - navigating to /about-us');
+    navigate('/about-us');
   };
 
   // Seller Dashboard button handler (navigate to seller dashboard)
@@ -1336,6 +1334,9 @@ export default function App() {
       {/* Admin Route */}
       <Route path="/admin" element={<AdminDashboard />} />
 
+      {/* About Us Route - standalone page for SEO */}
+      <Route path="/about-us" element={<AboutUsPage />} />
+
       {/* Seller Dashboard Route - must come before catch-all */}
       <Route path="/seller" element={
         <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div>در حال بارگذاری پنل فروشنده...</div></div>}>
@@ -1345,313 +1346,326 @@ export default function App() {
 
       {/* Main App Route - handles both / and /:uniqueLink */}
       <Route path="/*" element={
-        <>
-          <AnimatePresence mode="wait">
-        {/* Loading State */}
-        {currentStep === "loading" && (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="min-h-screen bg-[#fafafa] flex items-center justify-center"
+        <div className="flex flex-col md:flex-row min-h-screen" dir="rtl">
+          {/* Desktop Sidebar - hidden on mobile */}
+          <aside
+            className="hidden md:flex md:flex-col flex-shrink-0 sticky top-0 h-screen border-l border-gray-100 bg-white z-40"
+            style={{ width: '256px', minWidth: '256px' }}
           >
-            <div className="text-center">
-              <div className="w-12 h-12 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">
-                در حال بارگذاری...
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Product Selection */}
-        {currentStep === "product-selection" && (
-          <ProductSelection
-            key="product-selection"
-            onProductSelect={handleProductSelect}
-            shopName={shopFilter}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-            onAboutClick={handleAboutUsClick}
-            onSellerDashboard={handleSellerDashboard}
-          />
-        )}
-
-        {/* Product Landing */}
-        {currentStep === "product-landing" && product && (
-          <ProductAwareLanding
-            key="product-landing"
-            product={product}
-            onUploadStart={handleStartUpload}
-            onShowProductDetails={handleShowProductDetails}
-            onShowTerms={() => setShowTerms(true)}
-            onBack={() => {
-              if (shopFilter && product) {
-                const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
-                navigate(`/${shopSlug}`);
-              } else {
-                setCurrentStep("product-selection");
-              }
-            }}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-            onAboutClick={handleAboutUsClick}
-            onSellerDashboard={handleSellerDashboard}
-            rateLimitExpiry={rateLimitExpiry}
-            rateLimitMessage={rateLimitMessage}
-          />
-        )}
-
-        {/* User Auth (OTP) */}
-        {currentStep === "user-auth" && (
-          <OTPLogin
-            key="user-auth"
-            isOpen={true}
-            initialPhoneNumber={user?.phone_number || undefined}
-            onClose={handleAuthClose}
-            onSuccess={handleAuthSuccess}
-          />
-        )}
-
-        {/* Product Fallback */}
-        {currentStep === "product-fallback" && (
-          <ProductFallback
-            key="product-fallback"
-            reason={fallbackReason}
-            suggestedProducts={suggestedProducts}
-            onSelectProduct={handleSelectSuggestedProduct}
-            onUploadForSuggestions={handleFallbackUpload}
-          />
-        )}
-
-        {/* Upload - Auth is checked in handleStartUpload before transitioning here */}
-        {currentStep === "upload" && (
-          <PhotoUpload
-            key="upload"
-            onUploadComplete={handleFileSelected}
-            onBack={() => setCurrentStep("product-landing")}
-            product={product}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-            onAboutClick={handleAboutUsClick}
-            onSellerDashboard={handleSellerDashboard}
-          />
-        )}
-
-        {/* Precheck */}
-        {currentStep === "precheck" && selectedFile && (
-          <FilePrecheck
-            key="precheck"
-            file={selectedFile}
-            onApprove={handlePrecheckApprove}
-            onRetake={handlePrecheckRetake}
-            onContinueAnyway={handleContinueAnyway}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-            onAboutClick={handleAboutUsClick}
-            onSellerDashboard={handleSellerDashboard}
-          />
-        )}
-
-        {/* Staged Upload */}
-        {currentStep === "staged-upload" && selectedFile && (
-          <StagedUpload
-            key="staged-upload"
-            file={selectedFile}
-            onComplete={handleUploadComplete}
-            onError={handleUploadError}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={handleLoginClick}
-            onLogout={handleLogout}
-            onAboutClick={handleAboutUsClick}
-            onSellerDashboard={handleSellerDashboard}
-          />
-        )}
-
-        {/* Confirmation */}
-        {currentStep === "confirmation" &&
-          selectedFile &&
-          product && (
-            <motion.div
-              key="confirmation"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="min-h-screen bg-white flex items-center justify-center p-4"
-            >
-              <div className="text-center">
-                {/* HOMA Logo - Large and Centered */}
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{
-                    duration: 0.6,
-                    ease: "easeOut",
-                  }}
-                  className="mb-8"
-                >
-                  <div
-                    style={{
-                      fontSize: "96px",
-                      fontFamily:
-                        '"Inter", "Helvetica Neue", "Helvetica", Arial, sans-serif',
-                      fontWeight: 700,
-                      letterSpacing: "-4px",
-                      color: "#000",
-                      textTransform: "uppercase",
-                      lineHeight: "1",
-                    }}
-                  >
-                    HOMA
-                  </div>
-                </motion.div>
-
-                {/* Loading Dots */}
-                <div className="flex items-center justify-center gap-2 mb-6">
-                  <div className="flex gap-2">
-                    {[0, 1, 2].map((i) => (
-                      <motion.div
-                        key={i}
-                        className="w-3 h-3 bg-gray-900 rounded-full"
-                        animate={{
-                          scale: [1, 1.5, 1],
-                          opacity: [0.3, 1, 0.3],
-                        }}
-                        transition={{
-                          duration: 1.5,
-                          repeat: Infinity,
-                          delay: i * 0.2,
-                        }}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* "Please Wait" Text */}
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-gray-600"
-                  style={{ fontSize: "16px" }}
-                >
-                  منتظر باشید
-                </motion.p>
-
-                {/* Optional: Product name hint */}
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-gray-400 mt-4"
-                  style={{ fontSize: "14px" }}
-                >
-                  در حال تست {product.name} در فضای شما...
-                </motion.p>
-              </div>
-            </motion.div>
-          )}
-
-        {/* Visualization */}
-        {currentStep === "visualization" &&
-          selectedFile &&
-          product && (
-            <ProductVisualization
-              key="visualization"
-              product={product}
-              userImage={visualizedImageUrl}
-              apiStatus={apiStatus}
-              fileName={selectedFile.name}
-              placementSuccess={placementSuccess}
-              isSaved={isSaved}
-              onSave={handleSaveClick}
-              onShare={handleShare}
-              onChangeVariant={handleVariantChange}
-              onTryAnother={handleTryAnotherClick}
-              onViewProductDetails={handleShowProductDetails}
-              onPurchase={handlePurchase}
-              onBackToStore={handleBackToStoreClick}
-              onBack={() => setCurrentStep("product-landing")}
+            <MainNavigation
               isAuthenticated={isAuthenticated}
               user={user}
               onLogin={handleLoginClick}
-              onLogout={handleLogout}
+              onLogout={() => handleLogout(false)}
               onAboutClick={handleAboutUsClick}
               onSellerDashboard={handleSellerDashboard}
+              onHomeClick={() => navigate('/')}
             />
-          )}
+          </aside>
 
-        {/* Feedback Survey */}
-        {currentStep === "feedback" && (
-          <Suspense fallback={<ModalLoadingFallback />}>
-            <FeedbackSurvey
-              key="feedback"
-              productId={product?.id}
-              onFeedbackSubmit={handleFeedbackSubmit}
+          {/* Main Content Area */}
+          <main className="flex-1 min-w-0">
+            <AnimatePresence mode="wait">
+              {/* Loading State */}
+              {currentStep === "loading" && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="min-h-screen bg-[#fafafa] flex items-center justify-center"
+                >
+                  <div className="text-center">
+                    <div className="w-12 h-12 border-4 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-600">
+                      در حال بارگذاری...
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Product Selection */}
+              {currentStep === "product-selection" && (
+                <ProductSelection
+                  key="product-selection"
+                  onProductSelect={handleProductSelect}
+                  shopName={shopFilter}
+                  isAuthenticated={isAuthenticated}
+                  user={user}
+                  onLogin={handleLoginClick}
+                  onLogout={handleLogout}
+                  onAboutClick={handleAboutUsClick}
+                  onSellerDashboard={handleSellerDashboard}
+                />
+              )}
+
+              {/* Product Landing */}
+              {currentStep === "product-landing" && product && (
+                <ProductAwareLanding
+                  key="product-landing"
+                  product={product}
+                  onUploadStart={handleStartUpload}
+                  onShowProductDetails={handleShowProductDetails}
+                  onShowTerms={() => setShowTerms(true)}
+                  onBack={() => {
+                    if (shopFilter && product) {
+                      const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
+                      navigate(`/${shopSlug}`);
+                    } else {
+                      setCurrentStep("product-selection");
+                    }
+                  }}
+                  isAuthenticated={isAuthenticated}
+                  user={user}
+                  onLogin={handleLoginClick}
+                  onLogout={handleLogout}
+                  onAboutClick={handleAboutUsClick}
+                  onSellerDashboard={handleSellerDashboard}
+                  rateLimitExpiry={rateLimitExpiry}
+                  rateLimitMessage={rateLimitMessage}
+                />
+              )}
+
+                  {/* User Auth (OTP) */}
+                  {currentStep === "user-auth" && (
+                    <OTPLogin
+                      key="user-auth"
+                      isOpen={true}
+                      initialPhoneNumber={user?.phone_number || undefined}
+                      onClose={handleAuthClose}
+                      onSuccess={handleAuthSuccess}
+                    />
+                  )}
+
+                  {/* Product Fallback */}
+                  {currentStep === "product-fallback" && (
+                    <ProductFallback
+                      key="product-fallback"
+                      reason={fallbackReason}
+                      suggestedProducts={suggestedProducts}
+                      onSelectProduct={handleSelectSuggestedProduct}
+                      onUploadForSuggestions={handleFallbackUpload}
+                    />
+                  )}
+
+                  {/* Upload - Auth is checked in handleStartUpload before transitioning here */}
+                  {currentStep === "upload" && (
+                    <PhotoUpload
+                      key="upload"
+                      onUploadComplete={handleFileSelected}
+                      onBack={() => setCurrentStep("product-landing")}
+                      product={product}
+                      isAuthenticated={isAuthenticated}
+                      user={user}
+                      onLogin={handleLoginClick}
+                      onLogout={handleLogout}
+                      onAboutClick={handleAboutUsClick}
+                      onSellerDashboard={handleSellerDashboard}
+                    />
+                  )}
+
+                  {/* Precheck */}
+                  {currentStep === "precheck" && selectedFile && (
+                    <FilePrecheck
+                      key="precheck"
+                      file={selectedFile}
+                      onApprove={handlePrecheckApprove}
+                      onRetake={handlePrecheckRetake}
+                      onContinueAnyway={handleContinueAnyway}
+                      isAuthenticated={isAuthenticated}
+                      user={user}
+                      onLogin={handleLoginClick}
+                      onLogout={handleLogout}
+                      onAboutClick={handleAboutUsClick}
+                      onSellerDashboard={handleSellerDashboard}
+                    />
+                  )}
+
+                  {/* Staged Upload */}
+                  {currentStep === "staged-upload" && selectedFile && (
+                    <StagedUpload
+                      key="staged-upload"
+                      file={selectedFile}
+                      onComplete={handleUploadComplete}
+                      onError={handleUploadError}
+                      isAuthenticated={isAuthenticated}
+                      user={user}
+                      onLogin={handleLoginClick}
+                      onLogout={handleLogout}
+                      onAboutClick={handleAboutUsClick}
+                      onSellerDashboard={handleSellerDashboard}
+                    />
+                  )}
+
+                  {/* Confirmation */}
+                  {currentStep === "confirmation" &&
+                    selectedFile &&
+                    product && (
+                      <motion.div
+                        key="confirmation"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="min-h-screen bg-white flex items-center justify-center p-4"
+                      >
+                        <div className="text-center">
+                          {/* HOMA Logo - Large and Centered */}
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{
+                              duration: 0.6,
+                              ease: "easeOut",
+                            }}
+                            className="mb-8"
+                          >
+                            <div
+                              style={{
+                                fontSize: "96px",
+                                fontFamily:
+                                  '"Inter", "Helvetica Neue", "Helvetica", Arial, sans-serif',
+                                fontWeight: 700,
+                                letterSpacing: "-4px",
+                                color: "#000",
+                                textTransform: "uppercase",
+                                lineHeight: "1",
+                              }}
+                            >
+                              HOMA
+                            </div>
+                          </motion.div>
+
+                          {/* Loading Dots */}
+                          <div className="flex items-center justify-center gap-2 mb-6">
+                            <div className="flex gap-2">
+                              {[0, 1, 2].map((i) => (
+                                <motion.div
+                                  key={i}
+                                  className="w-3 h-3 bg-gray-900 rounded-full"
+                                  animate={{
+                                    scale: [1, 1.5, 1],
+                                    opacity: [0.3, 1, 0.3],
+                                  }}
+                                  transition={{
+                                    duration: 1.5,
+                                    repeat: Infinity,
+                                    delay: i * 0.2,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* "Please Wait" Text */}
+                          <motion.p
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="text-gray-600"
+                            style={{ fontSize: "16px" }}
+                          >
+                            منتظر باشید
+                          </motion.p>
+
+                          {/* Optional: Product name hint */}
+                          <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="text-gray-400 mt-4"
+                            style={{ fontSize: "14px" }}
+                          >
+                            در حال تست {product.name} در فضای شما...
+                          </motion.p>
+                        </div>
+                      </motion.div>
+                    )}
+
+                  {/* Visualization */}
+                  {currentStep === "visualization" &&
+                    selectedFile &&
+                    product && (
+                      <ProductVisualization
+                        key="visualization"
+                        product={product}
+                        userImage={visualizedImageUrl}
+                        apiStatus={apiStatus}
+                        fileName={selectedFile.name}
+                        placementSuccess={placementSuccess}
+                        isSaved={isSaved}
+                        onSave={handleSaveClick}
+                        onShare={handleShare}
+                        onChangeVariant={handleVariantChange}
+                        onTryAnother={handleTryAnotherClick}
+                        onViewProductDetails={handleShowProductDetails}
+                        onPurchase={handlePurchase}
+                        onBackToStore={handleBackToStoreClick}
+                        onBack={() => setCurrentStep("product-landing")}
+                        isAuthenticated={isAuthenticated}
+                        user={user}
+                        onLogin={handleLoginClick}
+                        onLogout={handleLogout}
+                        onAboutClick={handleAboutUsClick}
+                        onSellerDashboard={handleSellerDashboard}
+                      />
+                    )}
+
+                  {/* Feedback Survey */}
+                  {currentStep === "feedback" && (
+                    <Suspense fallback={<ModalLoadingFallback />}>
+                      <FeedbackSurvey
+                        key="feedback"
+                        productId={product?.id}
+                        onFeedbackSubmit={handleFeedbackSubmit}
+                      />
+                    </Suspense>
+                  )}
+
+              {/* Error Recovery */}
+              {currentStep === "error" && (
+                <ErrorRecovery
+                  key="error"
+                  errorType={errorType}
+                  onRetry={handleErrorRetry}
+                  onCancel={handleErrorCancel}
+                />
+              )}
+            </AnimatePresence>
+
+            {/* Product Details Modal - Can appear over any step */}
+            {product && (
+              <Suspense fallback={<ModalLoadingFallback />}>
+                <ProductDetailsModal
+                  open={showProductDetails}
+                  onClose={() => setShowProductDetails(false)}
+                  product={product}
+                  onUploadSticky={handleDetailsUploadCTA}
+                />
+              </Suspense>
+            )}
+
+            {/* Privacy/Consent Modal - Can appear over any step */}
+            <Suspense fallback={<ModalLoadingFallback />}>
+              <TermsModal
+                open={showTerms}
+                onClose={() => setShowTerms(false)}
+              />
+            </Suspense>
+
+            {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
+            <Suspense fallback={null}>
+              <BrandColors />
+            </Suspense>
+
+            {/* Toast Notifications */}
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              dir="rtl"
             />
-          </Suspense>
-        )}
-
-        {/* Error Recovery */}
-        {currentStep === "error" && (
-          <ErrorRecovery
-            key="error"
-            errorType={errorType}
-            onRetry={handleErrorRetry}
-            onCancel={handleErrorCancel}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Product Details Modal - Can appear over any step */}
-      {product && (
-        <Suspense fallback={<ModalLoadingFallback />}>
-          <ProductDetailsModal
-            open={showProductDetails}
-            onClose={() => setShowProductDetails(false)}
-            product={product}
-            onUploadSticky={handleDetailsUploadCTA}
-          />
-        </Suspense>
-      )}
-
-      {/* Privacy/Consent Modal - Can appear over any step */}
-      <Suspense fallback={<ModalLoadingFallback />}>
-        <TermsModal
-          open={showTerms}
-          onClose={() => setShowTerms(false)}
-        />
-      </Suspense>
-
-      {/* About Us Modal - Accessible from hamburger menu */}
-      <AboutUs
-        open={showAboutUs}
-        onOpenChange={setShowAboutUs}
-      />
-
-      {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
-      <Suspense fallback={null}>
-        <BrandColors />
-      </Suspense>
-
-      {/* Toast Notifications */}
-      <Toaster
-        position="top-center"
-        richColors
-        closeButton
-        dir="rtl"
-      />
-        </>
+          </main>
+        </div>
       } />
     </Routes>
   );
