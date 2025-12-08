@@ -963,10 +963,57 @@ export default function App() {
         const response = await fetch(visualizedImageUrl);
         const blob = await response.blob();
 
-        // Generate filename with "homa" prefix and timestamp
-        const timestamp = new Date().toISOString().split('T')[0];
+        // Convert to JPEG if not already
+        async function convertToJpeg(inputBlob: Blob): Promise<Blob> {
+          // If already JPEG, return as-is
+          if (inputBlob.type === 'image/jpeg') {
+            console.log('[App] Image already JPEG, skipping conversion');
+            return inputBlob;
+          }
+
+          console.log('[App] Converting image to JPEG from:', inputBlob.type);
+          const objectUrl = URL.createObjectURL(inputBlob);
+          try {
+            const image = new Image();
+            await new Promise<void>((resolve, reject) => {
+              image.onload = () => resolve();
+              image.onerror = () => reject(new Error('Failed to load image for conversion'));
+              image.src = objectUrl;
+            });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Failed to get canvas context');
+
+            ctx.drawImage(image, 0, 0);
+
+            return new Promise((resolve, reject) => {
+              canvas.toBlob(
+                (jpegBlob) => {
+                  if (jpegBlob) {
+                    console.log('[App] Successfully converted to JPEG');
+                    resolve(jpegBlob);
+                  } else {
+                    reject(new Error('Failed to convert to JPEG'));
+                  }
+                },
+                'image/jpeg',
+                0.92
+              );
+            });
+          } finally {
+            URL.revokeObjectURL(objectUrl);
+          }
+        }
+
+        const jpegBlob = await convertToJpeg(blob);
+
+        // Generate filename with "homa" prefix and product name
         const productName = product?.name.replace(/\s+/g, '-') || 'product';
-        const filename = `homa-${productName}-${timestamp}.jpg`;
+        const filename = `homa-${productName}.jpg`;
 
         // Check if mobile device and Web Share API is available
         const isMobile = isMobileDevice();
@@ -975,7 +1022,7 @@ export default function App() {
         if (isMobile && canShare) {
           // Mobile: Use Web Share API to save to gallery
           try {
-            const file = new File([blob], filename, { type: 'image/jpeg' });
+            const file = new File([jpegBlob], filename, { type: 'image/jpeg' });
 
             await navigator.share({
               files: [file],
@@ -994,13 +1041,13 @@ export default function App() {
             } else {
               console.error('[App] Share failed:', shareError);
               // Fallback to traditional download
-              downloadImage(blob, filename);
+              downloadImage(jpegBlob, filename);
               setIsSaved(true);
             }
           }
         } else {
           // Desktop or Web Share not supported: Use traditional download
-          downloadImage(blob, filename);
+          downloadImage(jpegBlob, filename);
           setIsSaved(true);
         }
       } catch (error) {
