@@ -25,6 +25,29 @@ const SellerDashboardApp = lazy(() => import("./integrations/seller-dashboard/Se
 
 // Loading fallback component
 const ModalLoadingFallback = () => null;
+
+// FeedbackSurvey loading fallback with matching green background
+const FeedbackLoadingFallback = () => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center"
+    style={{ backgroundColor: '#9dc183' }}
+  >
+    <div className="flex flex-col items-center gap-4">
+      <div className="flex gap-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="w-3 h-3 rounded-full animate-pulse"
+            style={{
+              backgroundColor: '#1a4d4d',
+              animationDelay: `${i * 0.2}s`
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  </div>
+);
 import type { Product } from "./types/product";
 import type { User, AuthData } from "./types/auth";
 import { userAuthService } from "./services/userAuthService";
@@ -396,6 +419,16 @@ export default function App() {
       window.removeEventListener('popstate', handlePopState);
     };
   }, [product]);
+
+  // Preload FeedbackSurvey when user reaches visualization step
+  useEffect(() => {
+    if (currentStep === 'visualization') {
+      // Preload FeedbackSurvey chunk in background
+      import('./components/FeedbackSurvey').catch(() => {
+        // Silently ignore preload errors
+      });
+    }
+  }, [currentStep]);
 
   // KPI Tracking
   const trackKPI = (
@@ -1712,7 +1745,7 @@ export default function App() {
 
                   {/* Feedback Survey */}
                   {currentStep === "feedback" && (
-                    <Suspense fallback={<ModalLoadingFallback />}>
+                    <Suspense fallback={<FeedbackLoadingFallback />}>
                       <FeedbackSurvey
                         key="feedback"
                         productId={product?.id}

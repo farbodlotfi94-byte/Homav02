@@ -201,19 +201,19 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
     <motion.div
       animate={{ backgroundColor: config.bgColor }}
       transition={{ duration: 0.5, ease: 'easeInOut' }}
-      className="min-h-screen flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
       style={{ fontFamily: 'var(--font-family-vazirmatn)' }}
     >
-      <div className="w-full max-w-[380px] sm:max-w-md md:max-w-lg min-h-screen md:min-h-0 md:h-auto px-6 sm:px-10 py-8 sm:py-10 flex flex-col items-center justify-between">
+      <div className="w-full max-w-[380px] sm:max-w-md md:max-w-lg px-4 sm:px-10 py-4 sm:py-10 flex flex-col items-center justify-center gap-4 sm:gap-6">
         {/* Content */}
-        <div className="flex-1 flex flex-col items-center justify-center w-full">
+        <div className="flex flex-col items-center justify-center w-full">
           {/* Question */}
           <motion.h1
             animate={{ color: config.textColor }}
             transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className="text-center mb-[60px]"
+            className="text-center mb-6 sm:mb-[60px]"
             style={{
-              fontSize: '24px',
+              fontSize: 'clamp(20px, 5vw, 24px)',
               fontWeight: 'var(--font-weight-semibold)',
             }}
           >
@@ -221,13 +221,13 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
           </motion.h1>
 
           {/* Face */}
-          <div className="mb-10">
+          <div className="mb-4 sm:mb-10">
             {/* Eyes */}
-            <div className="flex gap-10 mb-5 justify-center">
+            <div className="flex gap-6 sm:gap-10 mb-3 sm:mb-5 justify-center">
               <motion.div
                 animate={{
-                  width: config.eyeClass === 'neutral' ? '80px' : '80px',
-                  height: config.eyeClass === 'neutral' ? '30px' : '80px',
+                  width: 'clamp(50px, 15vw, 80px)',
+                  height: config.eyeClass === 'neutral' ? 'clamp(20px, 6vw, 30px)' : 'clamp(50px, 15vw, 80px)',
                   borderRadius: config.eyeClass === 'neutral' ? '40px' : '50%',
                   backgroundColor: config.accentColor,
                 }}
@@ -236,8 +236,8 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
               />
               <motion.div
                 animate={{
-                  width: config.eyeClass === 'neutral' ? '80px' : '80px',
-                  height: config.eyeClass === 'neutral' ? '30px' : '80px',
+                  width: 'clamp(50px, 15vw, 80px)',
+                  height: config.eyeClass === 'neutral' ? 'clamp(20px, 6vw, 30px)' : 'clamp(50px, 15vw, 80px)',
                   borderRadius: config.eyeClass === 'neutral' ? '40px' : '50%',
                   backgroundColor: config.accentColor,
                 }}
@@ -254,12 +254,14 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
                   borderTopColor: config.accentColor,
                 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="w-[60px] h-[30px] mx-auto mt-[10px]"
+                className="mx-auto mt-1 sm:mt-[10px]"
                 style={{
+                  width: 'clamp(40px, 12vw, 60px)',
+                  height: 'clamp(20px, 6vw, 30px)',
                   borderLeft: 'none',
                   borderRight: 'none',
                   borderBottom: 'none',
-                  borderTop: `8px solid ${config.accentColor}`,
+                  borderTop: `6px solid ${config.accentColor}`,
                   borderRadius: '60px 60px 0 0',
                 }}
               />
@@ -272,11 +274,13 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
                   borderRightColor: config.accentColor,
                 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="w-[80px] h-[40px] mx-auto"
+                className="mx-auto"
                 style={{
-                  borderTop: `8px solid ${config.accentColor}`,
-                  borderLeft: `8px solid ${config.accentColor}`,
-                  borderRight: `8px solid ${config.accentColor}`,
+                  width: 'clamp(50px, 15vw, 80px)',
+                  height: 'clamp(25px, 8vw, 40px)',
+                  borderTop: `6px solid ${config.accentColor}`,
+                  borderLeft: `6px solid ${config.accentColor}`,
+                  borderRight: `6px solid ${config.accentColor}`,
                   borderBottom: 'none',
                   borderRadius: '80px 80px 0 0',
                 }}
@@ -290,11 +294,13 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
                   borderRightColor: config.accentColor,
                 }}
                 transition={{ duration: 0.5, ease: 'easeInOut' }}
-                className="w-[80px] h-[40px] mx-auto"
+                className="mx-auto"
                 style={{
-                  borderBottom: `8px solid ${config.accentColor}`,
-                  borderLeft: `8px solid ${config.accentColor}`,
-                  borderRight: `8px solid ${config.accentColor}`,
+                  width: 'clamp(50px, 15vw, 80px)',
+                  height: 'clamp(25px, 8vw, 40px)',
+                  borderBottom: `6px solid ${config.accentColor}`,
+                  borderLeft: `6px solid ${config.accentColor}`,
+                  borderRight: `6px solid ${config.accentColor}`,
                   borderTop: 'none',
                   borderRadius: '0 0 80px 80px',
                 }}
@@ -306,9 +312,9 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
           <motion.div
             animate={{ color: config.textColor }}
             transition={{ duration: 0.5, ease: 'easeInOut' }}
-            className="mt-5"
+            className="mt-2 sm:mt-5"
             style={{
-              fontSize: '80px',
+              fontSize: 'clamp(40px, 15vw, 80px)',
               fontWeight: 'var(--font-weight-bold)',
               opacity: 0.3,
             }}
@@ -318,8 +324,8 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
         </div>
 
         {/* Slider Container */}
-        <div className="w-full py-5">
-          <div className="relative w-full h-2 bg-white/30 rounded-[10px] my-5">
+        <div className="w-full py-2 sm:py-5">
+          <div className="relative w-full h-2 bg-white/30 rounded-[10px] my-3 sm:my-5">
             {/* Progress Fill */}
             <motion.div
               animate={{ width: `${sliderValue}%` }}
@@ -362,7 +368,7 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               style={{
                 fontWeight: 'var(--font-weight-bold)',
-                fontSize: '32px',
+                fontSize: 'clamp(20px, 6vw, 32px)',
               }}
             >
               بد
@@ -375,7 +381,7 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               style={{
                 fontWeight: 'var(--font-weight-bold)',
-                fontSize: '32px',
+                fontSize: 'clamp(20px, 6vw, 32px)',
               }}
             >
               معمولی
@@ -388,7 +394,7 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               style={{
                 fontWeight: 'var(--font-weight-bold)',
-                fontSize: '32px',
+                fontSize: 'clamp(20px, 6vw, 32px)',
               }}
             >
               خوب
@@ -397,14 +403,14 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
         </div>
 
         {/* Buttons */}
-        <div className="w-full flex justify-between gap-5 mt-10">
+        <div className="w-full flex justify-between gap-3 sm:gap-5">
           <button
             onClick={handleSkip}
-            className="flex-1 py-[18px] px-[30px] border-none rounded-[30px] cursor-pointer transition-all duration-300"
+            className="flex-1 py-3 sm:py-[18px] px-4 sm:px-[30px] border-none rounded-[30px] cursor-pointer transition-all duration-300"
             style={{
               background: 'transparent',
               color: 'rgba(0, 0, 0, 0.4)',
-              fontSize: '18px',
+              fontSize: 'clamp(14px, 4vw, 18px)',
               fontWeight: 'var(--font-weight-bold)',
               fontFamily: 'var(--font-family-vazirmatn)',
             }}
@@ -418,11 +424,11 @@ export function FeedbackSurvey({ productId, onFeedbackSubmit }: FeedbackSurveyPr
               boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
             }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="flex-1 py-[18px] px-[30px] border-none rounded-[30px] cursor-pointer"
+            className="flex-1 py-3 sm:py-[18px] px-4 sm:px-[30px] border-none rounded-[30px] cursor-pointer"
             style={{
               background: config.accentColor,
               color: '#fff',
-              fontSize: '18px',
+              fontSize: 'clamp(14px, 4vw, 18px)',
               fontWeight: 'var(--font-weight-bold)',
               fontFamily: 'var(--font-family-vazirmatn)',
             }}
