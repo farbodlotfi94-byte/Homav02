@@ -308,6 +308,15 @@ html {
 
 /* Custom Responsive Utilities - Added for desktop sidebar layout */
 /* These classes are not in the pre-bundled Tailwind CSS, so we add them manually */
+
+/* Base transform utilities for mobile sidebar */
+.translate-x-0 {
+  transform: translateX(0);
+}
+.translate-x-full {
+  transform: translateX(100%);
+}
+
 /* Responsive display utilities */
 @media (min-width: 768px) {
     .md\:block {
@@ -356,6 +365,24 @@ html {
     }
     .md\:h-auto {
       height: auto !important;
+    }
+    .md\:static {
+      position: static !important;
+    }
+    .md\:z-auto {
+      z-index: auto !important;
+    }
+    .md\:translate-x-0 {
+      transform: translateX(0) !important;
+    }
+    .md\:h-screen {
+      height: 100vh !important;
+    }
+    .md\:sticky {
+      position: sticky !important;
+    }
+    .md\:top-0 {
+      top: 0 !important;
     }
   }
 

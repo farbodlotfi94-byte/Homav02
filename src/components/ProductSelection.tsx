@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
-import { Header } from "./Header";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProduct, PaginatedResponse } from "../types/product";
@@ -305,19 +304,7 @@ export function ProductSelection({
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="md:hidden">
-          <Header
-            showBackButton={!!onBack}
-            onBack={onBack}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={onLogin}
-            onLogout={onLogout}
-            onAboutClick={onAboutClick}
-            onSellerDashboard={onSellerDashboard}
-          />
-        </div>
-        <div className="pt-14 md:pt-0 flex items-center justify-center min-h-[50vh]">
+        <div className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-600" />
             <p className="text-gray-600">در حال بارگذاری محصولات...</p>
@@ -330,19 +317,7 @@ export function ProductSelection({
   if (error) {
     return (
       <div className="min-h-screen bg-white">
-        <div className="md:hidden">
-          <Header
-            showBackButton={!!onBack}
-            onBack={onBack}
-            isAuthenticated={isAuthenticated}
-            user={user}
-            onLogin={onLogin}
-            onLogout={onLogout}
-            onAboutClick={onAboutClick}
-            onSellerDashboard={onSellerDashboard}
-          />
-        </div>
-        <div className="pt-14 md:pt-0 flex items-center justify-center min-h-[50vh]">
+        <div className="flex items-center justify-center min-h-[50vh]">
           <div className="text-center max-w-sm mx-auto px-6">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">خطا در بارگذاری</h2>
@@ -358,21 +333,7 @@ export function ProductSelection({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
-      <div className="md:hidden">
-        <Header
-          showBackButton={!!onBack}
-          onBack={onBack}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onAboutClick={onAboutClick}
-          onSellerDashboard={onSellerDashboard}
-        />
-      </div>
-
-      <div className="pt-14 md:pt-6 pb-6">
+      <div className="pt-6 pb-6">
         <div className="max-w-lg md:max-w-4xl lg:max-w-6xl mx-auto px-4 sm:px-6 md:px-8">
           {/* Header */}
           <motion.div

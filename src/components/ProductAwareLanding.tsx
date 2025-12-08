@@ -1,7 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { Upload, ChevronDown, Clock } from "lucide-react";
 import type { Product } from "../types/product";
-import type { User as UserType } from "../types/auth";
 import { useState } from "react";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { useCountdown } from "../hooks/useCountdown";
@@ -9,30 +8,14 @@ import { useCountdown } from "../hooks/useCountdown";
 interface ProductAwareLandingProps {
   product: Product;
   onUploadStart: () => void;
-  onShowProductDetails: () => void;
-  onShowTerms: () => void;
   onBack?: () => void;
-  isAuthenticated?: boolean;
-  user?: UserType | null;
-  onLogin?: () => void;
-  onLogout?: () => void;
-  onAboutClick?: () => void;
-  onSellerDashboard?: () => void;
   rateLimitExpiry?: number | null;
-  rateLimitMessage?: string;
 }
 
 export function ProductAwareLanding({
   product,
   onUploadStart,
-  onShowProductDetails,
   onBack,
-  isAuthenticated,
-  user,
-  onLogin,
-  onLogout,
-  onAboutClick,
-  onSellerDashboard,
   rateLimitExpiry,
 }: ProductAwareLandingProps) {
   const shouldAnimate = useAnimationPreference();

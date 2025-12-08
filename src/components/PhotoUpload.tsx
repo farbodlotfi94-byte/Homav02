@@ -11,7 +11,6 @@
 import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
-import { Header } from "./Header";
 import { UploadGuidanceModal } from "./UploadGuidanceModal";
 import type { User } from "../types/auth";
 import type { Product } from "../types/product";
@@ -207,20 +206,7 @@ export function PhotoUpload({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
-      <div className="md:hidden">
-        <Header
-          onBack={onBack}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onAboutClick={onAboutClick}
-          onSellerDashboard={onSellerDashboard}
-        />
-      </div>
-
-      <div className="pt-14 md:pt-6">
+      <div className="pt-6">
         <motion.div
           initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
           animate={shouldAnimate ? { opacity: 1, y: 0 } : false}

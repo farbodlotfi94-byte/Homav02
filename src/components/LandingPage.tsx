@@ -2,7 +2,6 @@ import { Button } from "./ui/button";
 import { motion } from "motion/react";
 import { Heart } from "lucide-react";
 import { BeforeAfterStrip } from "./BeforeAfterStrip";
-import { Header } from "./Header";
 
 interface LandingPageProps {
   onContinue: () => void;
@@ -12,9 +11,7 @@ interface LandingPageProps {
 export function LandingPage({ onContinue, onShowTerms }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-white">
-      <Header showBackButton={false} />
-
-      <div className="pt-14">
+      <div className="pt-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

@@ -1,5 +1,4 @@
 import { motion } from "motion/react";
-import { Header } from "./Header";
 
 interface AIProcessingStatusProps {
   stage: "uploading" | "analyzing" | "placing" | "complete";
@@ -25,9 +24,7 @@ export function AIProcessingStatus({ stage, progress, productName }: AIProcessin
 
   return (
     <div className="min-h-screen bg-background">
-      <Header showBackButton={false} />
-      
-      <div className="pt-14 flex items-center justify-center min-h-screen p-4">
+      <div className="flex items-center justify-center min-h-screen p-4">
         <div className="text-center max-w-md w-full">
           {/* Progress Bar */}
           <div className="mb-6">

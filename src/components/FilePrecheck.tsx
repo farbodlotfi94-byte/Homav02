@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Camera } from "lucide-react";
-import { Header } from "./Header";
 import type { User } from "../types/auth";
 import svgPaths from "../imports/svg-m4kfj8jpfi";
 
@@ -175,22 +174,8 @@ export function FilePrecheck({
 
   return (
     <div className="bg-white relative min-h-screen">
-      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
-      <div className="md:hidden">
-        <Header
-          onBack={onRetake}
-          showBackButton={true}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onAboutClick={onAboutClick}
-          onSellerDashboard={onSellerDashboard}
-        />
-      </div>
-
       {/* Main Container */}
-      <div className="max-w-lg md:max-w-xl mx-auto px-4 sm:px-6 md:px-8 pt-[104px] md:pt-8 pb-8">
+      <div className="max-w-lg md:max-w-xl mx-auto px-4 sm:px-6 md:px-8 pt-8 pb-8">
         {/* Title */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

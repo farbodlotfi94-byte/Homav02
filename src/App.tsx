@@ -13,6 +13,7 @@ import { AboutUsPage } from "./components/AboutUsPage";
 import { MainNavigation } from "./components/MainNavigation";
 import { AnimatePresence, motion } from "motion/react";
 import { toast, Toaster } from "sonner";
+import { Menu, ChevronRight } from "lucide-react";
 
 // Lazy load modals and admin components
 const ProductDetailsModal = lazy(() => import("./components/ProductDetailsModal").then(m => ({ default: m.ProductDetailsModal })));
@@ -146,6 +147,9 @@ export default function App() {
   // Shop filter state
   const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [invalidShopError, setInvalidShopError] = useState(false);
+
+  // Mobile sidebar state
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Rate limit countdown with auto-clear on expiry
   const rateLimitCountdown = useCountdown(rateLimitExpiry, () => {
@@ -1347,24 +1351,82 @@ export default function App() {
       {/* Main App Route - handles both / and /:uniqueLink */}
       <Route path="/*" element={
         <div className="flex flex-col md:flex-row min-h-screen" dir="rtl">
-          {/* Desktop Sidebar - hidden on mobile */}
+          {/* Mobile Hamburger Button - Only show on mobile when sidebar is closed */}
+          {!isMobileSidebarOpen && (
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden fixed top-4 right-4 z-50 p-3 rounded-full shadow-lg border bg-white border-gray-100"
+              aria-label="منو"
+            >
+              <Menu className="w-5 h-5 text-gray-700" />
+            </button>
+          )}
+
+          {/* Mobile Backdrop Overlay */}
+          <AnimatePresence>
+            {isMobileSidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Sidebar - Desktop: always visible in flex flow, Mobile: slide-out drawer */}
           <aside
-            className="hidden md:flex md:flex-col flex-shrink-0 sticky top-0 h-screen border-l border-gray-100 bg-white z-40"
-            style={{ width: '256px', minWidth: '256px' }}
+            dir="ltr"
+            className={`
+              fixed top-0 right-0 h-full z-50
+              md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0
+              bg-white
+              transition-transform duration-300 ease-in-out
+              flex flex-col flex-shrink-0
+              ${isMobileSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
+            `}
+            style={{ width: '280px', minWidth: '280px', borderLeft: '1px solid #f3f4f6' }}
           >
+            {/* Mobile Close Button - Left edge of sidebar (near backdrop) */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="md:hidden absolute p-2 rounded-full hover:bg-gray-100 transition-colors"
+              style={{ top: '1.25rem', left: '1rem' }}
+              aria-label="بستن"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-700" strokeWidth={2.5} />
+            </button>
+
             <MainNavigation
               isAuthenticated={isAuthenticated}
               user={user}
-              onLogin={handleLoginClick}
-              onLogout={() => handleLogout(false)}
-              onAboutClick={handleAboutUsClick}
-              onSellerDashboard={handleSellerDashboard}
-              onHomeClick={() => navigate('/')}
+              onLogin={() => {
+                setIsMobileSidebarOpen(false);
+                handleLoginClick();
+              }}
+              onLogout={() => {
+                setIsMobileSidebarOpen(false);
+                handleLogout(false);
+              }}
+              onAboutClick={() => {
+                setIsMobileSidebarOpen(false);
+                handleAboutUsClick();
+              }}
+              onSellerDashboard={() => {
+                setIsMobileSidebarOpen(false);
+                handleSellerDashboard();
+              }}
+              onHomeClick={() => {
+                setIsMobileSidebarOpen(false);
+                navigate('/');
+              }}
             />
           </aside>
 
           {/* Main Content Area */}
-          <main className="flex-1 min-w-0">
+          <main className="flex-1 min-w-0 overflow-hidden">
             <AnimatePresence mode="wait">
               {/* Loading State */}
               {currentStep === "loading" && (
@@ -1405,8 +1467,6 @@ export default function App() {
                   key="product-landing"
                   product={product}
                   onUploadStart={handleStartUpload}
-                  onShowProductDetails={handleShowProductDetails}
-                  onShowTerms={() => setShowTerms(true)}
                   onBack={() => {
                     if (shopFilter && product) {
                       const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
@@ -1415,14 +1475,7 @@ export default function App() {
                       setCurrentStep("product-selection");
                     }
                   }}
-                  isAuthenticated={isAuthenticated}
-                  user={user}
-                  onLogin={handleLoginClick}
-                  onLogout={handleLogout}
-                  onAboutClick={handleAboutUsClick}
-                  onSellerDashboard={handleSellerDashboard}
                   rateLimitExpiry={rateLimitExpiry}
-                  rateLimitMessage={rateLimitMessage}
                 />
               )}
 

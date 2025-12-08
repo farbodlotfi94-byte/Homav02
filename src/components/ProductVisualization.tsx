@@ -3,7 +3,6 @@ import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
 import { Download, RotateCcw, AlertTriangle, Store, Check, X } from "lucide-react";
 import { ProductChip } from "./ProductChip";
-import { Header } from "./Header";
 import { isMobileDevice } from "../utils/deviceDetection";
 import type { Product } from "../types/product";
 import type { User } from "../types/auth";
@@ -80,21 +79,7 @@ export function ProductVisualization({
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Mobile Header - hidden on desktop (sidebar shown instead) */}
-      <div className="md:hidden">
-        <Header
-          showBackButton={true}
-          onBack={onBack}
-          isAuthenticated={isAuthenticated}
-          user={user}
-          onLogin={onLogin}
-          onLogout={onLogout}
-          onAboutClick={onAboutClick}
-          onSellerDashboard={onSellerDashboard}
-        />
-      </div>
-
-      <div className="pt-14 md:pt-6">
+      <div className="pt-6">
         <div className="max-w-lg md:max-w-2xl lg:max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 md:py-10">
           {/* Title - Mobile only */}
           <div className="mb-4 lg:hidden">

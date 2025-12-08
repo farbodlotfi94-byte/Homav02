@@ -1,7 +1,6 @@
 import { Button } from "./ui/button";
 import { motion } from "motion/react";
 import { CheckCircle, Sparkles } from "lucide-react";
-import { Header } from "./Header";
 
 interface SuccessPageProps {
   fileName: string;
@@ -11,9 +10,7 @@ interface SuccessPageProps {
 export function SuccessPage({ fileName, onContinue }: SuccessPageProps) {
   return (
     <div className="min-h-screen bg-white">
-      <Header />
-
-      <div className="pt-14">
+      <div className="pt-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
