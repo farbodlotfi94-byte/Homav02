@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { RichTextDisplay } from '../../../components/ui/RichTextDisplay';
 import type { ProductSpec } from '../types/seller';
 
 interface ProductPreviewModalProps {
@@ -62,10 +63,8 @@ export function ProductPreviewModal({ isOpen, onClose, productData }: ProductPre
 
             {/* Description */}
             {productData.description && (
-              <div className="text-right">
-                <p className="text-[#666]" style={{ fontSize: '14px', lineHeight: '1.6' }}>
-                  {productData.description}
-                </p>
+              <div className="text-right text-[#666]" style={{ fontSize: '14px', lineHeight: '1.6' }}>
+                <RichTextDisplay content={productData.description} />
               </div>
             )}
 

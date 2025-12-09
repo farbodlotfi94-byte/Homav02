@@ -522,3 +522,70 @@ html {
   --accent-foreground: #1a1a1a;
   --ring: #EEFF41;
 }
+
+/* Rich Text Display Styles */
+.rich-text-display {
+  color: inherit;
+}
+
+.rich-text-display p {
+  margin: 0;
+}
+
+.rich-text-display p + p {
+  margin-top: 0.75em;
+}
+
+.rich-text-display h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.rich-text-display h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-top: 0.75em;
+  margin-bottom: 0.5em;
+}
+
+.rich-text-display ul,
+.rich-text-display ol {
+  padding-right: 1.5em;
+  padding-left: 0;
+  margin: 0.5em 0;
+}
+
+.rich-text-display li {
+  margin: 0.25em 0;
+}
+
+.rich-text-display blockquote {
+  border-right: 3px solid var(--accent, #666);
+  border-left: none;
+  padding-right: 1em;
+  padding-left: 0;
+  margin: 0.75em 0;
+  color: var(--muted-foreground, #888);
+  font-style: italic;
+}
+
+.rich-text-display strong,
+.rich-text-display b {
+  font-weight: 700;
+}
+
+.rich-text-display em,
+.rich-text-display i {
+  font-style: italic;
+}
+
+.rich-text-display u {
+  text-decoration: underline;
+}
+
+.rich-text-display s,
+.rich-text-display strike {
+  text-decoration: line-through;
+}

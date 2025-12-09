@@ -7,16 +7,16 @@ import { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
+import { RichTextEditor } from '../ui/RichTextEditor';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Card } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
-import { 
-  Upload, 
-  X, 
-  Loader2, 
-  AlertCircle, 
+import {
+  Upload,
+  X,
+  Loader2,
+  AlertCircle,
   CheckCircle,
   Image as ImageIcon
 } from 'lucide-react';
@@ -265,19 +265,18 @@ export function ProductForm({
               )}
             </div>
 
-            {/* Description */}
+            {/* Description with Rich Text Editor */}
             <div className="space-y-2">
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 توضیحات
               </Label>
-              <Textarea
-                id="description"
+              <RichTextEditor
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={(html) => handleInputChange('description', html)}
                 placeholder="توضیحات محصول را وارد کنید"
-                className={errors.description ? 'border-red-500' : ''}
                 disabled={isSubmitting}
-                rows={3}
+                minHeight="120px"
+                className={errors.description ? 'border-red-500' : ''}
               />
               {errors.description && (
                 <p className="text-sm text-red-600">{errors.description}</p>

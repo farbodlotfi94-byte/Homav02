@@ -4,6 +4,7 @@ import type { Product } from "../types/product";
 import { useState } from "react";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { useCountdown } from "../hooks/useCountdown";
+import { RichTextDisplay } from "./ui/RichTextDisplay";
 
 interface ProductAwareLandingProps {
   product: Product;
@@ -99,9 +100,9 @@ export function ProductAwareLanding({
 
               {/* Short Description */}
               {product.description && (
-                <p className="text-gray-600 text-base lg:text-lg leading-relaxed mb-6 lg:mb-8 line-clamp-3">
-                  {product.description}
-                </p>
+                <div className="text-gray-600 text-base lg:text-lg leading-relaxed mb-6 lg:mb-8 line-clamp-3">
+                  <RichTextDisplay content={product.description} />
+                </div>
               )}
 
               {/* Action Buttons */}
@@ -136,9 +137,9 @@ export function ProductAwareLanding({
                       {product.description && (
                         <div>
                           <h3 className="text-gray-900 font-semibold mb-2">توضیحات</h3>
-                          <p className="text-gray-600 leading-relaxed">
-                            {product.description}
-                          </p>
+                          <div className="text-gray-600 leading-relaxed">
+                            <RichTextDisplay content={product.description} />
+                          </div>
                         </div>
                       )}
 

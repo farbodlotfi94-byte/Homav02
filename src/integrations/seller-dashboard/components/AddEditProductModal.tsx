@@ -5,6 +5,7 @@ import { SellerProductImage } from './SellerProductImage';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ProductSpecsInput } from './ProductSpecsInput';
 import { ProductPreviewModal } from './ProductPreviewModal';
+import { RichTextEditor } from '../../../components/ui/RichTextEditor';
 import type { SellerProduct, ProductSpec } from '../types/seller';
 import { toast } from 'sonner';
 
@@ -195,19 +196,16 @@ export function AddEditProductModal({
               </select>
             </div>
 
-            {/* Description - RTL */}
+            {/* Description - RTL with Rich Text Editor */}
             <div dir="rtl">
               <label htmlFor="description" className="block mb-1 text-foreground text-right">
                 توضیحات محصول
               </label>
-              <textarea
-                id="description"
+              <RichTextEditor
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-input-background border border-border rounded-[8px] sm:rounded-[12px] text-foreground text-right focus:outline-none focus:border-accent transition-all duration-300 resize-y"
+                onChange={(html) => setFormData({ ...formData, description: html })}
                 placeholder="توضیحات بیشتر درباره محصول، ویژگی‌ها و نکات مهم..."
-                dir="rtl"
-                rows={3}
+                minHeight="100px"
               />
             </div>
 

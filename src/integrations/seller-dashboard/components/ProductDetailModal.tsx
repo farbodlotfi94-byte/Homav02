@@ -2,6 +2,7 @@ import { X, Copy, Check, Eye, ExternalLink, Edit, Trash2, TrendingUp } from 'luc
 import { useState } from 'react';
 import { SellerProductImage } from './SellerProductImage';
 import { Badge } from './ui/badge';
+import { RichTextDisplay } from '../../../components/ui/RichTextDisplay';
 import type { SellerProduct } from '../types/seller';
 
 interface ProductDetailModalProps {
@@ -233,10 +234,8 @@ export function ProductDetailModal({
           {(product.description || product.fullDescription) && (
             <div className="bg-white border border-[#e6e6e6] rounded-[12px] sm:rounded-[16px] p-3 sm:p-4 md:p-6 space-y-2 sm:space-y-3">
               <h4 className="text-[#1a1a1a] text-right pb-2 sm:pb-3 border-b border-[#e6e6e6] text-[14px] sm:text-[15px]">توضیحات محصول</h4>
-              <div className="max-w-3xl">
-                <p className="text-[#666] text-[13px] sm:text-[14px] leading-relaxed text-right">
-                  {product.fullDescription || product.description}
-                </p>
+              <div className="max-w-3xl text-[#666] text-[13px] sm:text-[14px] leading-relaxed">
+                <RichTextDisplay content={product.fullDescription || product.description || ''} />
               </div>
             </div>
           )}

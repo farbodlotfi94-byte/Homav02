@@ -8,6 +8,7 @@ import {
 import { Button } from "./ui/button";
 import { ExternalLink, CheckCircle, Upload } from "lucide-react";
 import type { Product } from "../types/product";
+import { RichTextDisplay } from "./ui/RichTextDisplay";
 
 interface ProductDetailsModalProps {
   open: boolean;
@@ -65,10 +66,8 @@ export function ProductDetailsModal({
         <div className="space-y-4">
           {/* Description */}
           {product.description && (
-            <div>
-              <p className="text-gray-600 leading-relaxed">
-                {product.description}
-              </p>
+            <div className="text-gray-600 leading-relaxed">
+              <RichTextDisplay content={product.description} />
             </div>
           )}
 

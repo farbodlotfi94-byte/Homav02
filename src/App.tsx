@@ -1500,7 +1500,12 @@ export default function App() {
               }}
               onHomeClick={() => {
                 setIsMobileSidebarOpen(false);
-                navigate('/');
+                // Navigate to shop's product list if viewing a product from that shop
+                if (shopFilter) {
+                  navigate(`/${shopFilter}`);
+                } else {
+                  navigate('/');
+                }
               }}
             />
           </aside>
