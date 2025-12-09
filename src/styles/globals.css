@@ -550,15 +550,29 @@ html {
   margin-bottom: 0.5em;
 }
 
-.rich-text-display ul,
+.rich-text-display ul {
+  list-style-type: disc;
+  list-style-position: inside;
+  padding-right: 0.5em;
+  padding-left: 0;
+  margin: 0.5em 0;
+}
+
 .rich-text-display ol {
-  padding-right: 1.5em;
+  list-style-type: decimal;
+  list-style-position: inside;
+  padding-right: 0.5em;
   padding-left: 0;
   margin: 0.5em 0;
 }
 
 .rich-text-display li {
   margin: 0.25em 0;
+  display: list-item;
+}
+
+.rich-text-display li p {
+  display: inline;
 }
 
 .rich-text-display blockquote {

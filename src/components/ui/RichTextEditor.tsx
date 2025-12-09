@@ -90,6 +90,25 @@ interface EditorToolbarProps {
 function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor) return null;
 
+  // Smart list toggle: converts between list types instead of just toggling
+  const handleBulletList = () => {
+    if (editor.isActive('orderedList')) {
+      // Convert ordered list to bullet list
+      editor.chain().focus().toggleOrderedList().toggleBulletList().run();
+    } else {
+      editor.chain().focus().toggleBulletList().run();
+    }
+  };
+
+  const handleOrderedList = () => {
+    if (editor.isActive('bulletList')) {
+      // Convert bullet list to ordered list
+      editor.chain().focus().toggleBulletList().toggleOrderedList().run();
+    } else {
+      editor.chain().focus().toggleOrderedList().run();
+    }
+  };
+
   return (
     <div className="flex flex-wrap items-center gap-2 p-3 border-b border-border/50 bg-gradient-to-b from-muted/40 to-transparent" dir="ltr">
       {/* Text Formatting Group */}
@@ -127,14 +146,14 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
           <Heading2 className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={handleBulletList}
           isActive={editor.isActive('bulletList')}
           tooltip="لیست نقطه‌ای"
         >
           <List className="w-4 h-4" />
         </ToolbarButton>
         <ToolbarButton
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={handleOrderedList}
           isActive={editor.isActive('orderedList')}
           tooltip="لیست شماره‌ای"
         >
@@ -308,15 +327,29 @@ export function RichTextEditor({
           margin-bottom: 0.5em;
         }
 
-        .ProseMirror ul,
+        .ProseMirror ul {
+          list-style-type: disc;
+          list-style-position: inside;
+          padding-right: 0.5em;
+          padding-left: 0;
+          margin: 0.5em 0;
+        }
+
         .ProseMirror ol {
-          padding-right: 1.5em;
+          list-style-type: decimal;
+          list-style-position: inside;
+          padding-right: 0.5em;
           padding-left: 0;
           margin: 0.5em 0;
         }
 
         .ProseMirror li {
           margin: 0.25em 0;
+          display: list-item;
+        }
+
+        .ProseMirror li p {
+          display: inline;
         }
 
         .ProseMirror blockquote {
