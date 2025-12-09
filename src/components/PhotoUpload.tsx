@@ -224,21 +224,25 @@ export function PhotoUpload({
             category={product?.category}
           />
 
-          {/* Upload Circle */}
+          {/* Upload Circle - Clickable */}
           <div
+            role="button"
+            tabIndex={0}
+            onClick={handleFileButtonClick}
+            onKeyDown={(e) => e.key === 'Enter' && handleFileButtonClick()}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`w-full md:w-[400px] lg:w-[480px] aspect-square mx-auto rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${
+            className={`w-full md:w-[400px] lg:w-[480px] aspect-square mx-auto rounded-full flex items-center justify-center mb-6 transition-all duration-300 cursor-pointer hover:bg-gray-100 active:scale-[0.98] ${
               isDragging
                 ? "bg-gray-200 border-2 border-gray-400 border-dashed"
-                : "bg-gradient-to-br from-gray-100 to-gray-50 border-2 border-gray-200 border-dashed"
+                : "bg-gradient-to-br from-gray-100 to-gray-50 border-2 border-gray-200 border-dashed hover:border-gray-300"
             }`}
           >
-            <div className="text-center">
+            <div className="text-center pointer-events-none">
               <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" strokeWidth={1.5} />
               <p className="text-gray-600">تصویر را اینجا بکشید</p>
-              <p className="text-gray-400 mt-1">یا دکمه زیر را بزنید</p>
+              <p className="text-gray-400 mt-1">یا اینجا کلیک کنید</p>
             </div>
           </div>
 
