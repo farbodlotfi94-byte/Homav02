@@ -403,16 +403,19 @@ export function SellerDashboardApp() {
           console.log('[SellerDashboardApp] Backend response data:', result.data);
           console.log('[SellerDashboardApp] frontend_link from backend:', result.data.frontend_link);
 
-          const newProduct = mapBackendProductToSeller(result.data, shopLinkRef.current);
-          console.log('[SellerDashboardApp] Mapped product tryLink:', newProduct.tryLink);
+          // Refetch products to ensure list is in sync with backend
+          await loadProducts();
 
-          setProducts([...products, newProduct]);
+          // Construct tryLink for the preview modal
+          const tryLink = result.data.frontend_link ||
+            (result.data.unique_link && shopLinkRef.current ?
+              `${shopLinkRef.current}${result.data.unique_link}` : '');
 
           // Show Link Preview Modal
           setLinkPreviewData({
             isOpen: true,
-            tryLink: newProduct.tryLink || result.data.frontend_link || '',
-            productName: newProduct.name,
+            tryLink: tryLink,
+            productName: result.data.name,
           });
 
           toast.success('محصول جدید اضافه شد');
