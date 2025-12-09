@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Bold,
   Italic,
@@ -36,29 +36,51 @@ interface ToolbarButtonProps {
   isActive?: boolean;
   disabled?: boolean;
   children: React.ReactNode;
-  title?: string;
+  tooltip?: string;
 }
 
-function ToolbarButton({ onClick, isActive, disabled, children, title }: ToolbarButtonProps) {
+function ToolbarButton({ onClick, isActive, disabled, children, tooltip }: ToolbarButtonProps) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={cn(
-        'p-1.5 rounded-md transition-colors duration-200',
-        'hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed',
-        isActive && 'bg-accent text-accent-foreground'
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        className={cn(
+          'w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200',
+          'hover:bg-accent/10 active:scale-95',
+          'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent',
+          isActive && 'bg-accent/20 text-accent shadow-sm'
+        )}
+      >
+        {children}
+      </button>
+      {/* Tooltip */}
+      {tooltip && showTooltip && !disabled && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs font-medium bg-foreground text-background rounded-md whitespace-nowrap z-50 pointer-events-none animate-in fade-in-0 zoom-in-95 duration-150">
+          {tooltip}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-foreground" />
+        </div>
       )}
-    >
-      {children}
-    </button>
+    </div>
   );
 }
 
-function ToolbarDivider() {
-  return <div className="w-px h-6 bg-border mx-1" />;
+interface ToolbarGroupProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+function ToolbarGroup({ children, className }: ToolbarGroupProps) {
+  return (
+    <div className={cn('flex items-center gap-0.5 p-1 bg-muted/50 rounded-lg', className)}>
+      {children}
+    </div>
+  );
 }
 
 interface EditorToolbarProps {
@@ -69,110 +91,107 @@ function EditorToolbar({ editor }: EditorToolbarProps) {
   if (!editor) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-muted/30 rounded-t-[12px]" dir="ltr">
-      {/* Undo/Redo */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
-        title="Undo"
-      >
-        <Undo className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
-        title="Redo"
-      >
-        <Redo className="w-4 h-4" />
-      </ToolbarButton>
+    <div className="flex flex-wrap items-center gap-2 p-3 border-b border-border/50 bg-gradient-to-b from-muted/40 to-transparent" dir="ltr">
+      {/* Text Formatting Group */}
+      <ToolbarGroup>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          isActive={editor.isActive('bold')}
+          tooltip="درشت"
+        >
+          <Bold className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          isActive={editor.isActive('italic')}
+          tooltip="کج"
+        >
+          <Italic className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          isActive={editor.isActive('underline')}
+          tooltip="زیرخط"
+        >
+          <UnderlineIcon className="w-4 h-4" />
+        </ToolbarButton>
+      </ToolbarGroup>
 
-      <ToolbarDivider />
+      {/* Structure Group */}
+      <ToolbarGroup>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+          tooltip="تیتر"
+        >
+          <Heading2 className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={editor.isActive('bulletList')}
+          tooltip="لیست نقطه‌ای"
+        >
+          <List className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={editor.isActive('orderedList')}
+          tooltip="لیست شماره‌ای"
+        >
+          <ListOrdered className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          isActive={editor.isActive('blockquote')}
+          tooltip="نقل قول"
+        >
+          <Quote className="w-4 h-4" />
+        </ToolbarButton>
+      </ToolbarGroup>
 
-      {/* Text formatting */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        isActive={editor.isActive('bold')}
-        title="Bold"
-      >
-        <Bold className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        isActive={editor.isActive('italic')}
-        title="Italic"
-      >
-        <Italic className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        isActive={editor.isActive('underline')}
-        title="Underline"
-      >
-        <UnderlineIcon className="w-4 h-4" />
-      </ToolbarButton>
+      {/* Alignment Group */}
+      <ToolbarGroup>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          isActive={editor.isActive({ textAlign: 'right' })}
+          tooltip="راست‌چین"
+        >
+          <AlignRight className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          isActive={editor.isActive({ textAlign: 'center' })}
+          tooltip="وسط‌چین"
+        >
+          <AlignCenter className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          isActive={editor.isActive({ textAlign: 'left' })}
+          tooltip="چپ‌چین"
+        >
+          <AlignLeft className="w-4 h-4" />
+        </ToolbarButton>
+      </ToolbarGroup>
 
-      <ToolbarDivider />
-
-      {/* Heading */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        isActive={editor.isActive('heading', { level: 2 })}
-        title="Heading"
-      >
-        <Heading2 className="w-4 h-4" />
-      </ToolbarButton>
-
-      {/* Quote */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        isActive={editor.isActive('blockquote')}
-        title="Quote"
-      >
-        <Quote className="w-4 h-4" />
-      </ToolbarButton>
-
-      <ToolbarDivider />
-
-      {/* Lists */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        isActive={editor.isActive('bulletList')}
-        title="Bullet List"
-      >
-        <List className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        isActive={editor.isActive('orderedList')}
-        title="Numbered List"
-      >
-        <ListOrdered className="w-4 h-4" />
-      </ToolbarButton>
-
-      <ToolbarDivider />
-
-      {/* Text alignment - RTL first since Persian */}
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        isActive={editor.isActive({ textAlign: 'right' })}
-        title="Align Right"
-      >
-        <AlignRight className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        isActive={editor.isActive({ textAlign: 'center' })}
-        title="Align Center"
-      >
-        <AlignCenter className="w-4 h-4" />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        isActive={editor.isActive({ textAlign: 'left' })}
-        title="Align Left"
-      >
-        <AlignLeft className="w-4 h-4" />
-      </ToolbarButton>
+      {/* Undo/Redo Group - pushed to the right */}
+      <div className="flex-grow" />
+      <ToolbarGroup className="bg-transparent">
+        <ToolbarButton
+          onClick={() => editor.chain().focus().undo().run()}
+          disabled={!editor.can().undo()}
+          tooltip="برگشت"
+        >
+          <Undo className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().redo().run()}
+          disabled={!editor.can().redo()}
+          tooltip="دوباره"
+        >
+          <Redo className="w-4 h-4" />
+        </ToolbarButton>
+      </ToolbarGroup>
     </div>
   );
 }
