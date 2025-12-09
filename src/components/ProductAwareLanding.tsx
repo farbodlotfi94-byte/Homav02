@@ -133,17 +133,7 @@ export function ProductAwareLanding({
                     className="overflow-hidden"
                   >
                     <div className="border-t border-gray-200 pt-6 space-y-6">
-                      {/* Description */}
-                      {product.description && (
-                        <div>
-                          <h3 className="text-gray-900 font-semibold mb-2">توضیحات</h3>
-                          <div className="text-gray-600 leading-relaxed">
-                            <RichTextDisplay content={product.description} />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Extra Details */}
+                      {/* Extra Details (Specifications from backend) */}
                       {product.extra_details && Object.keys(product.extra_details).length > 0 && (
                         <div>
                           <h3 className="text-gray-900 font-semibold mb-3">مشخصات</h3>
