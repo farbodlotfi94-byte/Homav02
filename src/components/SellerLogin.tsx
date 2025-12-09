@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Lock, User, Instagram, Phone } from 'lucide-react';
+import { Lock, User, Instagram, Phone, Eye, EyeOff } from 'lucide-react';
 import { HomaHeader } from './HomaHeader';
 
 interface SellerLoginProps {
@@ -14,6 +14,7 @@ export function SellerLogin({ onLogin, onRegister }: SellerLoginProps) {
   const [name, setName] = useState('');
   const [instagram, setInstagram] = useState('');
   const [registerPhone, setRegisterPhone] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,41 +300,53 @@ export function SellerLogin({ onLogin, onRegister }: SellerLoginProps) {
                   رمز عبور
                 </label>
                 <div className="relative">
-                  <Lock 
+                  <Lock
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5"
-                    style={{ color: 'rgba(255, 255, 255, 0.3)' }}
+                    style={{ color: 'rgba(0, 0, 0, 0.3)' }}
                   />
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full border transition-all duration-200"
-                    dir="rtl"
+                    dir="ltr"
                     style={{
                       height: '48px',
                       borderRadius: '16px',
-                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      borderColor: 'rgba(0, 0, 0, 0.1)',
                       fontSize: '14px',
                       fontWeight: 'var(--font-weight-normal)',
                       color: '#000000',
-                      backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
                       outline: 'none',
                       paddingRight: '44px',
-                      paddingLeft: '16px',
-                      textAlign: 'right'
+                      paddingLeft: '44px',
+                      textAlign: 'left'
                     }}
                     placeholder="••••••••"
                     required
                     onFocus={(e) => {
                       e.target.style.borderColor = 'var(--old-flax)';
-                      e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 1)';
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                      e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.2)';
+                      e.target.style.borderColor = 'rgba(0, 0, 0, 0.1)';
+                      e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
                     }}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+                    ) : (
+                      <Eye className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+                    )}
+                  </button>
                 </div>
               </div>
 

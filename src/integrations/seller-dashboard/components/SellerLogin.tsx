@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Lock, User, Phone, ArrowRight, AlertCircle, CheckCircle, Loader2, Eye, EyeOff } from 'lucide-react';
 import { HomaHeader } from './HomaHeader';
 import { sellerAuthService } from '../../../services/sellerAuthService';
 
@@ -39,6 +39,13 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [otpCountdown, setOtpCountdown] = useState(0);
+
+  // Password visibility state
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
 
   // OTP Countdown timer
   useEffect(() => {
@@ -445,11 +452,11 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
           />
           <input
             id="loginPassword"
-            type="password"
+            type={showLoginPassword ? 'text' : 'password'}
             value={loginPassword}
             onChange={(e) => setLoginPassword(e.target.value)}
             className="w-full border transition-all duration-200"
-            dir="rtl"
+            dir="ltr"
             style={{
               height: '48px',
               borderRadius: '16px',
@@ -460,8 +467,8 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
               backgroundColor: 'rgba(255, 255, 255, 0.8)',
               outline: 'none',
               paddingRight: '44px',
-              paddingLeft: '16px',
-              textAlign: 'right'
+              paddingLeft: '44px',
+              textAlign: 'left'
             }}
             placeholder="••••••••"
             required
@@ -474,6 +481,18 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
               e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
             }}
           />
+          <button
+            type="button"
+            onClick={() => setShowLoginPassword(!showLoginPassword)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {showLoginPassword ? (
+              <EyeOff className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+            ) : (
+              <Eye className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+            )}
+          </button>
         </div>
       </div>
 
@@ -837,11 +856,11 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
           />
           <input
             id="regPassword"
-            type="password"
+            type={showRegPassword ? 'text' : 'password'}
             value={regPassword}
             onChange={(e) => setRegPassword(e.target.value)}
             className="w-full border transition-all duration-200"
-            dir="rtl"
+            dir="ltr"
             style={{
               height: '48px',
               borderRadius: '16px',
@@ -852,8 +871,8 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
               backgroundColor: 'rgba(255, 255, 255, 0.8)',
               outline: 'none',
               paddingRight: '44px',
-              paddingLeft: '16px',
-              textAlign: 'right'
+              paddingLeft: '44px',
+              textAlign: 'left'
             }}
             placeholder="حداقل ۸ کاراکتر"
             required
@@ -867,6 +886,18 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
               e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
             }}
           />
+          <button
+            type="button"
+            onClick={() => setShowRegPassword(!showRegPassword)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {showRegPassword ? (
+              <EyeOff className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+            ) : (
+              <Eye className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+            )}
+          </button>
         </div>
       </div>
 
@@ -888,11 +919,11 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
           />
           <input
             id="regConfirmPassword"
-            type="password"
+            type={showRegConfirmPassword ? 'text' : 'password'}
             value={regConfirmPassword}
             onChange={(e) => setRegConfirmPassword(e.target.value)}
             className="w-full border transition-all duration-200"
-            dir="rtl"
+            dir="ltr"
             style={{
               height: '48px',
               borderRadius: '16px',
@@ -903,8 +934,8 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
               backgroundColor: 'rgba(255, 255, 255, 0.8)',
               outline: 'none',
               paddingRight: '44px',
-              paddingLeft: '16px',
-              textAlign: 'right'
+              paddingLeft: '44px',
+              textAlign: 'left'
             }}
             placeholder="تکرار رمز عبور"
             required
@@ -918,6 +949,18 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
               e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
             }}
           />
+          <button
+            type="button"
+            onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            {showRegConfirmPassword ? (
+              <EyeOff className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+            ) : (
+              <Eye className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+            )}
+          </button>
         </div>
       </div>
 
@@ -1105,11 +1148,11 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
             />
             <input
               id="resetPassword"
-              type="password"
+              type={showResetPassword ? 'text' : 'password'}
               value={resetPassword}
               onChange={(e) => setResetPassword(e.target.value)}
               className="w-full border transition-all duration-200"
-              dir="rtl"
+              dir="ltr"
               style={{
                 height: '48px',
                 borderRadius: '16px',
@@ -1120,8 +1163,8 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 outline: 'none',
                 paddingRight: '44px',
-                paddingLeft: '16px',
-                textAlign: 'right'
+                paddingLeft: '44px',
+                textAlign: 'left'
               }}
               placeholder="حداقل ۸ کاراکتر"
               required
@@ -1135,6 +1178,18 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
                 e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowResetPassword(!showResetPassword)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              {showResetPassword ? (
+                <EyeOff className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+              ) : (
+                <Eye className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+              )}
+            </button>
           </div>
         </div>
 
@@ -1156,11 +1211,11 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
             />
             <input
               id="resetConfirmPassword"
-              type="password"
+              type={showResetConfirmPassword ? 'text' : 'password'}
               value={resetConfirmPassword}
               onChange={(e) => setResetConfirmPassword(e.target.value)}
               className="w-full border transition-all duration-200"
-              dir="rtl"
+              dir="ltr"
               style={{
                 height: '48px',
                 borderRadius: '16px',
@@ -1171,8 +1226,8 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 outline: 'none',
                 paddingRight: '44px',
-                paddingLeft: '16px',
-                textAlign: 'right'
+                paddingLeft: '44px',
+                textAlign: 'left'
               }}
               placeholder="تکرار رمز عبور"
               required
@@ -1186,6 +1241,18 @@ export function SellerLogin({ onLoginSuccess }: SellerLoginProps) {
                 e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              {showResetConfirmPassword ? (
+                <EyeOff className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+              ) : (
+                <Eye className="w-5 h-5" style={{ color: 'rgba(0, 0, 0, 0.5)' }} />
+              )}
+            </button>
           </div>
         </div>
 

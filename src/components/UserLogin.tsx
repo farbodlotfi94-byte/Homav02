@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogIn, UserPlus, Phone, Lock, User, AlertCircle } from 'lucide-react';
+import { X, LogIn, UserPlus, Phone, Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
 import { validateAndNormalizePhone, validatePassword } from '../utils/phoneValidator';
 import type { AuthData } from '../types/auth';
@@ -34,6 +34,10 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Password visibility state
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   const resetForms = () => {
     setLoginPhone('');
@@ -248,15 +252,31 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
                   <Lock className="w-4 h-4" />
                   رمز عبور
                 </label>
-                <input
-                  type="password"
-                  placeholder="رمز عبور خود را وارد کنید"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  className="w-full px-4 py-3 bg-input-background border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-300"
-                />
+                <div className="relative">
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    placeholder="رمز عبور خود را وارد کنید"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    dir="ltr"
+                    className="w-full px-4 py-3 pl-12 bg-input-background border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    disabled={loading}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors"
+                    style={{ background: 'none', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
+                  >
+                    {showLoginPassword ? (
+                      <EyeOff className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   رمز عبور باید حداقل ۸ کاراکتر، شامل حروف بزرگ و کوچک انگلیسی و عدد باشد
                 </p>
@@ -312,16 +332,32 @@ export function UserLogin({ isOpen, onClose, onSuccess }: UserLoginProps) {
                   <Lock className="w-4 h-4" />
                   رمز عبور
                 </label>
-                <input
-                  type="password"
-                  placeholder="حداقل ۸ کاراکتر، حروف بزرگ و کوچک و عدد"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  required
-                  disabled={loading}
-                  minLength={8}
-                  className="w-full px-4 py-3 bg-input-background border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-300"
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    placeholder="حداقل ۸ کاراکتر، حروف بزرگ و کوچک و عدد"
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                    minLength={8}
+                    dir="ltr"
+                    className="w-full px-4 py-3 pl-12 bg-input-background border border-border rounded-[var(--radius-sm)] focus:outline-none focus:ring-2 focus:ring-ring transition-all duration-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    disabled={loading}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded transition-colors"
+                    style={{ background: 'none', border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}
+                  >
+                    {showRegisterPassword ? (
+                      <EyeOff className="w-5 h-5 text-muted-foreground" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </button>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   رمز عبور باید انگلیسی، حداقل ۸ کاراکتر و شامل حروف بزرگ، کوچک و عدد باشد
                 </p>
