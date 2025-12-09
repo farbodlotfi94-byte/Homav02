@@ -173,11 +173,11 @@ export function SellerDashboardApp() {
           const productId = item.id !== undefined ? item.id.toString() : `temp-${index}`;
           console.log(`[SellerDashboardApp] Product ${index}: id=${productId}, name=${item.name}, image_url=${imageUrl}, unique_link=${item.unique_link}`);
 
-          // Construct tryLink from frontend_link or shopLink + unique_link
-          // Format: https://myhoma.ir/{shop_slug}/{unique_link}
+          // Construct tryLink from shopLink + unique_link (always use new format)
+          // Format: https://myhoma.ir/{shop_slug}/product/{unique_link}
           // shopLink from settings is like: https://myhoma.ir/carpet-market/
           const shopLink = shopLinkRef.current;
-          const tryLink = item.frontend_link || (item.unique_link && shopLink ? `${shopLink}${item.unique_link}` : '');
+          const tryLink = item.unique_link && shopLink ? `${shopLink}product/${item.unique_link}` : '';
 
           return {
             id: productId,
@@ -406,10 +406,11 @@ export function SellerDashboardApp() {
           // Refetch products to ensure list is in sync with backend
           await loadProducts();
 
-          // Construct tryLink for the preview modal
-          const tryLink = result.data.frontend_link ||
-            (result.data.unique_link && shopLinkRef.current ?
-              `${shopLinkRef.current}${result.data.unique_link}` : '');
+          // Construct tryLink for the preview modal (always use new format)
+          // Format: https://myhoma.ir/{shop_slug}/product/{unique_link}
+          const tryLink = result.data.unique_link && shopLinkRef.current
+            ? `${shopLinkRef.current}product/${result.data.unique_link}`
+            : '';
 
           // Show Link Preview Modal
           setLinkPreviewData({

@@ -64,7 +64,7 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
 /**
  * Extract shop_name and unique_link from URL path
  * Returns object with shopName and uniqueLink, or null for root/homepage
- * Supports formats: /shop_name/unique_link or /shop_name
+ * Supports formats: /shop_name/product/unique_link, /shop_name/unique_link (legacy), or /shop_name
  */
 export function parseShopAndProductFromPath(url: string): {
   shopName: string | null;
@@ -96,34 +96,48 @@ export function parseShopAndProductFromPath(url: string): {
     // UUID regex for validation
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    // Case 1: /shop_name/unique_link (2 segments)
-    if (pathParts.length === 2) {
+    // Case 1: /shop_name/product/unique_link (3 segments - new format)
+    if (pathParts.length === 3 && pathParts[1] === 'product') {
       const shopName = pathParts[0];
-      const uniqueLink = pathParts[1];
-      
-      // Validate that second segment is UUID
+      const uniqueLink = pathParts[2];
+
+      // Validate that third segment is UUID
       if (uuidRegex.test(uniqueLink)) {
         return { shopName, uniqueLink };
       }
-      
+
       // Invalid format
       return null;
     }
 
-    // Case 2: /shop_name (1 segment) - shop listing page
+    // Case 2: /shop_name/unique_link (2 segments - legacy format, still supported)
+    if (pathParts.length === 2) {
+      const shopName = pathParts[0];
+      const uniqueLink = pathParts[1];
+
+      // Validate that second segment is UUID
+      if (uuidRegex.test(uniqueLink)) {
+        return { shopName, uniqueLink };
+      }
+
+      // Invalid format
+      return null;
+    }
+
+    // Case 3: /shop_name (1 segment) - shop listing page
     if (pathParts.length === 1) {
       const firstSegment = pathParts[0];
-      
+
       // If it's a UUID, this is old format (should show error)
       if (uuidRegex.test(firstSegment)) {
         return null; // Old format detected
       }
-      
+
       // Otherwise it's a shop name
       return { shopName: firstSegment, uniqueLink: null };
     }
 
-    // More than 2 segments - invalid
+    // More than 3 segments - invalid
     return null;
   } catch (error) {
     console.error('[parseShopAndProductFromPath] Error:', error);

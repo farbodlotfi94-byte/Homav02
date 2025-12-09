@@ -69,9 +69,9 @@ export const mapSpecsToExtraDetails = (specs: ProductSpec[] | undefined): Record
  * @param shopLink - Optional shop base URL (e.g., https://myhoma.ir/carpet-market/)
  */
 export const mapBackendProductToSeller = (product: ProductDetailsResponse, shopLink?: string): SellerProduct => {
-  // Construct tryLink from frontend_link or shopLink + unique_link
-  // Format: https://myhoma.ir/{shop_slug}/{unique_link}
-  const tryLink = product.frontend_link || (product.unique_link && shopLink ? `${shopLink}${product.unique_link}` : '');
+  // Construct tryLink from shopLink + unique_link (always use new format)
+  // Format: https://myhoma.ir/{shop_slug}/product/{unique_link}
+  const tryLink = product.unique_link && shopLink ? `${shopLink}product/${product.unique_link}` : '';
 
   // Handle image_url - filter out null, undefined, and empty strings
   const imageUrl = product.image_url && product.image_url.trim() !== '' ? product.image_url : null;

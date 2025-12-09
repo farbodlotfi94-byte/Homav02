@@ -520,9 +520,9 @@ export default function App() {
         return;
       }
 
-      // Update URL for sharing - use shop_name/unique_link format
+      // Update URL for sharing - use shop_name/product/unique_link format
       const shopSlug = sanitizeShopNameForUrl(productData.seller.name || '');
-      navigate(`/${shopSlug}/${uniqueLink}`, { replace: true });
+      navigate(`/${shopSlug}/product/${uniqueLink}`, { replace: true });
 
       // Product is valid, show landing
       console.log("[App] Selected product loaded successfully:", productData.name);
