@@ -140,30 +140,49 @@ export function UploadGuidanceModal({
       <DialogPortal>
         <DialogOverlay className="backdrop-blur-md bg-black/10" />
         <DialogPrimitive.Content
-          className="fixed top-[50%] left-[50%] z-50 w-[94vw] max-w-[520px] translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-white/40 bg-white/95 backdrop-blur-xl shadow-2xl p-4 overflow-hidden duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          className="fixed top-[50%] left-[50%] z-50 w-[92vw] sm:w-[94vw] max-w-[500px] translate-x-[-50%] translate-y-[-50%] rounded-2xl border border-white/40 bg-white/95 backdrop-blur-xl shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 flex flex-col"
           style={{ maxHeight: '90vh' }}
         >
-        {/* Close button - positioned first for correct stacking */}
-        <DialogPrimitive.Close
-          className="absolute z-50 rounded-full w-10 h-10 flex items-center justify-center bg-white hover:bg-gray-100 text-gray-600 hover:text-gray-800 transition-all focus:outline-none shadow-md border border-gray-200"
-          style={{ top: '12px', left: '12px' }}
-        >
-          <X className="w-5 h-5" strokeWidth={2.5} />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
+          {/* Close button - dark style for better visibility */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onClose}
+            onKeyDown={(e) => e.key === 'Enter' && onClose()}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              left: '12px',
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(31, 41, 55, 0.9)',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              zIndex: 100,
+            }}
+          >
+            <X className="w-5 h-5 text-white" strokeWidth={2.5} />
+          </div>
 
-        <DialogHeader className="pb-2">
-          <DialogTitle className="text-gray-900 text-right text-base pr-8">
-            {step === 1 ? "برای بهترین نتیجه، این نکات را رعایت کنید" : "مثال‌های نادرست"}
-          </DialogTitle>
-        </DialogHeader>
+          {/* Scrollable content area */}
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-0">
+            {/* Title - improved visibility */}
+            <DialogHeader className="pb-4 pt-2 mb-2">
+              <DialogTitle className="text-gray-800 text-center text-base sm:text-lg leading-relaxed font-bold px-4">
+                {step === 1 ? "برای بهترین نتیجه، این نکات را رعایت کنید" : "مثال‌های نادرست"}
+              </DialogTitle>
+            </DialogHeader>
 
-        <div className="space-y-3">
-          {step === 1 ? (
-            /* Step 1: Correct Example */
-            <div>
+            {/* Image Section */}
+            {step === 1 ? (
+              /* Step 1: Correct Example */
               <div className="relative rounded-xl overflow-hidden ring-2 ring-green-200 bg-gray-100">
-                <div className="relative w-full bg-gray-200 overflow-hidden" style={{ height: 'calc(70vh - 140px)', minHeight: '300px', maxHeight: '600px' }}>
+                <div className="relative w-full bg-gray-200 overflow-hidden h-[50vh] sm:h-[55vh] max-h-[400px]">
                   {correctImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
                       <div className="text-center p-4">
@@ -183,7 +202,7 @@ export function UploadGuidanceModal({
                       key={correctImageSrc}
                       src={correctImageSrc}
                       alt="مثال صحیح: عکس مناسب از اتاق نشیمن با نور کافی و نمای واضح"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                       loading="eager"
                       fetchPriority="high"
                       decoding="async"
@@ -198,18 +217,17 @@ export function UploadGuidanceModal({
                     <CheckCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
                   </div>
                 </div>
-                <div className="p-3 bg-white">
-                  <p className="text-sm font-bold text-green-700 text-right leading-relaxed">
+                {/* Caption inside the card */}
+                <div className="p-3 sm:p-4 bg-gradient-to-r from-green-50 to-white border-t-2 border-green-400">
+                  <p className="text-sm sm:text-base font-bold text-green-700 text-center leading-relaxed">
                     ✅ مثال صحیح: عکس مناسب از اتاق با نور کافی و نمای واضح
                   </p>
                 </div>
               </div>
-            </div>
-          ) : (
-            /* Step 2: Incorrect Example */
-            <div>
+            ) : (
+              /* Step 2: Incorrect Example */
               <div className="relative rounded-xl overflow-hidden ring-2 ring-red-200 bg-gray-100">
-                <div className="relative w-full bg-gray-200 overflow-hidden" style={{ height: 'calc(70vh - 140px)', minHeight: '300px', maxHeight: '600px' }}>
+                <div className="relative w-full bg-gray-200 overflow-hidden h-[50vh] sm:h-[55vh] max-h-[400px]">
                   {incorrectImageError ? (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                       <div className="text-center p-4">
@@ -228,7 +246,7 @@ export function UploadGuidanceModal({
                     <img
                       src={imagePaths.incorrect}
                       alt="مثال نادرست: عکس کج و نامناسب"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                       loading="eager"
                       fetchPriority="high"
                       decoding="async"
@@ -243,24 +261,26 @@ export function UploadGuidanceModal({
                     <XCircle className="w-4 h-4 text-white" strokeWidth={2.5} />
                   </div>
                 </div>
-                <div className="p-3 bg-white">
-                  <p className="text-sm font-bold text-red-700 text-right leading-relaxed">
+                {/* Caption inside the card */}
+                <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-white border-t-2 border-red-400">
+                  <p className="text-sm sm:text-base font-bold text-red-700 text-center leading-relaxed">
                     ❌ مثال نادرست: عکس کج و نامناسب
                   </p>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Confirm Button */}
-          <button
-            onClick={step === 1 ? handleStep1Confirm : handleStep2Confirm}
-            className="w-full h-12 rounded-full font-semibold text-base transition-all bg-gray-900 hover:bg-gray-800 text-white cursor-pointer shadow-lg"
-          >
-            متوجه شدم، بزن بریم!
-          </button>
-        </div>
-      </DialogPrimitive.Content>
+          {/* Sticky Button Footer - Always visible */}
+          <div className="flex-shrink-0 p-3 sm:p-4 bg-white/80 backdrop-blur-sm border-t border-gray-100">
+            <button
+              onClick={step === 1 ? handleStep1Confirm : handleStep2Confirm}
+              className="w-full h-12 sm:h-13 py-3 rounded-2xl font-semibold text-sm sm:text-base transition-all bg-gray-900 hover:bg-gray-800 active:scale-[0.98] text-white cursor-pointer shadow-md hover:shadow-lg"
+            >
+              متوجه شدم، بزن بریم!
+            </button>
+          </div>
+        </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>
   );
