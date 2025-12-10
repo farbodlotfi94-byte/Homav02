@@ -5,7 +5,9 @@ import { SellerProductImage } from './SellerProductImage';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ProductSpecsInput } from './ProductSpecsInput';
 import { ProductPreviewModal } from './ProductPreviewModal';
+import { RugSizeSelector } from './RugSizeSelector';
 import { RichTextEditor } from '../../../components/ui/RichTextEditor';
+import { RUG_CATEGORY_ID } from '../../../constants/rugSizes';
 import type { SellerProduct, ProductSpec } from '../types/seller';
 import { toast } from 'sonner';
 
@@ -36,9 +38,10 @@ export function AddEditProductModal({
     price: product?.price?.toString() || '',
     category: product?.category || '2', // Default to 'فرش و قالی'
     specs: product?.specs || [] as ProductSpec[],
+    availableSizes: product?.availableSizes || [] as string[],
   });
   const [imagePreview, setImagePreview] = useState<string | null>(
-    product?.images[0] || null
+    product?.images?.[0] || null
   );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,6 +56,7 @@ export function AddEditProductModal({
         price: product?.price?.toString() || '',
         category: product?.category || '2',
         specs: product?.specs || [],
+        availableSizes: product?.availableSizes || [],
       });
       setImagePreview(product?.images?.[0] || null);
       setSelectedFile(null);
@@ -88,6 +92,12 @@ export function AddEditProductModal({
       return;
     }
 
+    // For rugs, at least one size must be selected
+    if (formData.category === RUG_CATEGORY_ID && formData.availableSizes.length === 0) {
+      toast.error('برای فرش و قالی، انتخاب حداقل یک سایز الزامی است');
+      return;
+    }
+
     // For new products, image file is required
     // For edit, image file is optional (keep existing image if not changed)
     if (!isEdit && !selectedFile) {
@@ -104,6 +114,8 @@ export function AddEditProductModal({
       currency: 'IRR',
       images: imagePreview ? [imagePreview] : [],
       specs: formData.specs.filter(spec => spec.key && spec.value),
+      // Only include availableSizes for rugs
+      availableSizes: formData.category === RUG_CATEGORY_ID ? formData.availableSizes : [],
     };
 
     onSave(productData, selectedFile);
@@ -195,6 +207,19 @@ export function AddEditProductModal({
                 ))}
               </select>
             </div>
+
+            {/* Rug Size Selector - Only shown for Rug/Carpet category */}
+            {formData.category === RUG_CATEGORY_ID && (
+              <div dir="rtl">
+                <label className="block mb-1 text-foreground text-right">
+                  سایزهای موجود * (حداقل یک سایز انتخاب کنید)
+                </label>
+                <RugSizeSelector
+                  selectedSizes={formData.availableSizes}
+                  onChange={(sizes) => setFormData({ ...formData, availableSizes: sizes })}
+                />
+              </div>
+            )}
 
             {/* Description - RTL with Rich Text Editor */}
             <div dir="rtl">

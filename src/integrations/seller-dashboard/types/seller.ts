@@ -62,6 +62,7 @@ export interface SellerProduct {
   description?: string; // توضیحات کوتاه
   fullDescription?: string; // توضیحات کامل
   specs?: ProductSpec[]; // مشخصات محصول به صورت Key-Value (اختیاری)
+  availableSizes?: string[]; // Available rug sizes (only for RUG_AND_CARPET category)
   price: number;
   currency: 'IRR' | 'USD';
   stock?: number; // موجودی

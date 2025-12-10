@@ -171,6 +171,9 @@ export default function App() {
   const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [invalidShopError, setInvalidShopError] = useState(false);
 
+  // Rug size selection state (for rug products)
+  const [selectedRugSize, setSelectedRugSize] = useState<string | null>(null);
+
   // Mobile sidebar state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -300,6 +303,7 @@ export default function App() {
               color: productData.selectedVariant?.color,
               size: productData.selectedVariant?.size,
             });
+            setSelectedRugSize(null); // Reset rug size when product changes
 
             // Check for existing rate limit from localStorage
             const existingRateLimit = getRateLimitState(productData.shop_id);
@@ -408,6 +412,7 @@ export default function App() {
         setApiStartTime(0);
         setApiStatus('idle');
         setProcessedImageId(null);
+        setSelectedRugSize(null); // Reset rug size selection
       }
     };
 
@@ -533,6 +538,7 @@ export default function App() {
         color: productData.selectedVariant?.color,
         size: productData.selectedVariant?.size,
       });
+      setSelectedRugSize(null); // Reset rug size when product changes
       setCurrentStep("product-landing");
     } catch (error) {
       console.error("[App] Error loading selected product:", error);
@@ -672,6 +678,7 @@ export default function App() {
         productId: product.id,
         uniqueLink: productUniqueLink,
         sessionId,
+        selectedSize: selectedRugSize || undefined, // Pass selected rug size if available
       });
       setApiProcessingPromise(apiPromise);
       setApiStartTime(Date.now());
@@ -1175,6 +1182,28 @@ export default function App() {
     setProductVariant((prev) => ({ ...prev, [type]: value }));
   };
 
+  // Handler for changing rug size (from visualization)
+  // Goes back to product landing to select a different size while keeping uploaded file
+  const handleChangeRugSize = () => {
+    trackKPI("Action: Change Rug Size", {
+      productId: product?.id,
+      currentSize: selectedRugSize,
+    });
+
+    // Clear the selected size
+    setSelectedRugSize(null);
+
+    // Clear API processing state but keep the file
+    setApiProcessingPromise(null);
+    setApiStartTime(0);
+    setApiStatus('idle');
+    setVisualizedImageUrl('');
+    setProcessedImageId(null);
+
+    // Go back to product landing where size selector is shown
+    setCurrentStep("product-landing");
+  };
+
   const handlePurchase = () => {
     trackKPI("Action: Purchase", {
       productId: product?.id,
@@ -1561,6 +1590,8 @@ export default function App() {
                     }
                   }}
                   rateLimitExpiry={rateLimitExpiry}
+                  selectedSize={selectedRugSize}
+                  onSizeSelect={setSelectedRugSize}
                 />
               )}
 
@@ -1745,6 +1776,7 @@ export default function App() {
                         onLogout={handleLogout}
                         onAboutClick={handleAboutUsClick}
                         onSellerDashboard={handleSellerDashboard}
+                        onChangeSize={handleChangeRugSize}
                       />
                     )}
 

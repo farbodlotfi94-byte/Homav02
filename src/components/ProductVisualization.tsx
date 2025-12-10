@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { Download, RotateCcw, AlertTriangle, Store, Check, X } from "lucide-react";
+import { Download, RotateCcw, AlertTriangle, Store, Check, X, Ruler } from "lucide-react";
 import { ProductChip } from "./ProductChip";
 import { isMobileDevice } from "../utils/deviceDetection";
 import type { Product } from "../types/product";
 import type { User } from "../types/auth";
+import { RUG_CATEGORY_ID } from "../constants/rugSizes";
 import roomImage from "figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png";
 
 interface ProductVisualizationProps {
@@ -29,6 +30,7 @@ interface ProductVisualizationProps {
   onLogout?: () => void;
   onAboutClick?: () => void;
   onSellerDashboard?: () => void;
+  onChangeSize?: () => void; // Callback to change rug size (for rug products with multiple sizes)
 }
 
 export function ProductVisualization({
@@ -51,7 +53,8 @@ export function ProductVisualization({
   onLogin,
   onLogout,
   onAboutClick,
-  onSellerDashboard
+  onSellerDashboard,
+  onChangeSize
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = isMobileDevice();
@@ -202,6 +205,20 @@ export function ProductVisualization({
                     <RotateCcw className="w-4 h-4" />
                     امتحان عکس دیگر
                   </button>
+
+                  {/* Try different size - Only for rug products with multiple available sizes */}
+                  {product.category === RUG_CATEGORY_ID &&
+                   product.available_sizes &&
+                   product.available_sizes.length > 1 &&
+                   onChangeSize && (
+                    <button
+                      onClick={onChangeSize}
+                      className="w-full flex items-center justify-center gap-2 py-3 text-gray-700 hover:text-gray-900 transition-colors"
+                    >
+                      <Ruler className="w-4 h-4" />
+                      امتحان با سایز دیگر
+                    </button>
+                  )}
 
                   {/* Show shop button only if product has a link */}
                   {product.link && (

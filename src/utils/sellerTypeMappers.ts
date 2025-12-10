@@ -69,6 +69,15 @@ export const mapSpecsToExtraDetails = (specs: ProductSpec[] | undefined): Record
  * @param shopLink - Optional shop base URL (e.g., https://myhoma.ir/carpet-market/)
  */
 export const mapBackendProductToSeller = (product: ProductDetailsResponse, shopLink?: string): SellerProduct => {
+  // Debug log to trace API response structure
+  console.log('[mapBackendProductToSeller] Raw API response:', {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    category: product.category,
+    image_url: product.image_url,
+  });
+
   // Construct tryLink from shopLink + unique_link (always use new format)
   // Format: https://myhoma.ir/{shop_slug}/product/{unique_link}
   const tryLink = product.unique_link && shopLink ? `${shopLink}product/${product.unique_link}` : '';
@@ -78,20 +87,22 @@ export const mapBackendProductToSeller = (product: ProductDetailsResponse, shopL
   const images = imageUrl ? [imageUrl] : [];
 
   return {
-    id: product.id.toString(),
+    id: product.id?.toString() || '',
     sellerId: '', // Not provided by backend
-    name: product.name,
-    description: product.description,
-    category: product.category.toString(), // Use raw integer value as string for form compatibility
-    price: product.price,
+    name: product.name || '', // Ensure string, fallback to empty
+    description: product.description || '', // Ensure string, fallback to empty
+    category: product.category?.toString() || '2', // Use raw integer value as string, default to rug category
+    price: product.price || 0,
     currency: 'IRR',
     images: images,
     tryLink: tryLink, // Shareable customer link
-    uniqueLink: product.unique_link, // UUID for fetching full details
+    uniqueLink: product.unique_link || '', // UUID for fetching full details
     specs: mapExtraDetailsToSpecs(product.extra_details),
-    createdAt: product.created_at,
-    updatedAt: product.updated_at,
-    status: product.is_active ? 'active' : 'inactive',
+    availableSizes: product.available_sizes || [], // Rug sizes (only for RUG_AND_CARPET category)
+    createdAt: product.created_at || '',
+    updatedAt: product.updated_at || '',
+    // Default to 'active' if is_active is undefined (backend might not return it in update response)
+    status: product.is_active === false ? 'inactive' : 'active',
   };
 };
 
@@ -225,6 +236,8 @@ export const createProductFormData = (
     price: number;
     link?: string | null;
     extra_details?: Record<string, string>;
+    available_sizes?: string[];
+    is_active?: boolean;
   },
   productImage?: File | null
 ): FormData => {
@@ -245,6 +258,18 @@ export const createProductFormData = (
 
   if (productData.extra_details && Object.keys(productData.extra_details).length > 0) {
     formData.append('extra_details', JSON.stringify(productData.extra_details));
+  }
+
+  // Add available_sizes for rug products (array sent as JSON)
+  if (productData.available_sizes && productData.available_sizes.length > 0) {
+    formData.append('available_sizes', JSON.stringify(productData.available_sizes));
+  }
+
+  // Preserve is_active status (default to true for new products, preserve existing for updates)
+  if (productData.is_active !== undefined) {
+    formData.append('is_active', productData.is_active.toString());
+  } else {
+    formData.append('is_active', 'true');
   }
 
   return formData;

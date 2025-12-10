@@ -20,6 +20,7 @@ export interface ProcessImageRequest {
   uniqueLink: string; // Backend unique_link for API call
   userId?: string;
   sessionId?: string;
+  selectedSize?: string; // Selected rug size code (only for RUG_AND_CARPET category)
 }
 
 export interface ProcessImageResponse {
@@ -256,6 +257,12 @@ export async function processImageWithAI(
       fileSize: fileInFormData instanceof Blob ? fileInFormData.size : 'unknown',
       fileType: fileInFormData instanceof Blob ? fileInFormData.type : 'unknown'
     });
+
+    // Add selected_size for rug products
+    if (request.selectedSize) {
+      formData.append('selected_size', request.selectedSize);
+      console.log('[AI Processing] Including selected_size:', request.selectedSize);
+    }
 
     const fullUrl = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.PROCESS_IMAGE(request.uniqueLink)}`;
     

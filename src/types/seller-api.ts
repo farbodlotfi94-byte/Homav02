@@ -88,6 +88,8 @@ export interface ProductDetailsResponse {
   unique_link: string; // UUID
   link: string | null; // Purchase URL (product-specific or shop fallback)
   extra_details: Record<string, string>; // Key-value product features
+  available_sizes?: string[]; // Available rug sizes (only for RUG_AND_CARPET category)
+  available_sizes_display?: string[]; // Display labels for available sizes
   total_views: number;
   frontend_link: string; // Shareable customer link (https://domain/shop/uuid)
   created_at: string;

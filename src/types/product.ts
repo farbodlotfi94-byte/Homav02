@@ -33,6 +33,8 @@ export interface Product {
   features?: string[];
   link?: string | null; // Product purchase/redirect URL
   extra_details?: Record<string, string>; // Key-value product features
+  available_sizes?: string[]; // Available rug sizes (only for RUG_AND_CARPET category)
+  available_sizes_display?: string[]; // Display labels for available sizes
   // Backend-specific fields
   shop_id: number | null;
   is_predefined: number; // 0 or 1
@@ -72,6 +74,8 @@ export interface BackendProduct {
   created_at: string;
   link?: string | null; // Product purchase/redirect URL
   extra_details?: Record<string, string>; // Key-value product features
+  available_sizes?: string[]; // Available rug sizes (only for RUG_AND_CARPET category)
+  available_sizes_display?: string[]; // Display labels for available sizes
 }
 
 // Paginated response wrapper

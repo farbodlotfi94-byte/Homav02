@@ -1,4 +1,5 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { Toaster, toast } from 'sonner';
 import './index.css';
 import { SellerLogin } from './components/SellerLogin';
@@ -51,6 +52,8 @@ export function SellerDashboardApp() {
   // Modal state
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<SellerProduct | null>(null);
+  // Separate key for modal to prevent remount on close (only changes when opening with different product)
+  const [modalKey, setModalKey] = useState<string>('new-product');
   const [linkPreviewData, setLinkPreviewData] = useState<{
     isOpen: boolean;
     tryLink: string;
@@ -298,6 +301,8 @@ export function SellerDashboardApp() {
 
   // Product handlers
   const handleAddProduct = () => {
+    // Use unique key for new product modal to ensure fresh state
+    setModalKey(`new-${Date.now()}`);
     setEditingProduct(null);
     setIsAddProductModalOpen(true);
   };
@@ -317,8 +322,26 @@ export function SellerDashboardApp() {
           const fullProduct = mapBackendProductToSeller(result.data, shopLinkRef.current);
           // Preserve the uniqueLink from the list
           fullProduct.uniqueLink = product.uniqueLink;
-          console.log('[SellerDashboardApp] Full product with description:', fullProduct.description);
-          setEditingProduct(fullProduct);
+          // Preserve name from list if detail API doesn't return it
+          if (!fullProduct.name && product.name) {
+            fullProduct.name = product.name;
+          }
+          // Preserve images from list if detail API doesn't return them
+          if ((!fullProduct.images || fullProduct.images.length === 0) && product.images && product.images.length > 0) {
+            fullProduct.images = product.images;
+          }
+          console.log('[SellerDashboardApp] Full product details:', {
+            name: fullProduct.name,
+            description: fullProduct.description,
+            category: fullProduct.category,
+            images: fullProduct.images,
+          });
+          // Set modal key FIRST to trigger remount with correct product
+          // This ensures useState initializes with correct values
+          setModalKey(fullProduct.id);
+          flushSync(() => {
+            setEditingProduct(fullProduct);
+          });
           setIsAddProductModalOpen(true);
         } else {
           toast.error(result.error || 'خطا در بارگذاری اطلاعات محصول');
@@ -332,7 +355,10 @@ export function SellerDashboardApp() {
     } else {
       // Fallback: open modal with partial data (for temp products or when uniqueLink not available)
       console.log('[SellerDashboardApp] No uniqueLink, using partial product data');
-      setEditingProduct(product);
+      setModalKey(product.id);
+      flushSync(() => {
+        setEditingProduct(product);
+      });
       setIsAddProductModalOpen(true);
     }
   };
@@ -357,6 +383,7 @@ export function SellerDashboardApp() {
             acc[spec.key] = spec.value;
             return acc;
           }, {} as Record<string, string>),
+          available_sizes: productData.availableSizes || [],
         },
         productImage
       );
@@ -728,12 +755,16 @@ export function SellerDashboardApp() {
       </div>
 
       {/* Add/Edit Product Modal */}
+      {/* Key prop forces remount when switching between add/edit modes or different products */}
+      {/* modalKey only changes when OPENING, not when closing - prevents remount during close */}
       <Suspense fallback={<div>Loading modal...</div>}>
         <AddEditProductModal
+          key={modalKey}
           isOpen={isAddProductModalOpen}
           onClose={() => {
             setIsAddProductModalOpen(false);
             setEditingProduct(null);
+            // Note: Don't change modalKey here - it stays the same until next open
           }}
           onSave={handleSaveProduct}
           product={editingProduct}

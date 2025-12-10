@@ -5,12 +5,15 @@ import { useState } from "react";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { useCountdown } from "../hooks/useCountdown";
 import { RichTextDisplay } from "./ui/RichTextDisplay";
+import { RUG_CATEGORY_ID } from "../constants/rugSizes";
 
 interface ProductAwareLandingProps {
   product: Product;
   onUploadStart: () => void;
   onBack?: () => void;
   rateLimitExpiry?: number | null;
+  selectedSize?: string | null;
+  onSizeSelect?: (size: string) => void;
 }
 
 export function ProductAwareLanding({
@@ -18,6 +21,8 @@ export function ProductAwareLanding({
   onUploadStart,
   onBack,
   rateLimitExpiry,
+  selectedSize,
+  onSizeSelect,
 }: ProductAwareLandingProps) {
   const shouldAnimate = useAnimationPreference();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -25,6 +30,11 @@ export function ProductAwareLanding({
   // Rate limit countdown
   const countdown = useCountdown(rateLimitExpiry || null);
   const isRateLimited = rateLimitExpiry && !countdown.isExpired;
+
+  // Check if this is a rug product with available sizes
+  const isRugProduct = product.category === RUG_CATEGORY_ID;
+  const hasAvailableSizes = isRugProduct && product.available_sizes && product.available_sizes.length > 0;
+  const needsSizeSelection = hasAvailableSizes && !selectedSize;
 
   const displayPrice = product.price && product.price > 0
     ? `${product.price.toLocaleString('fa-IR')} ${product.currency || 'تومان'}`
@@ -102,6 +112,39 @@ export function ProductAwareLanding({
               {product.description && (
                 <div className="text-gray-600 text-base lg:text-lg leading-relaxed mb-6 lg:mb-8 line-clamp-3">
                   <RichTextDisplay content={product.description} />
+                </div>
+              )}
+
+              {/* Rug Size Selector - Only for rug products with available sizes */}
+              {hasAvailableSizes && (
+                <div className="mb-6 lg:mb-8">
+                  <h3 className="text-gray-900 font-semibold mb-3">
+                    انتخاب سایز *
+                  </h3>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {product.available_sizes!.map((sizeCode, index) => {
+                      const displayLabel = product.available_sizes_display?.[index] || sizeCode;
+                      const isSelected = selectedSize === sizeCode;
+                      return (
+                        <button
+                          key={sizeCode}
+                          onClick={() => onSizeSelect?.(sizeCode)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-gray-900 text-white shadow-md'
+                              : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                          }`}
+                        >
+                          {displayLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {needsSizeSelection && (
+                    <p className="text-amber-600 text-sm mt-2 text-right">
+                      لطفاً یک سایز انتخاب کنید
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -224,13 +267,18 @@ export function ProductAwareLanding({
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 z-50">
         <button
           onClick={onUploadStart}
-          disabled={!!isRateLimited}
+          disabled={!!isRateLimited || needsSizeSelection}
           className="w-full h-14 bg-gray-900 hover:bg-gray-800 active:bg-black text-white rounded-2xl transition-all duration-200 flex items-center justify-center gap-3 text-base font-bold shadow-xl shadow-gray-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isRateLimited ? (
             <>
               <Clock className="w-5 h-5" />
               تلاش مجدد در {countdown.formattedTime}
+            </>
+          ) : needsSizeSelection ? (
+            <>
+              <Upload className="w-5 h-5" />
+              ابتدا سایز فرش را انتخاب کنید
             </>
           ) : (
             <>

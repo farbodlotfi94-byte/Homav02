@@ -46,13 +46,15 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
       name: backendProduct.shop_name || "فروشگاه",
       verified: false
     },
-    category: backendProduct.category,
+    category: String(backendProduct.category), // Ensure category is always a string for comparison
     category_display: backendProduct.category_display,
     status: "active",
     images: thumbnailUrl ? [thumbnailUrl] : [],
     description: backendProduct.description,
     link: backendProduct.link,
     extra_details: backendProduct.extra_details,
+    available_sizes: backendProduct.available_sizes || [],
+    available_sizes_display: backendProduct.available_sizes_display || [],
     // Backend-specific fields
     shop_id: backendProduct.shop_id,
     is_predefined: backendProduct.is_predefined,
