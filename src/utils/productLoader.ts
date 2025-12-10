@@ -332,14 +332,20 @@ export async function fetchProductsByShopName(shopName: string): Promise<Product
       
       // Normalize shop name for comparison (case-insensitive)
       const normalizedShopName = shopName.toLowerCase().trim();
-      
-      // Filter by shop_name - match either raw shop name or sanitized version
+
+      // Filter by shop_username or shop_name - match against username (preferred) or sanitized shop name
       const filteredProducts = productsArray
         .filter(product => {
+          // First check shop_username (most reliable for URL routing)
+          const productShopUsername = (product.shop_username || '').toLowerCase().trim();
+          if (productShopUsername && normalizedShopName === productShopUsername) {
+            return true;
+          }
+
+          // Fallback: check shop_name and sanitized versions
           const productShopName = (product.shop_name || '').toLowerCase().trim();
           const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
-          
-          // Match if URL shop name matches either raw or sanitized product shop name
+
           return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
         })
         .map(transformBackendProduct);

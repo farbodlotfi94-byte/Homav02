@@ -82,6 +82,13 @@ export function ProductSelection({
 
     const normalizedShopName = shopName.toLowerCase().trim();
     return items.filter(product => {
+      // First check shop_username (most reliable for URL routing)
+      const productShopUsername = (product.shop_username || '').toLowerCase().trim();
+      if (productShopUsername && normalizedShopName === productShopUsername) {
+        return true;
+      }
+
+      // Fallback: check shop_name and sanitized versions
       const productShopName = (product.shop_name || '').toLowerCase().trim();
       const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
       return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
@@ -303,12 +310,10 @@ export function ProductSelection({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-600" />
-            <p className="text-gray-600">در حال بارگذاری محصولات...</p>
-          </div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-600" />
+          <p className="text-gray-600">در حال بارگذاری محصولات...</p>
         </div>
       </div>
     );

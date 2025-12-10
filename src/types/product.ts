@@ -62,6 +62,7 @@ export interface BackendProduct {
   id: number;
   shop_id: number | null;
   shop_name?: string; // Shop/seller name (if included in response)
+  shop_username?: string; // Shop username for URL routing
   name: string;
   description: string;
   category: string; // Category enum/DB value

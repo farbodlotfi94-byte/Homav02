@@ -6,6 +6,9 @@
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://104.234.46.187:8888',
   ENDPOINTS: {
+    // Shop endpoints
+    SHOPS: '/api/shops/list/',
+    // Product endpoints
     PRODUCTS: '/api/products/',
     PRODUCT_DETAILS: (uniqueLink: string) => `/api/products/${uniqueLink}/`,
     PROCESS_IMAGE: (uniqueLink: string) => `/api/products/${uniqueLink}/process/`,

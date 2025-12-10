@@ -993,41 +993,99 @@ Authorization: Bearer <access_token>
 
 ### GET /api/shops/list/
 
-**Description:** Retrieve a list of all shops with their basic information.
+**Description:** Retrieve a paginated list of active shops with search functionality. This endpoint is used for the shop selection page (root view).
 
 **Authentication:** Not required (public endpoint)
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number (1-indexed) |
+| `page_size` | integer | 20 | Number of items per page (max: 100) |
+| `search` | string | - | Search term for shop_name or username (case-insensitive) |
 
 **Response (200 OK):**
 ```json
 {
   "success": true,
   "message": "Success",
-  "data": [
-    {
-      "id": 1,
-      "username": "shop1",
-      "shop_name": "Furniture Store",
-      "role": "shop",
-      "link": "https://shop.example.com",
-      "created_at": "2024-01-15T10:30:00Z"
-    },
-    {
-      "id": 2,
-      "username": "admin_shop",
-      "shop_name": "Admin Furniture Store",
-      "role": "admin",
-      "link": null,
-      "created_at": "2024-01-14T09:15:00Z"
-    }
-  ]
+  "data": {
+    "count": 45,
+    "next": "http://localhost:8000/api/shops/list/?page=2",
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "shop_name": "فروشگاه مبلمان مدرن",
+        "username": "modern_furniture",
+        "logo_url": null,
+        "product_count": 25,
+        "created_at": "2024-01-15T10:30:00Z"
+      },
+      {
+        "id": 2,
+        "shop_name": "فروشگاه دکوراسیون",
+        "username": "decor_shop",
+        "logo_url": null,
+        "product_count": 12,
+        "created_at": "2024-01-14T09:15:00Z"
+      }
+    ]
+  }
 }
 ```
 
+**Response Fields:**
+- `count`: Total number of shops matching the query
+- `next`: URL to next page (null if no more pages)
+- `previous`: URL to previous page (null if on first page)
+- `results`: Array of shop objects:
+  - `id`: Shop ID
+  - `shop_name`: Display name of the shop (Persian)
+  - `username`: URL-friendly username/slug
+  - `logo_url`: URL to shop logo (null if not set, reserved for future use)
+  - `product_count`: Number of active (non-deleted) products in the shop
+  - `created_at`: ISO timestamp when shop was created
+
+**Frontend Usage:**
+
+```typescript
+// Type definitions (src/types/shop.ts)
+interface Shop {
+  id: number;
+  shop_name: string;
+  username: string;
+  logo_url: string | null;
+  product_count: number;
+  created_at: string;
+}
+
+interface ShopListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Shop[];
+}
+
+// Fetching shops
+const params = new URLSearchParams({
+  page: '1',
+  page_size: '20',
+  search: 'مبلمان'
+});
+const response = await apiGet<{ data: ShopListResponse }>(
+  `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SHOPS}?${params}`
+);
+```
+
 **Notes:**
-- Returns all shops ordered by creation date (newest first)
-- Includes basic shop information: ID, username, shop name, role, link, and creation timestamp
-- Shop link may be `null` if not set
-- Role can be "shop" (regular shop) or "admin" (admin shop)
+- Returns only active shops (is_active=true, deleted_at=null)
+- Ordered by creation date (newest first)
+- Search is case-insensitive and matches both shop_name and username
+- Product count only includes non-deleted products
+- Logo URL is currently null (reserved for future shop logo support)
+- Shops with 0 products should show a toast on click: "این فروشگاه هنوز محصولی ثبت نکرده است"
 
 ---
 

@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Routes, Route, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ProductAwareLanding } from "./components/ProductAwareLanding";
 import { ProductSelection } from "./components/ProductSelection";
+import { ShopSelection } from "./components/ShopSelection";
 import { PhotoUpload } from "./components/PhotoUpload";
 import { FilePrecheck } from "./components/FilePrecheck";
 import { StagedUpload } from "./components/StagedUpload";
@@ -83,7 +84,8 @@ import "./utils/testHelpers"; // Load test helpers for console
 
 type Step =
   | "loading" // Initial product fetch
-  | "product-selection" // Product selection from list
+  | "shop-selection" // Shop selection from list (root view)
+  | "product-selection" // Product selection from list (within a shop)
   | "product-landing" // Product-aware landing with CTA
   | "product-fallback" // Invalid/unavailable product
   | "user-auth" // User authentication (login/register) - NEW
@@ -346,10 +348,10 @@ export default function App() {
           setCurrentStep("product-selection");
         }
       } else {
-        // Case 3: Root path / - Show all products
-        console.log("[App] Root path, showing all products");
+        // Case 3: Root path / - Show shop selection
+        console.log("[App] Root path, showing shop selection");
         setShopFilter(null);
-        setCurrentStep("product-selection");
+        setCurrentStep("shop-selection");
       }
     };
 
@@ -400,9 +402,9 @@ export default function App() {
           });
         }
       } else {
-        // No URL parameters - show product selection
-        console.log("[App] Navigated back to product selection");
-        setCurrentStep("product-selection");
+        // No URL parameters - show shop selection (root view)
+        console.log("[App] Navigated back to shop selection");
+        setCurrentStep("shop-selection");
         // Clear product state when going back to selection
         setProduct(null);
         setProductUniqueLink("");
@@ -413,6 +415,7 @@ export default function App() {
         setApiStatus('idle');
         setProcessedImageId(null);
         setSelectedRugSize(null); // Reset rug size selection
+        setShopFilter(null);
       }
     };
 
@@ -455,6 +458,14 @@ export default function App() {
 
     // Track in PostHog (remote)
     posthogService.track(event, eventData);
+  };
+
+  // Shop Selection Handler
+  const handleShopSelect = (shopUsername: string) => {
+    trackKPI("Shop Selected", { shopUsername });
+    console.log("[App] Shop selected:", shopUsername);
+    const shopSlug = sanitizeShopNameForUrl(shopUsername);
+    navigate(`/${shopSlug}`);
   };
 
   // Product Selection Handler
@@ -1560,6 +1571,14 @@ export default function App() {
                 </motion.div>
               )}
 
+              {/* Shop Selection (Root View) */}
+              {currentStep === "shop-selection" && (
+                <ShopSelection
+                  key="shop-selection"
+                  onShopSelect={handleShopSelect}
+                />
+              )}
+
               {/* Product Selection */}
               {currentStep === "product-selection" && (
                 <ProductSelection
@@ -1586,7 +1605,8 @@ export default function App() {
                       const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
                       navigate(`/${shopSlug}`);
                     } else {
-                      setCurrentStep("product-selection");
+                      // No shop filter - go back to shop selection
+                      navigate('/');
                     }
                   }}
                   rateLimitExpiry={rateLimitExpiry}
