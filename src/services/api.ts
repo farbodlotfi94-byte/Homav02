@@ -296,9 +296,24 @@ async function apiRequest<T = any>(
 
 /**
  * GET request helper
+ * @param endpoint - API endpoint path
+ * @param params - Optional query parameters to append to the URL
  */
-export async function apiGet<T = any>(endpoint: string): Promise<ApiResponse<T>> {
-  const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+export async function apiGet<T = any>(
+  endpoint: string,
+  params?: Record<string, string | number | boolean>
+): Promise<ApiResponse<T>> {
+  let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+
+  // Append query parameters if provided
+  if (params && Object.keys(params).length > 0) {
+    const searchParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      searchParams.append(key, String(value));
+    }
+    url += `?${searchParams.toString()}`;
+  }
+
   return apiRequest<T>(url, { method: 'GET' });
 }
 
