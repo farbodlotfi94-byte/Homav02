@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
 import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
@@ -35,45 +35,14 @@ export function ProductSelection({
   const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
-  const [windowStartOffset, setWindowStartOffset] = useState<number>(0);
-
-  // Use refs to track loading state for scroll handler (avoids stale closures)
-  const isLoadingMoreRef = useRef(false);
-  const isLoadingPrevRef = useRef(false);
-  const hasMoreRef = useRef(true);
-  const windowStartOffsetRef = useRef(0);
-  const productsLengthRef = useRef(0);
-  const totalCountRef = useRef(0);
-
-  // Scroll handler throttle
-  const lastScrollTimeRef = useRef(0);
-  const scrollThrottleMs = 200;
+  const [currentOffset, setCurrentOffset] = useState<number>(0);
 
   const PAGE_SIZE = 20;
-  const MAX_CACHE = 50;
-  const BOTTOM_THRESHOLD_PX = 300;
-  const TOP_THRESHOLD_PX = 200;
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    hasMoreRef.current = hasMore;
-  }, [hasMore]);
-
-  useEffect(() => {
-    windowStartOffsetRef.current = windowStartOffset;
-  }, [windowStartOffset]);
-
-  useEffect(() => {
-    productsLengthRef.current = products.length;
-  }, [products.length]);
-
-  useEffect(() => {
-    totalCountRef.current = totalCount;
-  }, [totalCount]);
 
   const filterByShop = useCallback((items: BackendProduct[]) => {
     if (!shopName) {
@@ -95,22 +64,17 @@ export function ProductSelection({
     });
   }, [shopName]);
 
-  const loadNextPage = useCallback(async () => {
-    // Use refs to avoid stale closures
-    if (isLoadingMoreRef.current || !hasMoreRef.current) {
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) {
       return;
     }
 
-    isLoadingMoreRef.current = true;
+    setLoadingMore(true);
 
     try {
-      const nextOffset = windowStartOffsetRef.current + productsLengthRef.current;
-      if (totalCountRef.current && nextOffset >= totalCountRef.current) {
-        setHasMore(false);
-        return;
-      }
+      const nextOffset = currentOffset + PAGE_SIZE;
 
-      console.log('[ProductSelection] Loading next page at offset:', nextOffset);
+      console.log('[ProductSelection] Loading more at offset:', nextOffset);
 
       const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
         limit: PAGE_SIZE,
@@ -121,101 +85,16 @@ export function ProductSelection({
         const paginatedData = response.data as PaginatedResponse<BackendProduct>;
         const nextResults = filterByShop(paginatedData?.results || []);
 
-        setProducts(prev => {
-          let newProducts = [...prev, ...nextResults];
-          let newWindowStart = windowStartOffsetRef.current;
-
-          if (newProducts.length > MAX_CACHE) {
-            const toDrop = newProducts.length - MAX_CACHE;
-            newProducts = newProducts.slice(toDrop);
-            newWindowStart = windowStartOffsetRef.current + toDrop;
-            setWindowStartOffset(newWindowStart);
-          }
-
-          const loadedSoFar = newWindowStart + newProducts.length;
-          const newHasMore = loadedSoFar < (paginatedData?.count || totalCountRef.current || loadedSoFar);
-          setHasMore(newHasMore);
-
-          if (!totalCountRef.current) {
-            setTotalCount(paginatedData?.count || loadedSoFar);
-          }
-
-          return newProducts;
-        });
+        setProducts(prev => [...prev, ...nextResults]);
+        setCurrentOffset(nextOffset);
+        setHasMore(!!paginatedData?.next);
       }
     } catch (err) {
-      console.error('[ProductSelection] Error loading next page:', err);
+      console.error('[ProductSelection] Error loading more:', err);
     } finally {
-      isLoadingMoreRef.current = false;
+      setLoadingMore(false);
     }
-  }, [filterByShop]);
-
-  const loadPrevPage = useCallback(async () => {
-    // Use refs to avoid stale closures
-    if (isLoadingPrevRef.current) {
-      return;
-    }
-    if (windowStartOffsetRef.current <= 0) {
-      return;
-    }
-
-    isLoadingPrevRef.current = true;
-
-    try {
-      const prevOffset = Math.max(0, windowStartOffsetRef.current - PAGE_SIZE);
-
-      console.log('[ProductSelection] Loading previous page at offset:', prevOffset);
-
-      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
-        limit: PAGE_SIZE,
-        offset: prevOffset
-      });
-
-      if (response.success && response.data) {
-        const paginatedData = response.data as PaginatedResponse<BackendProduct>;
-        const prevResults = filterByShop(paginatedData?.results || []);
-
-        setProducts(prev => {
-          let newProducts = [...prevResults, ...prev];
-
-          if (newProducts.length > MAX_CACHE) {
-            newProducts = newProducts.slice(0, MAX_CACHE);
-          }
-
-          return newProducts;
-        });
-
-        setWindowStartOffset(prevOffset);
-      }
-    } catch (err) {
-      console.error('[ProductSelection] Error loading previous page:', err);
-    } finally {
-      isLoadingPrevRef.current = false;
-    }
-  }, [filterByShop]);
-
-  // Throttled scroll handler using refs (stable reference)
-  const handleScroll = useCallback(() => {
-    const now = Date.now();
-    if (now - lastScrollTimeRef.current < scrollThrottleMs) {
-      return;
-    }
-    lastScrollTimeRef.current = now;
-
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    const fullHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
-
-    // Near bottom -> load next
-    if (fullHeight - (scrollTop + viewportHeight) < BOTTOM_THRESHOLD_PX) {
-      void loadNextPage();
-    }
-
-    // Near top -> try load previous (if we dropped items)
-    if (scrollTop < TOP_THRESHOLD_PX && windowStartOffsetRef.current > 0) {
-      void loadPrevPage();
-    }
-  }, [loadNextPage, loadPrevPage]);
+  }, [filterByShop, loadingMore, hasMore, currentOffset]);
 
   const loadInitialProducts = useCallback(async (options?: { allowGuestRetry?: boolean }) => {
     const allowGuestRetry = options?.allowGuestRetry ?? true;
@@ -261,8 +140,8 @@ export function ProductSelection({
 
         setProducts(productsArray);
         setTotalCount(shopName ? productsArray.length : (paginatedData?.count || productsArray.length));
-        setHasMore((productsArray.length || 0) < (paginatedData?.count || 0));
-        setWindowStartOffset(0);
+        setHasMore(!!paginatedData?.next);
+        setCurrentOffset(0);
       } else {
         console.error('[ProductSelection] API error:', response.error);
         setError(response.error || 'خطا در بارگذاری محصولات');
@@ -279,22 +158,6 @@ export function ProductSelection({
   useEffect(() => {
     void loadInitialProducts();
   }, [loadInitialProducts]);
-
-  // Single scroll listener effect with proper cleanup
-  useEffect(() => {
-    // Only attach scroll listener after initial load completes
-    if (loading) {
-      return;
-    }
-
-    console.log('[ProductSelection] Attaching scroll listener');
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      console.log('[ProductSelection] Removing scroll listener');
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll, loading]);
 
   const handleProductSelect = (product: BackendProduct) => {
     console.log('[ProductSelection] Product selected:', product);
@@ -431,10 +294,33 @@ export function ProductSelection({
             </AnimatePresence>
           </motion.div>
 
-          {/* Loading indicator for infinite scroll */}
-          {hasMore && products.length > 0 && (
-            <div className="flex justify-center py-4">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          {/* Load More button - only show when not filtering by shop (backend pagination doesn't support shop filter) */}
+          {hasMore && products.length > 0 && !shopName && (
+            <div className="flex justify-center mt-12 pt-4">
+              <Button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                variant="outline"
+                size="lg"
+                className="
+                  min-w-[200px]
+                  rounded-xl
+                  border-gray-300
+                  hover:border-gray-400
+                  hover:bg-gray-50
+                  transition-all
+                  duration-300
+                "
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                    در حال بارگذاری...
+                  </>
+                ) : (
+                  "بارگذاری بیشتر"
+                )}
+              </Button>
             </div>
           )}
 
