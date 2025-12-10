@@ -39,7 +39,7 @@ export function ProductSelection({
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
-  const [currentOffset, setCurrentOffset] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   const PAGE_SIZE = 20;
 
@@ -51,14 +51,14 @@ export function ProductSelection({
     setLoadingMore(true);
 
     try {
-      const nextOffset = currentOffset + PAGE_SIZE;
+      const nextPage = currentPage + 1;
 
-      console.log('[ProductSelection] Loading more at offset:', nextOffset);
+      console.log('[ProductSelection] Loading more at page:', nextPage);
 
       // Build query params - include shop filter if viewing a specific shop
       const params: Record<string, number | string> = {
-        limit: PAGE_SIZE,
-        offset: nextOffset
+        page: nextPage,
+        page_size: PAGE_SIZE
       };
       if (shopName) {
         params.shop = shopName;
@@ -71,7 +71,7 @@ export function ProductSelection({
         const nextResults = paginatedData?.results || [];
 
         setProducts(prev => [...prev, ...nextResults]);
-        setCurrentOffset(nextOffset);
+        setCurrentPage(nextPage);
         setHasMore(!!paginatedData?.next);
       }
     } catch (err) {
@@ -79,7 +79,7 @@ export function ProductSelection({
     } finally {
       setLoadingMore(false);
     }
-  }, [shopName, loadingMore, hasMore, currentOffset]);
+  }, [shopName, loadingMore, hasMore, currentPage]);
 
   const loadInitialProducts = useCallback(async (options?: { allowGuestRetry?: boolean }) => {
     const allowGuestRetry = options?.allowGuestRetry ?? true;
@@ -91,8 +91,8 @@ export function ProductSelection({
 
       // Build query params - include shop filter if viewing a specific shop
       const params: Record<string, number | string> = {
-        limit: PAGE_SIZE,
-        offset: 0
+        page: 1,
+        page_size: PAGE_SIZE
       };
       if (shopName) {
         params.shop = shopName;
@@ -130,7 +130,7 @@ export function ProductSelection({
         setProducts(productsArray);
         setTotalCount(paginatedData?.count || productsArray.length);
         setHasMore(!!paginatedData?.next);
-        setCurrentOffset(0);
+        setCurrentPage(1);
       } else {
         console.error('[ProductSelection] API error:', response.error);
         setError(response.error || 'خطا در بارگذاری محصولات');
