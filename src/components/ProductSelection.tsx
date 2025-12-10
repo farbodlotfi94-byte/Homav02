@@ -7,7 +7,6 @@ import { API_CONFIG } from "../config/api";
 import type { BackendProduct, PaginatedResponse } from "../types/product";
 import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
-import { sanitizeShopNameForUrl } from "../utils/productLoader";
 
 interface ProductSelectionProps {
   onProductSelect: (productId: string, uniqueLink: string, productData?: BackendProduct) => void;
@@ -44,26 +43,6 @@ export function ProductSelection({
 
   const PAGE_SIZE = 20;
 
-  const filterByShop = useCallback((items: BackendProduct[]) => {
-    if (!shopName) {
-      return items;
-    }
-
-    const normalizedShopName = shopName.toLowerCase().trim();
-    return items.filter(product => {
-      // First check shop_username (most reliable for URL routing)
-      const productShopUsername = (product.shop_username || '').toLowerCase().trim();
-      if (productShopUsername && normalizedShopName === productShopUsername) {
-        return true;
-      }
-
-      // Fallback: check shop_name and sanitized versions
-      const productShopName = (product.shop_name || '').toLowerCase().trim();
-      const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
-      return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
-    });
-  }, [shopName]);
-
   const handleLoadMore = useCallback(async () => {
     if (loadingMore || !hasMore) {
       return;
@@ -76,14 +55,20 @@ export function ProductSelection({
 
       console.log('[ProductSelection] Loading more at offset:', nextOffset);
 
-      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+      // Build query params - include shop filter if viewing a specific shop
+      const params: Record<string, number | string> = {
         limit: PAGE_SIZE,
         offset: nextOffset
-      });
+      };
+      if (shopName) {
+        params.shop = shopName;
+      }
+
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, params);
 
       if (response.success && response.data) {
         const paginatedData = response.data as PaginatedResponse<BackendProduct>;
-        const nextResults = filterByShop(paginatedData?.results || []);
+        const nextResults = paginatedData?.results || [];
 
         setProducts(prev => [...prev, ...nextResults]);
         setCurrentOffset(nextOffset);
@@ -94,7 +79,7 @@ export function ProductSelection({
     } finally {
       setLoadingMore(false);
     }
-  }, [filterByShop, loadingMore, hasMore, currentOffset]);
+  }, [shopName, loadingMore, hasMore, currentOffset]);
 
   const loadInitialProducts = useCallback(async (options?: { allowGuestRetry?: boolean }) => {
     const allowGuestRetry = options?.allowGuestRetry ?? true;
@@ -104,10 +89,16 @@ export function ProductSelection({
 
       console.log('[ProductSelection] Loading initial products from:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.PRODUCTS);
 
-      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, {
+      // Build query params - include shop filter if viewing a specific shop
+      const params: Record<string, number | string> = {
         limit: PAGE_SIZE,
         offset: 0
-      });
+      };
+      if (shopName) {
+        params.shop = shopName;
+      }
+
+      const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, params);
 
       if (response.requiresLogin) {
         console.warn('[ProductSelection] Auth expired on public feed, retrying as guest:', {
@@ -126,20 +117,18 @@ export function ProductSelection({
 
       if (response.success && response.data) {
         const paginatedData = response.data as PaginatedResponse<BackendProduct>;
-        let productsArray = paginatedData?.results || [];
-        productsArray = filterByShop(productsArray);
+        const productsArray = paginatedData?.results || [];
 
         console.log('[ProductSelection] Products loaded:', {
           shopName: shopName || 'all',
           total: paginatedData?.count || 0,
           loaded: productsArray.length,
-          filtered: shopName ? productsArray.length : paginatedData?.results?.length || 0,
           hasNext: !!paginatedData?.next,
           hasPrevious: !!paginatedData?.previous
         });
 
         setProducts(productsArray);
-        setTotalCount(shopName ? productsArray.length : (paginatedData?.count || productsArray.length));
+        setTotalCount(paginatedData?.count || productsArray.length);
         setHasMore(!!paginatedData?.next);
         setCurrentOffset(0);
       } else {
@@ -152,7 +141,7 @@ export function ProductSelection({
     } finally {
       setLoading(false);
     }
-  }, [filterByShop, shopName]);
+  }, [shopName]);
 
   // Initial load and reload when shopName changes
   useEffect(() => {
@@ -294,8 +283,8 @@ export function ProductSelection({
             </AnimatePresence>
           </motion.div>
 
-          {/* Load More button - only show when not filtering by shop (backend pagination doesn't support shop filter) */}
-          {hasMore && products.length > 0 && !shopName && (
+          {/* Load More button */}
+          {hasMore && products.length > 0 && (
             <div className="flex justify-center mt-12 pt-4">
               <Button
                 onClick={handleLoadMore}
