@@ -170,7 +170,8 @@ export default function App() {
   const [rateLimitMessage, setRateLimitMessage] = useState<string>('');
 
   // Shop filter state
-  const [shopFilter, setShopFilter] = useState<string | null>(null);
+  const [shopFilter, setShopFilter] = useState<string | null>(null); // Sanitized for URL display
+  const [shopUsername, setShopUsername] = useState<string | null>(null); // Original username for API calls
   const [invalidShopError, setInvalidShopError] = useState(false);
 
   // Rug size selection state (for rug products)
@@ -300,6 +301,8 @@ export default function App() {
             setProduct(productData);
             setProductUniqueLink(productData.unique_link);
             setShopFilter(sanitizeShopNameForUrl(productData.seller.name || ''));
+            // Store original username for API calls (fallback to URL shopName if not available)
+            setShopUsername(productData.seller.username || shopName);
             setProductVariant({
               color: productData.selectedVariant?.color,
               size: productData.selectedVariant?.size,
@@ -344,12 +347,16 @@ export default function App() {
 
           // Shop exists, show product selection with filter
           setShopFilter(shopName);
+          // Get original username from first product, fallback to URL shopName
+          const originalUsername = shopProducts[0]?.seller?.username || shopName;
+          setShopUsername(originalUsername);
           setCurrentStep("product-selection");
         }
       } else {
         // Case 3: Root path / - Show shop selection
         console.log("[App] Root path, showing shop selection");
         setShopFilter(null);
+        setShopUsername(null);
         setCurrentStep("shop-selection");
       }
     };
@@ -401,6 +408,8 @@ export default function App() {
                 if (shopName) {
                   setShopFilter(shopName);
                 }
+                // Store original username for API calls
+                setShopUsername(productData.seller.username || shopName);
                 setCurrentStep("product-landing");
               }
             }
@@ -410,6 +419,8 @@ export default function App() {
         // Case 2: /shop_name - show product selection with shop filter
         console.log("[App] Navigated to shop listing:", shopName);
         setShopFilter(shopName);
+        // Keep existing shopUsername if set (from previous navigation), otherwise use URL shopName
+        setShopUsername(prev => prev || shopName);
         setCurrentStep("product-selection");
         // Reset processing state but keep shop context
         setSelectedFile(null);
@@ -434,6 +445,7 @@ export default function App() {
         setProcessedImageId(null);
         setSelectedRugSize(null);
         setShopFilter(null);
+        setShopUsername(null);
       }
     };
 
@@ -479,10 +491,14 @@ export default function App() {
   };
 
   // Shop Selection Handler
-  const handleShopSelect = (shopUsername: string) => {
-    trackKPI("Shop Selected", { shopUsername });
-    console.log("[App] Shop selected:", shopUsername);
-    const shopSlug = sanitizeShopNameForUrl(shopUsername);
+  const handleShopSelect = (originalUsername: string) => {
+    trackKPI("Shop Selected", { shopUsername: originalUsername });
+    console.log("[App] Shop selected:", originalUsername);
+    // Store original username for API calls
+    setShopUsername(originalUsername);
+    // Use sanitized version for URL display
+    const shopSlug = sanitizeShopNameForUrl(originalUsername);
+    setShopFilter(shopSlug);
     navigate(`/${shopSlug}`);
   };
 
@@ -563,6 +579,8 @@ export default function App() {
       setProduct(productData);
       setProductUniqueLink(uniqueLink);
       setShopFilter(shopSlug);
+      // Store original username for API calls
+      setShopUsername(productData.seller.username || shopSlug);
       setProductVariant({
         color: productData.selectedVariant?.color,
         size: productData.selectedVariant?.size,
@@ -1603,6 +1621,7 @@ export default function App() {
                   key="product-selection"
                   onProductSelect={handleProductSelect}
                   shopName={shopFilter}
+                  shopUsernameForApi={shopUsername}
                   isAuthenticated={isAuthenticated}
                   user={user}
                   onLogin={handleLoginClick}

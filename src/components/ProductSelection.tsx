@@ -17,7 +17,8 @@ interface ProductSelectionProps {
   onLogout?: () => void;
   onAboutClick?: () => void;
   onSellerDashboard?: () => void;
-  shopName?: string | null; // Filter products by shop name
+  shopName?: string | null; // Sanitized shop name for display
+  shopUsernameForApi?: string | null; // Original shop username for API calls
 }
 
 export function ProductSelection({
@@ -29,7 +30,8 @@ export function ProductSelection({
   onLogout,
   onAboutClick,
   onSellerDashboard,
-  shopName
+  shopName,
+  shopUsernameForApi
 }: ProductSelectionProps) {
   const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
@@ -55,13 +57,14 @@ export function ProductSelection({
 
       console.log('[ProductSelection] Loading more at page:', nextPage);
 
-      // Build query params - include shop filter if viewing a specific shop
+      // Build query params - use original username for API, fallback to shopName
+      const shopParamForApi = shopUsernameForApi || shopName;
       const params: Record<string, number | string> = {
         page: nextPage,
         page_size: PAGE_SIZE
       };
-      if (shopName) {
-        params.shop = shopName;
+      if (shopParamForApi) {
+        params.shop = shopParamForApi;
       }
 
       const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, params);
@@ -79,7 +82,7 @@ export function ProductSelection({
     } finally {
       setLoadingMore(false);
     }
-  }, [shopName, loadingMore, hasMore, currentPage]);
+  }, [shopName, shopUsernameForApi, loadingMore, hasMore, currentPage]);
 
   const loadInitialProducts = useCallback(async (options?: { allowGuestRetry?: boolean }) => {
     const allowGuestRetry = options?.allowGuestRetry ?? true;
@@ -89,14 +92,17 @@ export function ProductSelection({
 
       console.log('[ProductSelection] Loading initial products from:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.PRODUCTS);
 
-      // Build query params - include shop filter if viewing a specific shop
+      // Build query params - use original username for API, fallback to shopName
+      const shopParamForApi = shopUsernameForApi || shopName;
       const params: Record<string, number | string> = {
         page: 1,
         page_size: PAGE_SIZE
       };
-      if (shopName) {
-        params.shop = shopName;
+      if (shopParamForApi) {
+        params.shop = shopParamForApi;
       }
+
+      console.log('[ProductSelection] API params:', { shopParamForApi, shopName, shopUsernameForApi });
 
       const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS, params);
 
@@ -121,6 +127,7 @@ export function ProductSelection({
 
         console.log('[ProductSelection] Products loaded:', {
           shopName: shopName || 'all',
+          shopUsernameForApi: shopParamForApi || 'all',
           total: paginatedData?.count || 0,
           loaded: productsArray.length,
           hasNext: !!paginatedData?.next,
@@ -141,7 +148,7 @@ export function ProductSelection({
     } finally {
       setLoading(false);
     }
-  }, [shopName]);
+  }, [shopName, shopUsernameForApi]);
 
   // Initial load and reload when shopName changes
   useEffect(() => {

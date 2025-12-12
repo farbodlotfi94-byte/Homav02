@@ -14,6 +14,7 @@ export interface Product {
   currency: string;
   seller: {
     name: string;
+    username?: string; // Original shop username for API calls
     verified: boolean;
   };
   brand?: string;
