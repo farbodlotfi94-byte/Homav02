@@ -222,8 +222,7 @@ export default function App() {
         return;
       }
 
-      // Reset shop filter
-      setShopFilter(null);
+      // Reset error state (but NOT shopFilter - it will be set based on URL parsing below)
       setInvalidShopError(false);
 
       // First, check for old URL formats (UUID at root or query params) - show error

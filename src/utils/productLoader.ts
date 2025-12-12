@@ -316,49 +316,37 @@ export async function fetchProductByUniqueLink(uniqueLink: string): Promise<Prod
 
 /**
  * Fetch products filtered by shop name
- * Fetches all products and filters client-side by shop_name
- * Handles both raw shop names and sanitized URL shop names
+ * Uses backend shop filter for accurate results across all pages
  */
 export async function fetchProductsByShopName(shopName: string): Promise<Product[]> {
   try {
     console.log('[fetchProductsByShopName] Fetching products for shop:', shopName);
-    
-    // Fetch all products (we'll filter client-side)
-    const response = await apiGet<PaginatedResponse<BackendProduct>>(API_CONFIG.ENDPOINTS.PRODUCTS);
-    
+
+    // Use backend shop filter instead of client-side filtering
+    // This ensures we get correct results even if shop's products aren't in first page
+    const params: Record<string, string | number> = {
+      shop: shopName,
+      page_size: 1  // Just need to verify shop exists, ProductSelection will load full list
+    };
+
+    const response = await apiGet<PaginatedResponse<BackendProduct>>(
+      API_CONFIG.ENDPOINTS.PRODUCTS,
+      params
+    );
+
     if (response.success && response.data) {
       const paginatedData = response.data;
       const productsArray = paginatedData?.results || [];
-      
-      // Normalize shop name for comparison (case-insensitive)
-      const normalizedShopName = shopName.toLowerCase().trim();
 
-      // Filter by shop_username or shop_name - match against username (preferred) or sanitized shop name
-      const filteredProducts = productsArray
-        .filter(product => {
-          // First check shop_username (most reliable for URL routing)
-          const productShopUsername = (product.shop_username || '').toLowerCase().trim();
-          if (productShopUsername && normalizedShopName === productShopUsername) {
-            return true;
-          }
-
-          // Fallback: check shop_name and sanitized versions
-          const productShopName = (product.shop_name || '').toLowerCase().trim();
-          const sanitizedProductShopName = sanitizeShopNameForUrl(product.shop_name || '').toLowerCase().trim();
-
-          return normalizedShopName === productShopName || normalizedShopName === sanitizedProductShopName;
-        })
-        .map(transformBackendProduct);
-      
       console.log('[fetchProductsByShopName] Found products:', {
         shopName,
-        total: productsArray.length,
-        filtered: filteredProducts.length
+        total: paginatedData?.count || 0,
+        loaded: productsArray.length
       });
-      
-      return filteredProducts;
+
+      return productsArray.map(transformBackendProduct);
     }
-    
+
     return [];
   } catch (error) {
     console.error('[fetchProductsByShopName] Error:', error);
