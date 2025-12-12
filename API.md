@@ -2089,6 +2089,7 @@ Get detailed analytics for each product with pagination.
 - `page_size`: Number of items per page (default: 20, max: 100)
 - `search`: Search term for product name and description (case-insensitive, partial match)
 - `category`: Filter by exact category (case-insensitive)
+- `shop`: Filter by shop name (`shop_name` field, case-insensitive exact match). Example: `shop=فرش امیر کبیر`
 - `price_min`: Minimum price in Rials (inclusive)
 - `price_max`: Maximum price in Rials (inclusive)
 - `sort`: Sort order (default: newest)
@@ -2140,6 +2141,9 @@ GET /api/products/?search=chair
 # Filter by category
 GET /api/products/?category=furniture
 
+# Filter by shop name (display name)
+GET /api/products/?shop=فرش%20امیر%20کبیر
+
 # Get products in a price range (1M to 5M Rials)
 GET /api/products/?price_min=1000000&price_max=5000000
 
@@ -2149,8 +2153,8 @@ GET /api/products/?sort=price_asc
 # Get most expensive products first
 GET /api/products/?sort=price_desc
 
-# Combined: search, filter by category, price range, and sort
-GET /api/products/?search=chair&category=furniture&price_min=1000000&price_max=3000000&sort=price_asc&page=1&page_size=10
+# Combined: search, filter by shop, category, price range, and sort
+GET /api/products/?shop=فرش%20امیر%20کبیر&category=furniture&price_min=1000000&price_max=3000000&sort=price_asc&page=1&page_size=10
 ```
 
 **Notes:**

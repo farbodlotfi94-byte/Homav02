@@ -168,9 +168,8 @@ export default function App() {
   const [rateLimitExpiry, setRateLimitExpiry] = useState<number | null>(null);
   const [rateLimitMessage, setRateLimitMessage] = useState<string>('');
 
-  // Shop filter state
-  const [shopFilter, setShopFilter] = useState<string | null>(null); // Sanitized for URL display
-  const [shopUsername, setShopUsername] = useState<string | null>(null); // Original username for API calls
+  // Shop filter state (display name used for both URLs and API calls)
+  const [shopFilter, setShopFilter] = useState<string | null>(null);
   const [invalidShopError, setInvalidShopError] = useState(false);
 
   // Rug size selection state (for rug products)
@@ -300,11 +299,9 @@ export default function App() {
             console.log("[App] Product loaded successfully:", productData.name);
             setProduct(productData);
             setProductUniqueLink(productData.unique_link);
-            // Use display name for URL/display, username for API
+            // Use display name for both URL and API (backend accepts shop_name)
             const shopDisplayName = productData.seller.name || shopName;
-            const shopApiUsername = productData.seller.username || shopName;
             setShopFilter(shopDisplayName);
-            setShopUsername(shopApiUsername);
             setProductVariant({
               color: productData.selectedVariant?.color,
               size: productData.selectedVariant?.size,
@@ -348,18 +345,14 @@ export default function App() {
           }
 
           // Shop exists, show product selection with filter
-          // shopName from URL is display name, get username from products for API
+          // shopName from URL is display name - backend accepts shop_name for filtering
           setShopFilter(shopName);
-          // Get API username from first product (backend needs username for filtering)
-          const shopApiUsername = shopProducts[0]?.seller?.username || shopName;
-          setShopUsername(shopApiUsername);
           setCurrentStep("product-selection");
         }
       } else {
         // Case 3: Root path / - Show shop selection
         console.log("[App] Root path, showing shop selection");
         setShopFilter(null);
-        setShopUsername(null);
         setCurrentStep("shop-selection");
       }
     };
@@ -408,10 +401,9 @@ export default function App() {
                   color: productData.selectedVariant?.color,
                   size: productData.selectedVariant?.size,
                 });
-                // Use display name for shopFilter, username for API
+                // Use display name for shopFilter (backend accepts shop_name)
                 const shopDisplayName = productData.seller.name || shopName;
                 setShopFilter(shopDisplayName);
-                setShopUsername(productData.seller.username || shopName);
                 setCurrentStep("product-landing");
               }
             }
@@ -420,9 +412,8 @@ export default function App() {
       } else if (shopName) {
         // Case 2: /shop_name - show product selection with shop filter
         console.log("[App] Navigated to shop listing:", shopName);
-        // shopName from URL is display name, keep existing shopUsername for API if available
+        // shopName from URL is display name - backend accepts shop_name for filtering
         setShopFilter(shopName);
-        // Keep existing shopUsername if set (from product data), otherwise ProductSelection will use shopName
         setCurrentStep("product-selection");
         // Reset processing state but keep shop context
         setSelectedFile(null);
@@ -447,7 +438,6 @@ export default function App() {
         setProcessedImageId(null);
         setSelectedRugSize(null);
         setShopFilter(null);
-        setShopUsername(null);
       }
     };
 
@@ -493,12 +483,11 @@ export default function App() {
   };
 
   // Shop Selection Handler
-  const handleShopSelect = (shopDisplayName: string, shopUsername: string) => {
-    trackKPI("Shop Selected", { shopDisplayName, shopUsername });
-    console.log("[App] Shop selected:", { shopDisplayName, shopUsername });
-    // Use display name for URL (user-friendly), username for API calls
+  const handleShopSelect = (shopDisplayName: string) => {
+    trackKPI("Shop Selected", { shopDisplayName });
+    console.log("[App] Shop selected:", shopDisplayName);
+    // Use display name for both URL and API (backend accepts shop_name)
     setShopFilter(shopDisplayName);
-    setShopUsername(shopUsername);
     navigate(`/${encodeURIComponent(shopDisplayName)}`);
   };
 
@@ -570,9 +559,8 @@ export default function App() {
         return;
       }
 
-      // Update URL for sharing - use shop display name for URL, username for API
+      // Update URL for sharing - use shop display name for both URL and API
       const shopDisplayName = productData.seller.name || '';
-      const shopApiUsername = productData.seller.username || shopDisplayName;
       navigate(`/${encodeURIComponent(shopDisplayName)}/product/${uniqueLink}`, { replace: true });
 
       // Product is valid, show landing
@@ -580,7 +568,6 @@ export default function App() {
       setProduct(productData);
       setProductUniqueLink(uniqueLink);
       setShopFilter(shopDisplayName);
-      setShopUsername(shopApiUsername);
       setProductVariant({
         color: productData.selectedVariant?.color,
         size: productData.selectedVariant?.size,
@@ -1621,7 +1608,6 @@ export default function App() {
                   key="product-selection"
                   onProductSelect={handleProductSelect}
                   shopName={shopFilter}
-                  shopUsernameForApi={shopUsername}
                   isAuthenticated={isAuthenticated}
                   user={user}
                   onLogin={handleLoginClick}
