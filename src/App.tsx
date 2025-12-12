@@ -62,7 +62,6 @@ import {
   fetchProductsByShopName,
   validateProduct,
   getSuggestedProducts,
-  sanitizeShopNameForUrl,
 } from "./utils/productLoader";
 import {
   isMobileDevice,
@@ -279,17 +278,18 @@ export default function App() {
               return;
             }
 
-            // Verify shop name matches (case-insensitive, handle both raw and sanitized)
+            // Verify shop name matches (case-insensitive)
+            // URLs now use original username, so check against seller.username
             const normalizedShopName = shopName.toLowerCase().trim();
+            const productShopUsername = (productData.seller.username || '').toLowerCase().trim();
             const productShopName = (productData.seller.name || '').toLowerCase().trim();
-            const sanitizedProductShopName = sanitizeShopNameForUrl(productData.seller.name || '').toLowerCase().trim();
 
-            // Match if URL shop name matches either raw shop name or sanitized version
-            if (normalizedShopName !== productShopName && normalizedShopName !== sanitizedProductShopName) {
-              console.log("[App] Shop name mismatch:", { 
-                urlShop: shopName, 
-                productShop: productData.seller.name,
-                sanitized: sanitizedProductShopName
+            // Match if URL shop name matches username or display name
+            if (normalizedShopName !== productShopUsername && normalizedShopName !== productShopName) {
+              console.log("[App] Shop name mismatch:", {
+                urlShop: shopName,
+                productShopUsername: productData.seller.username,
+                productShopName: productData.seller.name
               });
               setErrorType("invalid_shop");
               setCurrentStep("error");
@@ -300,9 +300,10 @@ export default function App() {
             console.log("[App] Product loaded successfully:", productData.name);
             setProduct(productData);
             setProductUniqueLink(productData.unique_link);
-            setShopFilter(sanitizeShopNameForUrl(productData.seller.name || ''));
-            // Store original username for API calls (fallback to URL shopName if not available)
-            setShopUsername(productData.seller.username || shopName);
+            // Use original username for both display and API (no sanitization)
+            const originalUsername = productData.seller.username || shopName;
+            setShopFilter(originalUsername);
+            setShopUsername(originalUsername);
             setProductVariant({
               color: productData.selectedVariant?.color,
               size: productData.selectedVariant?.size,
@@ -346,10 +347,9 @@ export default function App() {
           }
 
           // Shop exists, show product selection with filter
+          // Use URL shopName for both (URLs now use original usernames, no sanitization)
           setShopFilter(shopName);
-          // Get original username from first product, fallback to URL shopName
-          const originalUsername = shopProducts[0]?.seller?.username || shopName;
-          setShopUsername(originalUsername);
+          setShopUsername(shopName);
           setCurrentStep("product-selection");
         }
       } else {
@@ -418,9 +418,9 @@ export default function App() {
       } else if (shopName) {
         // Case 2: /shop_name - show product selection with shop filter
         console.log("[App] Navigated to shop listing:", shopName);
+        // URLs now use original usernames (no sanitization), so shopName IS the original
         setShopFilter(shopName);
-        // Keep existing shopUsername if set (from previous navigation), otherwise use URL shopName
-        setShopUsername(prev => prev || shopName);
+        setShopUsername(shopName);
         setCurrentStep("product-selection");
         // Reset processing state but keep shop context
         setSelectedFile(null);
@@ -494,12 +494,11 @@ export default function App() {
   const handleShopSelect = (originalUsername: string) => {
     trackKPI("Shop Selected", { shopUsername: originalUsername });
     console.log("[App] Shop selected:", originalUsername);
-    // Store original username for API calls
+    // Use original username for both URL and API calls (no sanitization)
+    // This ensures URLs can be bookmarked and navigated back to correctly
     setShopUsername(originalUsername);
-    // Use sanitized version for URL display
-    const shopSlug = sanitizeShopNameForUrl(originalUsername);
-    setShopFilter(shopSlug);
-    navigate(`/${shopSlug}`);
+    setShopFilter(originalUsername);
+    navigate(`/${encodeURIComponent(originalUsername)}`);
   };
 
   // Product Selection Handler
@@ -570,17 +569,16 @@ export default function App() {
         return;
       }
 
-      // Update URL for sharing - use shop_name/product/unique_link format
-      const shopSlug = sanitizeShopNameForUrl(productData.seller.name || '');
-      navigate(`/${shopSlug}/product/${uniqueLink}`, { replace: true });
+      // Update URL for sharing - use shop_username/product/unique_link format
+      const originalUsername = productData.seller.username || productData.seller.name || '';
+      navigate(`/${encodeURIComponent(originalUsername)}/product/${uniqueLink}`, { replace: true });
 
       // Product is valid, show landing
       console.log("[App] Selected product loaded successfully:", productData.name);
       setProduct(productData);
       setProductUniqueLink(uniqueLink);
-      setShopFilter(shopSlug);
-      // Store original username for API calls
-      setShopUsername(productData.seller.username || shopSlug);
+      setShopFilter(originalUsername);
+      setShopUsername(originalUsername);
       setProductVariant({
         color: productData.selectedVariant?.color,
         size: productData.selectedVariant?.size,
@@ -1171,8 +1169,9 @@ export default function App() {
 
     // Navigate to shop's product listing page if we have shop filter
     if (shopFilter && product) {
-      const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
-      navigate(`/${shopSlug}`);
+      // Use shopUsername (original) or fallback to seller.username
+      const shopPath = shopUsername || product.seller.username || shopFilter;
+      navigate(`/${encodeURIComponent(shopPath)}`);
       return;
     }
 
@@ -1639,8 +1638,9 @@ export default function App() {
                   onUploadStart={handleStartUpload}
                   onBack={() => {
                     if (shopFilter && product) {
-                      const shopSlug = sanitizeShopNameForUrl(product.seller.name || '');
-                      navigate(`/${shopSlug}`);
+                      // Use shopUsername (original) or fallback to seller.username
+                      const shopPath = shopUsername || product.seller.username || shopFilter;
+                      navigate(`/${encodeURIComponent(shopPath)}`);
                     } else {
                       // No shop filter - go back to shop selection
                       navigate('/');
