@@ -11,7 +11,7 @@ import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import type { Shop, ShopListResponse } from "../types/shop";
 
 interface ShopSelectionProps {
-  onShopSelect: (shopUsername: string) => void;
+  onShopSelect: (shopDisplayName: string, shopUsername: string) => void;
 }
 
 /**
@@ -133,7 +133,8 @@ export function ShopSelection({ onShopSelect }: ShopSelectionProps) {
       });
       return;
     }
-    onShopSelect(shop.username);
+    // Pass both display name (for URL) and username (for API)
+    onShopSelect(shop.shop_name, shop.username);
   };
 
   // Retry handler
