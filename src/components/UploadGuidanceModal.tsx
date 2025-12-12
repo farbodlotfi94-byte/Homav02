@@ -134,8 +134,7 @@ export function UploadGuidanceModal({
                 <DialogOverlay className="backdrop-blur-md bg-black/20" />
 
                 <DialogPrimitive.Content
-                    className="fixed top-0 left-0 right-0 z-50 w-full max-w-none rounded-none border border-white/40 bg-white/95 backdrop-blur-xl shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 flex flex-col overflow-hidden"
-                    style={{ height: '100vh' }} // Full viewport height
+                    className="upload-guidance-modal fixed z-50 border border-white/40 bg-white/95 backdrop-blur-xl shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 flex flex-col overflow-hidden"
                 >
                     {/* Header row with close button */}
                     <div className="flex-shrink-0 flex items-center justify-between px-4 pt-3 pb-2">
@@ -148,20 +147,20 @@ export function UploadGuidanceModal({
                         <div className="flex-1" />
                     </div>
 
-                    {/* Scrollable content area - takes remaining space */}
-                    <div className="flex-1 overflow-y-auto px-4 pb-0" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+                    {/* Content area - no scroll, fills remaining space */}
+                    <div className="flex-1 flex flex-col px-4 pb-0 min-h-0">
                         {/* Title */}
-                        <DialogHeader className="pb-3">
-                            <DialogTitle className="text-gray-800 text-center text-lg sm:text-xl leading-relaxed font-bold">
+                        <DialogHeader className="flex-shrink-0 pb-2">
+                            <DialogTitle className="text-gray-800 text-center text-base sm:text-lg leading-relaxed font-bold">
                                 {step === 1 ? "برای بهترین نتیجه، این نکات را رعایت کنید" : "مثال‌های نادرست"}
                             </DialogTitle>
                         </DialogHeader>
 
-                        {/* Image Section */}
+                        {/* Image Section - fills available space */}
                         {step === 1 ? (
                             /* Step 1: Correct Example */
-                            <div className="relative rounded-xl overflow-hidden ring-2 ring-green-200 bg-gray-100">
-                                <div className="relative w-full bg-gray-200 overflow-hidden h-[45vh] sm:h-[55vh] max-h-[450px]">
+                            <div className="relative rounded-xl overflow-hidden ring-2 ring-green-200 bg-gray-100 flex-1 flex flex-col min-h-0">
+                                <div className="relative w-full bg-gray-200 overflow-hidden flex-1 min-h-0">
                                     {correctImageError ? (
                                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100">
                                             <div className="text-center p-4">
@@ -197,16 +196,16 @@ export function UploadGuidanceModal({
                                     </div>
                                 </div>
                                 {/* Caption inside the card */}
-                                <div className="p-3 sm:p-4 bg-gradient-to-r from-green-50 to-white border-t-2 border-green-400">
-                                    <p className="text-sm sm:text-base font-bold text-green-700 text-center leading-relaxed">
+                                <div className="flex-shrink-0 p-2 sm:p-3 bg-gradient-to-r from-green-50 to-white border-t-2 border-green-400">
+                                    <p className="text-xs sm:text-sm font-bold text-green-700 text-center leading-snug">
                                         ✅ مثال صحیح: عکس مناسب از اتاق با نور کافی و نمای واضح
                                     </p>
                                 </div>
                             </div>
                         ) : (
                             /* Step 2: Incorrect Example */
-                            <div className="relative rounded-xl overflow-hidden ring-2 ring-red-200 bg-gray-100">
-                                <div className="relative w-full bg-gray-200 overflow-hidden h-[45vh] sm:h-[55vh] max-h-[450px]">
+                            <div className="relative rounded-xl overflow-hidden ring-2 ring-red-200 bg-gray-100 flex-1 flex flex-col min-h-0">
+                                <div className="relative w-full bg-gray-200 overflow-hidden flex-1 min-h-0">
                                     {incorrectImageError ? (
                                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
                                             <div className="text-center p-4">
@@ -241,8 +240,8 @@ export function UploadGuidanceModal({
                                     </div>
                                 </div>
                                 {/* Caption inside the card */}
-                                <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-white border-t-2 border-red-400">
-                                    <p className="text-sm sm:text-base font-bold text-red-700 text-center leading-relaxed">
+                                <div className="flex-shrink-0 p-2 sm:p-3 bg-gradient-to-r from-red-50 to-white border-t-2 border-red-400">
+                                    <p className="text-xs sm:text-sm font-bold text-red-700 text-center leading-snug">
                                         ❌ مثال نادرست: عکس کج و نامناسب
                                     </p>
                                 </div>

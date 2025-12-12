@@ -505,6 +505,108 @@ html {
     .md\:h-32 {
       height: 8rem !important;
     }
+    /* Modal/Dialog centering utilities */
+    .sm\:inset-auto {
+      inset: auto !important;
+    }
+    .sm\:top-1\/2 {
+      top: 50% !important;
+    }
+    .sm\:left-1\/2 {
+      left: 50% !important;
+    }
+    .sm\:-translate-x-1\/2 {
+      --tw-translate-x: -50% !important;
+    }
+    .sm\:-translate-y-1\/2 {
+      --tw-translate-y: -50% !important;
+    }
+    /* Combined transform for elements using both translate classes */
+    .sm\:-translate-x-1\/2.sm\:-translate-y-1\/2 {
+      translate: -50% -50% !important;
+    }
+    .sm\:rounded-2xl {
+      border-radius: 1rem !important;
+    }
+    .sm\:h-\[90vh\] {
+      height: 90vh !important;
+    }
+    .sm\:max-h-\[700px\] {
+      max-height: 700px !important;
+    }
+}
+
+/* Upload Guidance Modal - Responsive Positioning */
+/* Mobile: Full screen with proper flex containment */
+.upload-guidance-modal {
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  border-radius: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+/* Desktop (sm+): Centered modal */
+@media (min-width: 640px) {
+  .upload-guidance-modal {
+    inset: auto !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 100%;
+    max-width: 28rem; /* max-w-md */
+    height: auto;
+    max-height: 85vh;
+    border-radius: 1rem; /* rounded-2xl */
+  }
+}
+
+/* Header section - fixed height, never shrink */
+.upload-guidance-modal > div:first-child {
+  flex-shrink: 0 !important;
+}
+
+/* Content area - fills remaining space with proper overflow */
+.upload-guidance-modal > div:nth-child(2) {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Image container inside content area */
+.upload-guidance-modal > div:nth-child(2) > div:last-child {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Image wrapper - constrain to available space */
+.upload-guidance-modal > div:nth-child(2) > div:last-child > div:first-child {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+}
+
+/* Caption - fixed height */
+.upload-guidance-modal > div:nth-child(2) > div:last-child > div:last-child {
+  flex-shrink: 0 !important;
+}
+
+/* Footer button section - always visible */
+.upload-guidance-modal > div:last-child {
+  flex-shrink: 0 !important;
+}
+
+/* Mobile: Limit image section height to leave room for button */
+@media (max-width: 639px) {
+  .upload-guidance-modal > div:nth-child(2) > div:last-child {
+    max-height: calc(100dvh - 180px) !important; /* Reserve space for header, title, footer */
+  }
 }
 
 /* Seller Portal Theme - Yellow Accent */
