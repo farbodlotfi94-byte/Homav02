@@ -373,20 +373,23 @@ export default function App() {
       }
 
       // Parse the current URL to determine what to show
-      const entryContext = parseEntryParams(window.location.href);
+      // Use parseShopAndProductFromPath for new URL format: /shop_name, /shop_name/product/uuid
+      const pathContext = parseShopAndProductFromPath(window.location.href);
+      const shopName = pathContext?.shopName;
+      const uniqueLink = pathContext?.uniqueLink;
 
-      if (entryContext) {
-        // URL has productId - should show product landing
-        console.log("[App] Navigated to product:", entryContext.productId);
+      if (uniqueLink) {
+        // Case 1: /shop_name/product/unique_link - should show product landing
+        console.log("[App] Navigated to product:", uniqueLink);
         // Don't fetch again if it's the same product
-        if (product && event.state?.productId === `prod_${product.id}`) {
+        if (product && product.unique_link === uniqueLink) {
           console.log("[App] Same product, just updating step");
           setCurrentStep("product-landing");
         } else {
           // Different product or no product loaded yet
           console.log("[App] Loading product for navigation");
           setCurrentStep("loading");
-          fetchProduct(entryContext.productId).then((productData) => {
+          fetchProductByUniqueLink(uniqueLink).then((productData) => {
             if (productData) {
               const validation = validateProduct(productData);
               if (validation.isValid) {
@@ -396,16 +399,32 @@ export default function App() {
                   color: productData.selectedVariant?.color,
                   size: productData.selectedVariant?.size,
                 });
+                if (shopName) {
+                  setShopFilter(shopName);
+                }
                 setCurrentStep("product-landing");
               }
             }
           });
         }
+      } else if (shopName) {
+        // Case 2: /shop_name - show product selection with shop filter
+        console.log("[App] Navigated to shop listing:", shopName);
+        setShopFilter(shopName);
+        setCurrentStep("product-selection");
+        // Reset processing state but keep shop context
+        setSelectedFile(null);
+        setVisualizedImageUrl("");
+        setApiProcessingPromise(null);
+        setApiStartTime(0);
+        setApiStatus('idle');
+        setProcessedImageId(null);
+        setSelectedRugSize(null);
       } else {
-        // No URL parameters - show shop selection (root view)
+        // Case 3: Root path - show shop selection (root view)
         console.log("[App] Navigated back to shop selection");
         setCurrentStep("shop-selection");
-        // Clear product state when going back to selection
+        // Clear all state when going back to root
         setProduct(null);
         setProductUniqueLink("");
         setSelectedFile(null);
@@ -414,7 +433,7 @@ export default function App() {
         setApiStartTime(0);
         setApiStatus('idle');
         setProcessedImageId(null);
-        setSelectedRugSize(null); // Reset rug size selection
+        setSelectedRugSize(null);
         setShopFilter(null);
       }
     };
