@@ -13,6 +13,7 @@ interface ProductVisualizationProps {
   product: Product;
   userImage: string;
   apiStatus: 'idle' | 'pending' | 'success' | 'failure';
+  errorMessage?: string | null; // Specific error message from backend
   fileName: string;
   placementSuccess: boolean;
   isSaved?: boolean;
@@ -33,10 +34,27 @@ interface ProductVisualizationProps {
   onChangeSize?: () => void; // Callback to change rug size (for rug products with multiple sizes)
 }
 
+// Helper function to get contextual subtext for errors
+const getErrorSubtext = (error?: string | null): string => {
+  if (!error) return 'تصویر پردازش‌شده دریافت نشد';
+
+  if (error.includes('اعتبار') && error.includes('پایان')) {
+    return '';  // No subtext for shop credit issue
+  }
+  if (error.includes('محدودیت') || error.includes('مجاز به')) {
+    return 'لطفاً کمی صبر کنید و دوباره تلاش کنید';
+  }
+  if (error.includes('فرمت')) {
+    return 'لطفاً تصویر دیگری آپلود کنید';
+  }
+  return 'لطفاً دوباره تلاش کنید';
+};
+
 export function ProductVisualization({
   product,
   userImage,
   apiStatus,
+  errorMessage,
   fileName,
   placementSuccess,
   isSaved = false,
@@ -143,8 +161,12 @@ export function ProductVisualization({
               <div className="w-full aspect-square rounded-3xl overflow-hidden bg-red-50 flex items-center justify-center">
                 <div className="text-center p-6">
                   <div className="text-4xl mb-4">⚠️</div>
-                  <div className="font-medium text-red-900 mb-2">خطا در پردازش تصویر</div>
-                  <div className="text-sm text-red-700">تصویر پردازش‌شده دریافت نشد</div>
+                  <div className="font-medium text-red-900 mb-2">
+                    {errorMessage || 'خطا در پردازش تصویر'}
+                  </div>
+                  {getErrorSubtext(errorMessage) && (
+                    <div className="text-sm text-red-700">{getErrorSubtext(errorMessage)}</div>
+                  )}
                 </div>
               </div>
             )}

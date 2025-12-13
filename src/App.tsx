@@ -158,6 +158,7 @@ export default function App() {
   const [apiProcessingPromise, setApiProcessingPromise] = useState<Promise<ProcessImageResponse> | null>(null);
   const [apiStartTime, setApiStartTime] = useState<number>(0);
   const [apiStatus, setApiStatus] = useState<'idle' | 'pending' | 'success' | 'failure'>('idle');
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const [processedImageId, setProcessedImageId] = useState<number | null>(null);
 
   // NEW: User authentication state
@@ -717,6 +718,7 @@ export default function App() {
       setApiProcessingPromise(apiPromise);
       setApiStartTime(Date.now());
       setApiStatus('pending');
+      setProcessingError(null); // Clear any previous error
     } else {
       console.warn('[App] Product or uniqueLink not available, cannot start API processing');
     }
@@ -896,6 +898,7 @@ export default function App() {
         } else {
           setApiStatus('failure');
           setPlacementSuccess(false);
+          setProcessingError(result.error || null);
           console.error('[App] Image processing failed:', {
             error: result.error,
             hasVisualizedUrl: !!result.visualizedImageUrl,
@@ -911,6 +914,13 @@ export default function App() {
             sessionId,
             metadata: { error: result.error || 'No visualized image URL' },
           });
+
+          // Show toast notification for critical errors
+          if (result.status === 402) {
+            toast.error('اعتبار فروشگاه به پایان رسیده است', {
+              duration: 8000,
+            });
+          }
         }
 
         setCurrentStep("visualization");
@@ -918,6 +928,7 @@ export default function App() {
         console.error("[App] خطا در پردازش تصویر:", error);
         setApiStatus('failure');
         setPlacementSuccess(false);
+        setProcessingError(error instanceof Error ? error.message : 'خطای ناشناخته');
 
         // Track the error
         if (product) {
@@ -1802,6 +1813,7 @@ export default function App() {
                         product={product}
                         userImage={visualizedImageUrl}
                         apiStatus={apiStatus}
+                        errorMessage={processingError}
                         fileName={selectedFile.name}
                         placementSuccess={placementSuccess}
                         isSaved={isSaved}

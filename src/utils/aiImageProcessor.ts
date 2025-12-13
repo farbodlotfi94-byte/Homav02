@@ -31,6 +31,7 @@ export interface ProcessImageResponse {
   confidence: number;
   imageId?: number;          // ID of the processed image record
   error?: string;
+  errorCode?: string;        // Machine-readable error code (e.g., 'INSUFFICIENT_CREDITS')
   status?: number;           // HTTP status code
   requiresLogin?: boolean;   // 401 error flag
   isRateLimited?: boolean;   // 429 rate limit flag
