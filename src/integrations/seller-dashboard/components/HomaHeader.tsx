@@ -54,9 +54,12 @@ export function HomaHeader({ title, onBack, showBackButton = false }: HomaHeader
             {title}
           </h2>
         ) : (
-          <div className="flex items-center">
-            <p 
-              style={{ 
+          <a
+            href="/"
+            className="flex items-center hover:opacity-80 transition-opacity"
+          >
+            <p
+              style={{
                 fontFamily: 'Inter, sans-serif',
                 fontWeight: 700,
                 color: '#000000',
@@ -68,7 +71,7 @@ export function HomaHeader({ title, onBack, showBackButton = false }: HomaHeader
             >
               HOMA
             </p>
-          </div>
+          </a>
         )}
 
         {/* Right Spacer */}
