@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>آپلود عکس اتاق - Discovery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: rgba(242, 242, 247, 1.00);
+      --foreground: rgba(0, 0, 0, 1.00);
+      --card: rgba(255, 255, 255, 1.00);
+      --primary: rgba(0, 136, 255, 1.00);
+      --accent: #E31E24;
+      --border: rgba(230, 230, 230, 1.00);
+      --muted-foreground: rgba(60, 60, 67, 0.60);
+      --radius-card: 20px;
+      --radius-button: 100px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(250, 250, 250, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-content {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover { background: var(--border); }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    /* Content */
+    .content {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 32px 16px 100px;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .page-subtitle {
+      color: var(--muted-foreground);
+      text-align: center;
+      font-size: 15px;
+      margin-bottom: 32px;
+    }
+
+    /* Upload Area */
+    .upload-area {
+      background: var(--card);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-card);
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 24px;
+    }
+
+    .upload-area:hover {
+      border-color: var(--primary);
+      background: rgba(0, 136, 255, 0.03);
+    }
+
+    .upload-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary) 0%, #0066CC 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 36px;
+    }
+
+    .upload-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--foreground);
+      margin-bottom: 8px;
+    }
+
+    .upload-hint {
+      font-size: 13px;
+      color: var(--muted-foreground);
+    }
+
+    /* Camera Button */
+    .camera-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 32px;
+    }
+
+    .camera-btn:hover {
+      border-color: var(--primary);
+      background: rgba(0, 136, 255, 0.03);
+    }
+
+    /* Options Section */
+    .options-section {
+      background: var(--card);
+      border-radius: var(--radius-card);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .option-group {
+      margin-bottom: 20px;
+    }
+
+    .option-group:last-child { margin-bottom: 0; }
+
+    .option-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--foreground);
+      margin-bottom: 8px;
+    }
+
+    .option-hint {
+      font-size: 12px;
+      color: var(--muted-foreground);
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      background: var(--background);
+      color: var(--foreground);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 16px center;
+      padding-left: 40px;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0, 136, 255, 0.1);
+    }
+
+    /* Navigation */
+    .nav-indicator {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--foreground);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .nav-indicator a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .nav-indicator a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <button class="back-btn" onclick="window.location.href='2-product-selection.html'">→</button>
+      <span class="header-title">آپلود عکس اتاق</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <h1 class="page-title">📸 عکس اتاقت رو آپلود کن</h1>
+    <p class="page-subtitle">AI بهترین محصولات رو برای فضای تو پیدا می‌کنه</p>
+
+    <div class="upload-area" onclick="window.location.href='4-discovery-processing.html'">
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">کلیک کن یا عکس رو بکش اینجا</div>
+      <div class="upload-hint">JPG, PNG - حداکثر ۱۰ مگابایت</div>
+    </div>
+
+    <button class="camera-btn" onclick="window.location.href='4-discovery-processing.html'">
+      <span>📱</span>
+      <span>گرفتن عکس با دوربین</span>
+    </button>
+
+    <div class="options-section">
+      <div class="section-title">
+        <span>⚙️</span>
+        <span>تنظیمات اختیاری</span>
+      </div>
+
+      <div class="option-group">
+        <label class="option-label">نوع اتاق</label>
+        <div class="option-hint">کمک می‌کنه پیشنهادات دقیق‌تر باشن</div>
+        <select>
+          <option value="">انتخاب کنید...</option>
+          <option value="living">اتاق نشیمن</option>
+          <option value="bedroom">اتاق خواب</option>
+          <option value="dining">اتاق غذاخوری</option>
+          <option value="office">دفتر کار</option>
+          <option value="kitchen">آشپزخانه</option>
+        </select>
+      </div>
+
+      <div class="option-group">
+        <label class="option-label">سبک مورد علاقه</label>
+        <div class="option-hint">AI این سبک رو در نظر می‌گیره</div>
+        <select>
+          <option value="">انتخاب کنید...</option>
+          <option value="modern">مدرن</option>
+          <option value="classic">کلاسیک</option>
+          <option value="minimal">مینیمال</option>
+          <option value="boho">بوهو</option>
+          <option value="scandinavian">اسکاندیناوی</option>
+          <option value="traditional">سنتی ایرانی</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-indicator">
+    <a href="2-product-selection.html">→ صفحه قبل</a>
+    <span>صفحه ۳ از ۵</span>
+    <a href="4-discovery-processing.html">صفحه بعد ←</a>
+  </div>
+</body>
+</html>

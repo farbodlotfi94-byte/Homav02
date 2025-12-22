@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نتایج پیشنهاد - Discovery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: rgba(242, 242, 247, 1.00);
+      --foreground: rgba(0, 0, 0, 1.00);
+      --card: rgba(255, 255, 255, 1.00);
+      --primary: rgba(0, 136, 255, 1.00);
+      --accent: #E31E24;
+      --border: rgba(230, 230, 230, 1.00);
+      --muted-foreground: rgba(60, 60, 67, 0.60);
+      --success: #22C55E;
+      --radius-card: 20px;
+      --radius-button: 100px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      direction: rtl;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(250, 250, 250, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+
+    .back-btn:hover { background: var(--border); }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover {
+      border-color: var(--primary);
+      background: rgba(0, 136, 255, 0.05);
+    }
+
+    /* Content */
+    .content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 16px 120px;
+    }
+
+    /* Image Comparison */
+    .comparison-section {
+      margin-bottom: 32px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .comparison-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .image-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+
+    .image-card.highlighted {
+      border: 2px solid var(--primary);
+      box-shadow: 0 8px 24px rgba(0, 136, 255, 0.15);
+    }
+
+    .image-placeholder {
+      height: 200px;
+      background: linear-gradient(135deg, #F5F5F5, #E8E8E8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+
+    .image-card.highlighted .image-placeholder {
+      background: linear-gradient(135deg, rgba(0, 136, 255, 0.1), rgba(0, 136, 255, 0.05));
+    }
+
+    .image-label {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ai-badge {
+      background: linear-gradient(135deg, var(--primary), #0066CC);
+      color: white;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-weight: 600;
+    }
+
+    /* Recommendations */
+    .recommendations-section {
+      margin-bottom: 32px;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .product-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .product-card:hover {
+      border-color: var(--primary);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+
+    .product-image {
+      height: 120px;
+      background: linear-gradient(135deg, #F5E6D3, #E8D5C4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    .product-info {
+      padding: 12px;
+    }
+
+    .product-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .product-match {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--success);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 100px;
+      margin-bottom: 8px;
+    }
+
+    .product-price {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Actions */
+    .actions-section {
+      background: var(--card);
+      border-radius: var(--radius-card);
+      padding: 20px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 14px 24px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, #0066CC 100%);
+      color: white;
+      border: none;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 136, 255, 0.3);
+    }
+
+    .btn-secondary {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--foreground);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--primary);
+      background: rgba(0, 136, 255, 0.03);
+    }
+
+    /* Navigation */
+    .nav-indicator {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--foreground);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 100px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .nav-indicator a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .nav-indicator a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="header-right">
+        <button class="back-btn" onclick="window.location.href='4-discovery-processing.html'">→</button>
+        <span class="header-title">نتایج پیشنهاد AI</span>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" title="اشتراک‌گذاری">📤</button>
+        <button class="icon-btn" title="ذخیره">💾</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Image Comparison -->
+    <div class="comparison-section">
+      <div class="section-title">
+        <span>🖼️</span>
+        <span>مقایسه قبل و بعد</span>
+      </div>
+      <div class="comparison-grid">
+        <div class="image-card">
+          <div class="image-placeholder">🏠</div>
+          <div class="image-label">
+            <span>عکس اصلی شما</span>
+          </div>
+        </div>
+        <div class="image-card highlighted">
+          <div class="image-placeholder">✨</div>
+          <div class="image-label">
+            <span>طراحی شده با AI</span>
+            <span class="ai-badge">AI Enhanced</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="recommendations-section">
+      <div class="section-title">
+        <span>📦</span>
+        <span>محصولات پیشنهادی</span>
+      </div>
+      <div class="products-grid">
+        <div class="product-card">
+          <div class="product-image">🟤</div>
+          <div class="product-info">
+            <div class="product-name">فرش سنتی طرح اسلیمی</div>
+            <div class="product-match">
+              <span>✓</span>
+              <span>۹۲٪ تطابق</span>
+            </div>
+            <div class="product-price">۲,۵۰۰,۰۰۰ تومان</div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">🛋️</div>
+          <div class="product-info">
+            <div class="product-name">کوسن مخمل زرشکی</div>
+            <div class="product-match">
+              <span>✓</span>
+              <span>۸۷٪ تطابق</span>
+            </div>
+            <div class="product-price">۱۵۰,۰۰۰ تومان</div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">🪑</div>
+          <div class="product-info">
+            <div class="product-name">میز عسلی چوبی</div>
+            <div class="product-match">
+              <span>✓</span>
+              <span>۸۴٪ تطابق</span>
+            </div>
+            <div class="product-price">۸۵۰,۰۰۰ تومان</div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">🖼️</div>
+          <div class="product-info">
+            <div class="product-name">تابلو نقاشی مدرن</div>
+            <div class="product-match">
+              <span>✓</span>
+              <span>۷۹٪ تطابق</span>
+            </div>
+            <div class="product-price">۳۵۰,۰۰۰ تومان</div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">🪴</div>
+          <div class="product-info">
+            <div class="product-name">گلدان سرامیکی</div>
+            <div class="product-match">
+              <span>✓</span>
+              <span>۷۵٪ تطابق</span>
+            </div>
+            <div class="product-price">۱۲۰,۰۰۰ تومان</div>
+          </div>
+        </div>
+
+        <div class="product-card">
+          <div class="product-image">💡</div>
+          <div class="product-info">
+            <div class="product-name">آباژور رومیزی</div>
+            <div class="product-match">
+              <span>✓</span>
+              <span>۷۲٪ تطابق</span>
+            </div>
+            <div class="product-price">۲۸۰,۰۰۰ تومان</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions-section">
+      <button class="btn btn-primary" onclick="window.location.href='3-discovery-upload.html'">
+        <span>🔄</span>
+        <span>طراحی مجدد</span>
+      </button>
+      <button class="btn btn-secondary" onclick="window.location.href='1-shop-selection.html'">
+        <span>🏠</span>
+        <span>بازگشت به فروشگاه‌ها</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="nav-indicator">
+    <a href="4-discovery-processing.html">→ صفحه قبل</a>
+    <span>صفحه ۵ از ۵</span>
+    <a href="1-shop-selection.html">شروع مجدد ←</a>
+  </div>
+</body>
+</html>

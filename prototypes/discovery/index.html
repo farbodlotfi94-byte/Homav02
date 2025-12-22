@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discovery Flow - Prototype Navigation</title>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: rgba(242, 242, 247, 1.00);
+      --foreground: rgba(0, 0, 0, 1.00);
+      --card: rgba(255, 255, 255, 1.00);
+      --primary: rgba(0, 136, 255, 1.00);
+      --accent: #E31E24;
+      --border: rgba(230, 230, 230, 1.00);
+      --muted-foreground: rgba(60, 60, 67, 0.60);
+      --radius-card: 20px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--background);
+      color: var(--foreground);
+      min-height: 100vh;
+      direction: rtl;
+      padding: 40px 24px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted-foreground);
+      font-size: 16px;
+    }
+
+    /* Flow Container */
+    .flow-section {
+      background: var(--card);
+      border-radius: var(--radius-card);
+      padding: 32px;
+      border: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .flow-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .flow-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .step-card {
+      background: var(--background);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      min-width: 160px;
+      flex: 1;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: var(--foreground);
+    }
+
+    .step-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--primary) 0%, #0066CC 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .step-card.entry .step-number {
+      background: linear-gradient(135deg, var(--accent) 0%, #C41A1F 100%);
+    }
+
+    .step-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: var(--muted-foreground);
+      line-height: 1.5;
+    }
+
+    .arrow {
+      color: var(--muted-foreground);
+      font-size: 20px;
+      padding: 0 4px;
+    }
+
+    /* Info Section */
+    .info-section {
+      background: rgba(0, 136, 255, 0.05);
+      border: 1px solid rgba(0, 136, 255, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .info-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .info-item {
+      font-size: 14px;
+      color: var(--muted-foreground);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .info-item span:first-child {
+      color: var(--primary);
+    }
+
+    @media (max-width: 768px) {
+      .flow-grid {
+        flex-direction: column;
+      }
+      .arrow {
+        transform: rotate(90deg);
+      }
+      .step-card {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">🎨</div>
+      <h1>Discovery Flow Prototype</h1>
+      <p class="subtitle">روی هر مرحله کلیک کنید برای مشاهده طراحی</p>
+    </div>
+
+    <!-- Entry Points -->
+    <div class="flow-section">
+      <div class="flow-title">
+        <span>🚪</span>
+        <span>نقاط ورود به Discovery</span>
+      </div>
+      <div class="flow-grid">
+        <a href="1-shop-selection.html" class="step-card entry">
+          <div class="step-number">A</div>
+          <div class="step-title">صفحه فروشگاه‌ها</div>
+          <div class="step-desc">بنر قرمز در بالای لیست فروشگاه‌ها</div>
+        </a>
+        <span class="arrow">یا</span>
+        <a href="2-product-selection.html" class="step-card entry">
+          <div class="step-number">B</div>
+          <div class="step-title">صفحه محصولات</div>
+          <div class="step-desc">بنر آبی در بالای لیست محصولات</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Flow -->
+    <div class="flow-section">
+      <div class="flow-title">
+        <span>🔄</span>
+        <span>فلوی اصلی Discovery</span>
+      </div>
+      <div class="flow-grid">
+        <a href="3-discovery-upload.html" class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-title">آپلود عکس</div>
+          <div class="step-desc">انتخاب عکس اتاق و تنظیمات</div>
+        </a>
+        <span class="arrow">←</span>
+        <a href="4-discovery-processing.html" class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-title">پردازش AI</div>
+          <div class="step-desc">نمایش پیشرفت و مراحل</div>
+        </a>
+        <span class="arrow">←</span>
+        <a href="5-discovery-results.html" class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-title">نتایج</div>
+          <div class="step-desc">پیشنهادات محصولات + تصویر</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="info-section">
+      <div class="info-title">
+        <span>💡</span>
+        <span>نکات پروتوتایپ</span>
+      </div>
+      <ul class="info-list">
+        <li class="info-item">
+          <span>🎨</span>
+          <span>طراحی با Design System هوما</span>
+        </li>
+        <li class="info-item">
+          <span>📱</span>
+          <span>ریسپانسیو برای موبایل</span>
+        </li>
+        <li class="info-item">
+          <span>🔤</span>
+          <span>فونت وزیرمتن</span>
+        </li>
+        <li class="info-item">
+          <span>↩️</span>
+          <span>ناوبری بین صفحات فعال</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
