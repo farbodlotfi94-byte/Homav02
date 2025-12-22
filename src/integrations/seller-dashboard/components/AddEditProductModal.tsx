@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Upload } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from './ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { SellerProductImage } from './SellerProductImage';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { ProductSpecsInput } from './ProductSpecsInput';

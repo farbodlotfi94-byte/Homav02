@@ -1,7 +1,7 @@
 import { X, Copy, Check, Eye, ExternalLink, Edit, Trash2, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { SellerProductImage } from './SellerProductImage';
-import { Badge } from './ui/badge';
+import { Badge } from '../../../components/ui/badge';
 import { RichTextDisplay } from '../../../components/ui/RichTextDisplay';
 import type { SellerProduct } from '../types/seller';
 
