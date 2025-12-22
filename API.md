@@ -51,6 +51,32 @@
     - [PUT /api/admin/model-prompt/](#put-apiadminmodel-prompt)
     - [GET /api/admin/groq-prompt/](#get-apiadmingroq-prompt)
     - [PUT /api/admin/groq-prompt/](#put-apiadmingroq-prompt)
+- [Recommendation Endpoints](#recommendation-endpoints)
+    - [POST /api/recommendations/sessions/](#post-apirecommendationssessions)
+    - [GET /api/recommendations/sessions/{session_id}/](#get-apirecommendationssessionssession_id)
+    - [GET /api/recommendations/sessions/list/](#get-apirecommendationssessionslist)
+    - [DELETE /api/recommendations/sessions/{session_id}/delete/](#delete-apirecommendationssessionssession_iddelete)
+    - [POST /api/recommendations/sessions/{session_id}/items/{item_id}/tryon/](#post-apirecommendationssessionssession_iditemsitem_idtryon)
+- [Discovery Endpoints (Product-First)](#discovery-endpoints-product-first)
+    - [POST /api/recommendations/discover/](#post-apirecommendationsdiscover)
+    - [GET /api/recommendations/discover/{session_id}/](#get-apirecommendationsdiscoversession_id)
+    - [GET /api/recommendations/discover/list/](#get-apirecommendationsdiscoverlist)
+    - [POST /api/recommendations/discover/{session_id}/visualize/{product_id}/](#post-apirecommendationsdiscoversession_idvisualizeproduct_id)
+    - [POST /api/recommendations/discover/{session_id}/refine/](#post-apirecommendationsdiscoversession_idrefine)
+- [External API Endpoints](#external-api-endpoints)
+    - [API Key Management](#api-key-management-shop-jwt-auth)
+        - [GET /api/external/keys/](#get-apiexternalkeys)
+        - [POST /api/external/keys/](#post-apiexternalkeys)
+        - [GET /api/external/keys/{key_id}/](#get-apiexternalkeyskey_id)
+        - [PATCH /api/external/keys/{key_id}/](#patch-apiexternalkeyskey_id)
+        - [POST /api/external/keys/{key_id}/revoke/](#post-apiexternalkeyskey_idrevoke)
+    - [Processing API](#processing-api-api-key-auth)
+        - [POST /api/external/v1/process/](#post-apiexternalv1process)
+        - [GET /api/external/v1/status/{task_id}/](#get-apiexternalv1statustask_id)
+        - [GET /api/external/v1/tasks/](#get-apiexternalv1tasks)
+        - [GET /api/external/v1/balance/](#get-apiexternalv1balance)
+        - [GET /api/external/v1/products/](#get-apiexternalv1products)
+        - [GET /api/external/v1/products/{unique_link}/](#get-apiexternalv1productsunique_link)
 - [System Health Endpoints](#system-health-endpoints)
     - [GET /health/](#get-health)
 - [Error Responses](#error-responses)
@@ -1041,42 +1067,24 @@ Authorization: Bearer <access_token>
 - `next`: URL to next page (null if no more pages)
 - `previous`: URL to previous page (null if on first page)
 - `results`: Array of shop objects:
-  - `id`: Shop ID
-  - `shop_name`: Display name of the shop (Persian)
-  - `username`: URL-friendly username/slug
-  - `logo_url`: URL to shop logo (null if not set, reserved for future use)
-  - `product_count`: Number of active (non-deleted) products in the shop
-  - `created_at`: ISO timestamp when shop was created
+    - `id`: Shop ID
+    - `shop_name`: Display name of the shop (Persian)
+    - `username`: URL-friendly username/slug
+    - `logo_url`: URL to shop logo (null if not set, reserved for future use)
+    - `product_count`: Number of active (non-deleted) products in the shop
+    - `created_at`: ISO timestamp when shop was created
 
-**Frontend Usage:**
+**Example Requests:**
 
-```typescript
-// Type definitions (src/types/shop.ts)
-interface Shop {
-  id: number;
-  shop_name: string;
-  username: string;
-  logo_url: string | null;
-  product_count: number;
-  created_at: string;
-}
+```bash
+# Get first page of all shops
+GET /api/shops/list/
 
-interface ShopListResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: Shop[];
-}
+# Search for shops
+GET /api/shops/list/?search=مبلمان
 
-// Fetching shops
-const params = new URLSearchParams({
-  page: '1',
-  page_size: '20',
-  search: 'مبلمان'
-});
-const response = await apiGet<{ data: ShopListResponse }>(
-  `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SHOPS}?${params}`
-);
+# Get second page with 10 items
+GET /api/shops/list/?page=2&page_size=10
 ```
 
 **Notes:**
@@ -1085,7 +1093,6 @@ const response = await apiGet<{ data: ShopListResponse }>(
 - Search is case-insensitive and matches both shop_name and username
 - Product count only includes non-deleted products
 - Logo URL is currently null (reserved for future shop logo support)
-- Shops with 0 products should show a toast on click: "این فروشگاه هنوز محصولی ثبت نکرده است"
 
 ---
 
@@ -2089,9 +2096,9 @@ Get detailed analytics for each product with pagination.
 - `page_size`: Number of items per page (default: 20, max: 100)
 - `search`: Search term for product name and description (case-insensitive, partial match)
 - `category`: Filter by exact category (case-insensitive)
-- `shop`: Filter by shop name (`shop_name` field, case-insensitive exact match). Example: `shop=فرش امیر کبیر`
 - `price_min`: Minimum price in Rials (inclusive)
 - `price_max`: Maximum price in Rials (inclusive)
+- `shop`: Filter by shop name (case-insensitive, exact match)
 - `sort`: Sort order (default: newest)
     - `newest`: Newest products first (created_at descending)
     - `oldest`: Oldest products first (created_at ascending)
@@ -2141,9 +2148,6 @@ GET /api/products/?search=chair
 # Filter by category
 GET /api/products/?category=furniture
 
-# Filter by shop name (display name)
-GET /api/products/?shop=فرش%20امیر%20کبیر
-
 # Get products in a price range (1M to 5M Rials)
 GET /api/products/?price_min=1000000&price_max=5000000
 
@@ -2153,8 +2157,11 @@ GET /api/products/?sort=price_asc
 # Get most expensive products first
 GET /api/products/?sort=price_desc
 
-# Combined: search, filter by shop, category, price range, and sort
-GET /api/products/?shop=فرش%20امیر%20کبیر&category=furniture&price_min=1000000&price_max=3000000&sort=price_asc&page=1&page_size=10
+# Filter by shop name (Persian)
+GET /api/products/?shop=فرش امیر کبیر
+
+# Combined: search, filter by category, price range, and sort
+GET /api/products/?search=chair&category=furniture&price_min=1000000&price_max=3000000&sort=price_asc&page=1&page_size=10
 ```
 
 **Notes:**
@@ -2163,6 +2170,7 @@ GET /api/products/?shop=فرش%20امیر%20کبیر&category=furniture&price_mi
 - Pagination metadata includes `count` (total items), `next` and `previous` links
 - Search is case-insensitive and searches in product name and description
 - Category filter is exact match but case-insensitive
+- Shop filter uses `shop_name` field (e.g., "فرش امیر کبیر"), not username
 
 ---
 
@@ -2577,6 +2585,1115 @@ Content-Type: application/json
 - `401`: Authentication required
 - `403`: Admin permission required
 - `500`: Failed to update prompt
+
+---
+
+## Recommendation Endpoints
+
+The Recommendation API provides AI-powered room redesign and product matching capabilities. Users can upload photos of their rooms, receive AI-generated redesign suggestions with identified items, and request try-on visualizations for matched products.
+
+### POST /api/recommendations/sessions/
+
+Create a new redesign session by uploading a room photo.
+
+**Authentication:** Required (User JWT)
+
+**Content-Type:** multipart/form-data
+
+**Request Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| room_image | File | Yes | Room photo (JPEG or PNG) |
+| room_type | String | No | Type of room (living_room, bedroom, dining_room, office, hallway, entryway, nursery) |
+| preferred_style | String | No | Design style (modern, contemporary, traditional, persian, minimalist, bohemian, scandinavian, industrial, rustic, classic, vintage, eclectic) |
+| preferred_colors | Array | No | List of preferred colors |
+| user_notes | String | No | Additional notes or preferences (max 500 chars) |
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "جلسه طراحی ایجاد شد و در حال پردازش است",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "pending"
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid image format or validation error
+    - Message: "درخواست نامعتبر است"
+- `401`: Unauthorized
+
+**Notes:**
+- Session processing is asynchronous (Celery task)
+- Poll the session status endpoint for updates
+- Sessions expire after 24 hours by default
+
+---
+
+### GET /api/recommendations/sessions/{session_id}/
+
+Get the current status and results of a redesign session.
+
+**Authentication:** Required (User JWT)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| session_id | UUID | The session ID |
+
+**Response (200 OK - Processing):**
+```json
+{
+  "success": true,
+  "message": "وضعیت جلسه دریافت شد",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "generating",
+    "created_at": "2024-01-15T10:30:00Z",
+    "expires_at": "2024-01-16T10:30:00Z"
+  }
+}
+```
+
+**Response (200 OK - Ready):**
+```json
+{
+  "success": true,
+  "message": "وضعیت جلسه دریافت شد",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "ready",
+    "created_at": "2024-01-15T10:30:00Z",
+    "expires_at": "2024-01-16T10:30:00Z",
+    "redesigned_image_url": "https://...",
+    "items": [
+      {
+        "item_id": 1,
+        "item_type": "rug",
+        "description": {...},
+        "matched_products": [...],
+        "tryon_status": "pending",
+        "tryon_image_url": null
+      }
+    ]
+  }
+}
+```
+
+**Status Values:**
+- `pending`: Session created, awaiting processing
+- `analyzing`: AI is analyzing the room
+- `generating`: AI is generating the redesign
+- `matching`: Finding matching products
+- `ready`: Processing complete, results available
+- `failed`: Error occurred during processing
+
+**Errors:**
+- `401`: Unauthorized
+- `404`: Session not found
+    - Message: "جلسه یافت نشد"
+
+---
+
+### GET /api/recommendations/sessions/list/
+
+Get a list of the user's redesign sessions.
+
+**Authentication:** Required (User JWT)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "لیست جلسات کاربر",
+  "data": [
+    {
+      "session_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "ready",
+      "room_type": "living_room",
+      "preferred_style": "modern",
+      "created_at": "2024-01-15T10:30:00Z",
+      "expires_at": "2024-01-16T10:30:00Z",
+      "is_expired": false,
+      "items_count": 3,
+      "thumbnail_url": "https://..."
+    }
+  ]
+}
+```
+
+**Notes:**
+- Returns up to 20 most recent sessions
+- Includes thumbnail URL if redesign is complete
+
+---
+
+### DELETE /api/recommendations/sessions/{session_id}/delete/
+
+Delete a redesign session (soft delete).
+
+**Authentication:** Required (User JWT)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| session_id | UUID | The session ID |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "جلسه با موفقیت حذف شد"
+}
+```
+
+**Errors:**
+- `401`: Unauthorized
+- `404`: Session not found
+    - Message: "جلسه یافت نشد"
+
+---
+
+### POST /api/recommendations/sessions/{session_id}/items/{item_id}/tryon/
+
+Request a try-on visualization for a specific product.
+
+**Authentication:** Required (User JWT)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| session_id | UUID | The session ID |
+| item_id | Integer | The item ID from the session |
+
+**Request Body:**
+```json
+{
+  "product_id": 123
+}
+```
+
+**Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "درخواست امتحان محصول ثبت شد",
+  "data": {
+    "status": "pending"
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid request or product not in matched products list
+    - Message: "درخواست نامعتبر است" or "محصول در لیست پیشنهادات نیست"
+- `401`: Unauthorized
+- `404`: Session or item not found
+    - Message: "جلسه یا آیتم یافت نشد"
+
+**Notes:**
+- Try-on generation is asynchronous
+- Deducts 1 credit from the product's shop
+- Poll the session status endpoint to get the try-on image URL
+- Session must be in `ready` status
+
+---
+
+## Discovery Endpoints (Product-First)
+
+The Discovery API provides a product-first recommendation flow where:
+1. User uploads a room photo
+2. AI analyzes the room and generates search queries
+3. Vector search finds matching products from the catalog
+4. User browses products and optionally requests visualization
+
+This flow **coexists** with the Redesign flow and provides a more browsing-focused experience.
+
+### POST /api/recommendations/discover/
+
+Create a new discovery session to find matching products for a room.
+
+**Authentication:** Required (User JWT)
+
+**Request Body (multipart/form-data):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| room_image | File | Yes | Room photo (JPEG or PNG) |
+| categories | Array[String] | No | Product categories to search: `rug`, `furniture`, `bedspread` |
+| user_notes | String | No | Additional notes or preferences (max 500 chars) |
+
+**Example Request:**
+```http
+POST /api/recommendations/discover/
+Content-Type: multipart/form-data
+Authorization: Bearer <user_token>
+
+room_image: <file>
+categories: ["rug", "furniture"]
+user_notes: "Looking for modern minimalist pieces"
+```
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "جلسه کشف محصول ایجاد شد",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "pending"
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid image format or validation error
+    - Message: "درخواست نامعتبر است"
+- `401`: Unauthorized
+
+**Notes:**
+- Processing is asynchronous (Celery task)
+- Session expires after 24 hours by default
+- Poll the status endpoint to check when ready
+- Categories filter: `rug`, `furniture`, `bedspread` (empty = all categories)
+
+---
+
+### GET /api/recommendations/discover/{session_id}/
+
+Get the status and results of a discovery session.
+
+**Authentication:** Required (User JWT)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| session_id | UUID | The discovery session ID |
+
+**Response (200 OK - Ready):**
+```json
+{
+  "success": true,
+  "message": "وضعیت جلسه کشف محصول",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "ready",
+    "created_at": "2025-01-15T10:30:00Z",
+    "expires_at": "2025-01-16T10:30:00Z",
+    "room_analysis": {
+      "room_type": "living_room",
+      "detected_style": "modern",
+      "color_palette": ["beige", "cream", "white"],
+      "recommended_product_types": ["rug", "sofa"],
+      "style_recommendations": ["minimalist", "scandinavian"],
+      "search_queries": [
+        "modern beige wool rug with geometric pattern",
+        "minimalist cream area rug for living room",
+        "contemporary neutral-toned floor covering"
+      ],
+      "design_notes": "This modern living room features neutral tones and would benefit from products that complement its minimalist aesthetic."
+    },
+    "products": [
+      {
+        "id": 123,
+        "name": "Persian Modern Rug",
+        "category": "rug",
+        "category_display": "فرش و قالی",
+        "image_url": "https://storage.example.com/products/123.jpg",
+        "match_score": 0.87,
+        "shop_name": "Persian Gallery"
+      },
+      {
+        "id": 456,
+        "name": "Minimalist Area Rug",
+        "category": "rug",
+        "category_display": "فرش و قالی",
+        "image_url": "https://storage.example.com/products/456.jpg",
+        "match_score": 0.82,
+        "shop_name": "Modern Home"
+      }
+    ],
+    "visualizations": [
+      {
+        "product_id": 123,
+        "image_url": "https://storage.example.com/visualizations/abc.jpg",
+        "status": "completed"
+      }
+    ]
+  }
+}
+```
+
+**Response (200 OK - Processing):**
+```json
+{
+  "success": true,
+  "message": "وضعیت جلسه کشف محصول",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "analyzing",
+    "created_at": "2025-01-15T10:30:00Z",
+    "expires_at": "2025-01-16T10:30:00Z"
+  }
+}
+```
+
+**Session Status Values:**
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Session created, waiting for processing |
+| `analyzing` | AI is analyzing the room |
+| `searching` | Searching for matching products |
+| `ready` | Results available |
+| `failed` | Processing failed (check error field) |
+
+**Errors:**
+- `404`: Session not found
+    - Message: "جلسه یافت نشد"
+
+**Notes:**
+- Returns up to 20 matched products ordered by similarity score
+- `room_analysis` includes AI-detected room type, style, colors, and search queries
+- `visualizations` array contains only completed try-on images
+
+---
+
+### GET /api/recommendations/discover/list/
+
+List all discovery sessions for the authenticated user.
+
+**Authentication:** Required (User JWT)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "لیست جلسات کشف محصول",
+  "data": [
+    {
+      "session_id": "550e8400-e29b-41d4-a716-446655440000",
+      "status": "ready",
+      "created_at": "2025-01-15T10:30:00Z",
+      "expires_at": "2025-01-16T10:30:00Z",
+      "is_expired": false,
+      "products_count": 15,
+      "visualizations_count": 2,
+      "room_type": "living_room"
+    }
+  ]
+}
+```
+
+**Notes:**
+- Returns up to 20 most recent sessions
+- `room_type` is extracted from room_analysis if available
+- Sessions are ordered by creation date (newest first)
+
+---
+
+### POST /api/recommendations/discover/{session_id}/visualize/{product_id}/
+
+Request a visualization of a product in the user's room.
+
+**Authentication:** Required (User JWT)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| session_id | UUID | The discovery session ID |
+| product_id | Integer | The product ID to visualize |
+
+**Response (202 Accepted - Processing Started):**
+```json
+{
+  "success": true,
+  "message": "درخواست ایجاد تصویر ثبت شد",
+  "data": {
+    "status": "pending"
+  }
+}
+```
+
+**Response (200 OK - Already Completed):**
+```json
+{
+  "success": true,
+  "message": "تصویر قبلاً ایجاد شده است",
+  "data": {
+    "status": "completed",
+    "image_url": "https://storage.example.com/visualizations/abc123.jpg"
+  }
+}
+```
+
+**Errors:**
+- `400`: Product not in search results
+    - Message: "محصول در نتایج جستجو نیست"
+- `404`: Session not found or not ready
+    - Message: "جلسه یافت نشد یا آماده نیست"
+
+**Notes:**
+- Visualization is asynchronous
+- Deducts 1 credit from the product's shop
+- Each product can only be visualized once per session
+- Poll the session status endpoint to get the visualization image URL
+
+---
+
+### POST /api/recommendations/discover/{session_id}/refine/
+
+Refine search results with a new query or category filter.
+
+**Authentication:** Required (User JWT)
+
+**Path Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| session_id | UUID | The discovery session ID |
+
+**Request Body:**
+```json
+{
+  "query": "red traditional persian rug with medallion design",
+  "categories": ["rug"]
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| query | String | Yes | New search query (max 500 chars) |
+| categories | Array[String] | No | Filter by categories |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "نتایج جستجوی جدید",
+  "data": {
+    "session_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "ready",
+    "search_query": "red traditional persian rug with medallion design",
+    "products": [
+      {
+        "id": 789,
+        "name": "Traditional Red Persian Rug",
+        "category": "rug",
+        "category_display": "فرش و قالی",
+        "image_url": "https://storage.example.com/products/789.jpg",
+        "match_score": 0.91,
+        "shop_name": "Persian Carpets"
+      }
+    ]
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid query or validation error
+    - Message: "درخواست نامعتبر است"
+- `404`: Session not found or not ready
+    - Message: "جلسه یافت نشد یا آماده نیست"
+
+**Notes:**
+- This endpoint updates the session's search results
+- Previous visualizations are preserved
+- Refinement is free (no credit charge)
+- Returns up to 20 matching products
+
+---
+
+## External API Endpoints
+
+The External API enables third-party integrations to use Homa's AI image visualization pipeline. It supports async processing with webhooks for result delivery.
+
+### Authentication Methods
+
+**API Key Management:** Uses Shop JWT Authentication (same as other shop endpoints)
+```
+Authorization: Bearer <shop_access_token>
+```
+
+**Processing API:** Uses API Key Authentication
+```
+Authorization: ApiKey homa_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+### API Key Format
+
+API keys follow the format: `homa_` + 35 random characters (40 chars total)
+- Example: `homa_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r`
+- Keys are shown only once during creation
+- Stored as SHA256 hash for security
+
+### Rate Limiting
+
+Each API key has configurable rate limits:
+- Default: 100 requests/hour, 1000 requests/day
+- Rate limit headers returned on responses:
+    - `X-RateLimit-Limit`: Maximum requests allowed
+    - `X-RateLimit-Remaining`: Requests remaining
+    - `X-RateLimit-Reset`: Unix timestamp when limit resets
+
+### Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `AUTH_001` | 401 | Invalid API key format or not found |
+| `AUTH_002` | 401 | API key has expired |
+| `AUTH_003` | 401 | API key has been revoked |
+| `AUTH_004` | 403 | Request IP not in allowed list |
+| `AUTH_005` | 403 | Shop account is inactive |
+| `RATE_001` | 429 | Hourly rate limit exceeded |
+| `RATE_002` | 429 | Daily rate limit exceeded |
+| `CREDIT_001` | 402 | Shop has insufficient credits |
+| `INPUT_001` | 400 | Product not found or inactive |
+| `INPUT_002` | 400 | Invalid image format |
+| `INPUT_003` | 400 | Image exceeds 10MB limit |
+| `INPUT_004` | 400 | Missing required field |
+| `PROC_001` | 500 | AI processing failed |
+| `TASK_001` | 404 | Task not found |
+| `TASK_002` | 403 | Task belongs to different API key |
+
+---
+
+## API Key Management (Shop JWT Auth)
+
+### GET /api/external/keys/
+
+**Description:** List all API keys for the authenticated shop.
+
+**Authentication:** Required (Shop JWT)
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "API keys retrieved successfully",
+  "data": {
+    "count": 2,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Production API Key",
+        "key_prefix": "homa_a1b",
+        "is_active": true,
+        "rate_limit_per_hour": 100,
+        "rate_limit_per_day": 1000,
+        "webhook_url": "https://example.com/webhook",
+        "total_requests": 1523,
+        "last_used_at": "2025-01-15T14:30:00Z",
+        "expires_at": null,
+        "created_at": "2025-01-01T10:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### POST /api/external/keys/
+
+**Description:** Create a new API key. The full key is returned only once.
+
+**Authentication:** Required (Shop JWT)
+
+**Request Body:**
+```json
+{
+  "name": "Production API Key",
+  "rate_limit_per_hour": 100,
+  "rate_limit_per_day": 1000,
+  "webhook_url": "https://example.com/webhook",
+  "allowed_ips": ["192.168.1.0/24", "10.0.0.1"],
+  "expires_at": "2026-01-01T00:00:00Z"
+}
+```
+
+**Request Fields:**
+- `name`: Human-readable name (required, max 100 chars)
+- `rate_limit_per_hour`: Requests per hour (optional, default: 100)
+- `rate_limit_per_day`: Requests per day (optional, default: 1000)
+- `webhook_url`: Default webhook URL (optional, must be HTTPS)
+- `allowed_ips`: IP whitelist (optional, supports CIDR notation)
+- `expires_at`: Expiration datetime (optional)
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "API key created successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "key": "homa_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r",
+    "key_prefix": "homa_a1b",
+    "name": "Production API Key",
+    "is_active": true,
+    "rate_limit_per_hour": 100,
+    "rate_limit_per_day": 1000,
+    "webhook_url": "https://example.com/webhook",
+    "webhook_secret": "a1b2c3d4e5f6...",
+    "allowed_ips": ["192.168.1.0/24", "10.0.0.1"],
+    "expires_at": "2026-01-01T00:00:00Z",
+    "created_at": "2025-01-15T10:30:00Z"
+  }
+}
+```
+
+**Important:** The `key` field is only returned during creation. Store it securely.
+
+---
+
+### GET /api/external/keys/{key_id}/
+
+**Description:** Get details of a specific API key.
+
+**Authentication:** Required (Shop JWT)
+
+**Path Parameters:**
+- `key_id`: UUID of the API key
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "API key retrieved successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Production API Key",
+    "key_prefix": "homa_a1b",
+    "is_active": true,
+    "rate_limit_per_hour": 100,
+    "rate_limit_per_day": 1000,
+    "webhook_url": "https://example.com/webhook",
+    "allowed_ips": ["192.168.1.0/24"],
+    "total_requests": 1523,
+    "last_used_at": "2025-01-15T14:30:00Z",
+    "expires_at": null,
+    "created_at": "2025-01-01T10:00:00Z"
+  }
+}
+```
+
+---
+
+### PATCH /api/external/keys/{key_id}/
+
+**Description:** Update an API key's settings.
+
+**Authentication:** Required (Shop JWT)
+
+**Path Parameters:**
+- `key_id`: UUID of the API key
+
+**Request Body (all fields optional):**
+```json
+{
+  "name": "Updated Key Name",
+  "rate_limit_per_hour": 200,
+  "rate_limit_per_day": 2000,
+  "webhook_url": "https://new-endpoint.com/webhook",
+  "allowed_ips": ["10.0.0.0/8"],
+  "expires_at": "2027-01-01T00:00:00Z"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "API key updated successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Updated Key Name",
+    "key_prefix": "homa_a1b",
+    "is_active": true,
+    "rate_limit_per_hour": 200,
+    "rate_limit_per_day": 2000,
+    "webhook_url": "https://new-endpoint.com/webhook",
+    "allowed_ips": ["10.0.0.0/8"],
+    "expires_at": "2027-01-01T00:00:00Z",
+    "created_at": "2025-01-01T10:00:00Z"
+  }
+}
+```
+
+---
+
+### POST /api/external/keys/{key_id}/revoke/
+
+**Description:** Revoke an API key (deactivate permanently).
+
+**Authentication:** Required (Shop JWT)
+
+**Path Parameters:**
+- `key_id`: UUID of the API key
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "API key revoked successfully",
+  "data": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Production API Key",
+    "is_active": false,
+    "revoked_at": "2025-01-15T15:00:00Z"
+  }
+}
+```
+
+---
+
+## Processing API (API Key Auth)
+
+### POST /api/external/v1/process/
+
+**Description:** Submit an image for AI processing. Returns task ID for async tracking.
+
+**Authentication:** Required (API Key)
+
+**Request Headers:**
+```
+Authorization: ApiKey homa_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Content-Type: multipart/form-data
+```
+
+**Request Body (multipart/form-data):**
+- `product_unique_link`: Product UUID (required)
+- `customer_image`: Image file (required, JPEG/PNG/WebP, max 10MB)
+- `selected_size`: Size code for rugs (optional)
+- `webhook_url`: Override default webhook URL (optional)
+- `priority`: Task priority 1-10 (optional, default: 5)
+- `idempotency_key`: Client-provided key for deduplication (optional)
+
+**Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "Processing task created successfully",
+  "data": {
+    "task_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "pending",
+    "status_url": "https://api.homa.ir/api/external/v1/status/550e8400-e29b-41d4-a716-446655440000/",
+    "estimated_wait_seconds": 30,
+    "credits_remaining": 99,
+    "webhook_url": "https://example.com/webhook"
+  }
+}
+```
+
+**Errors:**
+- `400`: Invalid input (INPUT_001-004)
+- `401`: Invalid API key (AUTH_001-003)
+- `402`: Insufficient credits (CREDIT_001)
+- `403`: IP not allowed (AUTH_004)
+- `429`: Rate limit exceeded (RATE_001-002)
+
+---
+
+### GET /api/external/v1/status/{task_id}/
+
+**Description:** Check the status of a processing task.
+
+**Authentication:** Required (API Key)
+
+**Path Parameters:**
+- `task_id`: UUID of the processing task
+
+**Response (200 OK - Pending):**
+```json
+{
+  "success": true,
+  "message": "Task status retrieved",
+  "data": {
+    "task_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "pending",
+    "priority": 5,
+    "created_at": "2025-01-15T14:30:00Z",
+    "started_at": null,
+    "completed_at": null,
+    "credits_remaining": 99
+  }
+}
+```
+
+**Response (200 OK - Processing):**
+```json
+{
+  "success": true,
+  "message": "Task status retrieved",
+  "data": {
+    "task_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "processing",
+    "priority": 5,
+    "created_at": "2025-01-15T14:30:00Z",
+    "started_at": "2025-01-15T14:30:05Z",
+    "completed_at": null,
+    "credits_remaining": 99
+  }
+}
+```
+
+**Response (200 OK - Completed):**
+```json
+{
+  "success": true,
+  "message": "Task completed successfully",
+  "data": {
+    "task_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "completed",
+    "priority": 5,
+    "result": {
+      "image_url": "https://cdn.homa.ir/processed/results/uuid.webp",
+      "image_id": 12345
+    },
+    "processing_duration_ms": 25000,
+    "created_at": "2025-01-15T14:30:00Z",
+    "started_at": "2025-01-15T14:30:05Z",
+    "completed_at": "2025-01-15T14:30:30Z",
+    "credits_remaining": 99
+  }
+}
+```
+
+**Response (200 OK - Failed):**
+```json
+{
+  "success": true,
+  "message": "Task failed",
+  "data": {
+    "task_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "failed",
+    "error": {
+      "code": "PROC_001",
+      "message": "AI processing failed"
+    },
+    "created_at": "2025-01-15T14:30:00Z",
+    "started_at": "2025-01-15T14:30:05Z",
+    "completed_at": "2025-01-15T14:30:10Z",
+    "credits_remaining": 100
+  }
+}
+```
+
+**Task Status Values:**
+- `pending`: Waiting in queue
+- `processing`: Currently being processed
+- `completed`: Successfully completed
+- `failed`: Processing failed
+- `cancelled`: Task was cancelled
+
+---
+
+### GET /api/external/v1/tasks/
+
+**Description:** List all processing tasks for the API key.
+
+**Authentication:** Required (API Key)
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
+- `status`: Filter by status (optional)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Tasks retrieved successfully",
+  "data": {
+    "count": 50,
+    "next": "https://api.homa.ir/api/external/v1/tasks/?page=2",
+    "previous": null,
+    "results": [
+      {
+        "task_id": "550e8400-e29b-41d4-a716-446655440000",
+        "status": "completed",
+        "product_unique_link": "abc123",
+        "priority": 5,
+        "processing_duration_ms": 25000,
+        "created_at": "2025-01-15T14:30:00Z"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### GET /api/external/v1/balance/
+
+**Description:** Get shop credit balance and usage statistics.
+
+**Authentication:** Required (API Key)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Balance retrieved successfully",
+  "data": {
+    "credits_remaining": 99,
+    "total_credits_used": 1501,
+    "total_credits_added": 1600,
+    "shop_name": "My Furniture Store"
+  }
+}
+```
+
+---
+
+### GET /api/external/v1/products/
+
+**Description:** List products available for processing.
+
+**Authentication:** Required (API Key)
+
+**Query Parameters:**
+- `page`: Page number (default: 1)
+- `page_size`: Items per page (default: 20, max: 100)
+- `category`: Filter by category (optional)
+- `search`: Search in name/description (optional)
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Products retrieved successfully",
+  "data": {
+    "count": 25,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "unique_link": "550e8400-e29b-41d4-a716-446655440000",
+        "name": "Modern Sofa",
+        "category": 1,
+        "category_display": "Furniture",
+        "price": 5500000,
+        "image_url": "https://cdn.homa.ir/products/uuid.jpg",
+        "available_sizes": null
+      }
+    ]
+  }
+}
+```
+
+---
+
+### GET /api/external/v1/products/{unique_link}/
+
+**Description:** Get detailed product information.
+
+**Authentication:** Required (API Key)
+
+**Path Parameters:**
+- `unique_link`: Product UUID
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Product retrieved successfully",
+  "data": {
+    "unique_link": "550e8400-e29b-41d4-a716-446655440000",
+    "name": "Modern Sofa",
+    "description": "Comfortable modern sofa for living room",
+    "category": 1,
+    "category_display": "Furniture",
+    "price": 5500000,
+    "image_url": "https://cdn.homa.ir/products/uuid.jpg",
+    "available_sizes": null,
+    "extra_details": {
+      "material": "Leather",
+      "color": "Gray"
+    }
+  }
+}
+```
+
+---
+
+### Webhook Payload
+
+When a task completes (success or failure), a webhook is sent to the configured URL.
+
+**Headers:**
+```
+Content-Type: application/json
+X-Homa-Signature: sha256=<hmac_signature>
+X-Homa-Event: processing.completed
+X-Homa-Delivery-ID: <uuid>
+```
+
+**Payload (Success):**
+```json
+{
+  "event": "processing.completed",
+  "task_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "completed",
+  "result": {
+    "image_url": "https://cdn.homa.ir/processed/results/uuid.webp",
+    "image_id": 12345
+  },
+  "product_unique_link": "abc123",
+  "processing_duration_ms": 25000,
+  "timestamp": "2025-01-15T14:30:30Z"
+}
+```
+
+**Payload (Failure):**
+```json
+{
+  "event": "processing.failed",
+  "task_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "failed",
+  "error": {
+    "code": "PROC_001",
+    "message": "AI processing failed"
+  },
+  "product_unique_link": "abc123",
+  "timestamp": "2025-01-15T14:30:10Z"
+}
+```
+
+**Signature Verification:**
+```python
+import hmac
+import hashlib
+
+def verify_signature(payload, signature, secret):
+    expected = 'sha256=' + hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+```
+
+**Retry Policy:**
+- Max 5 delivery attempts
+- Exponential backoff: 30s, 1m, 2m, 4m, 8m (capped at 1 hour)
+- Success: HTTP 2xx response
+- Timeout: 30 seconds per attempt
 
 ---
 

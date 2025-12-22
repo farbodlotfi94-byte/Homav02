@@ -61,6 +61,8 @@ The app follows a multi-step flow controlled by `currentStep` state in `src/App.
 /                                    → Shop selection (root)
 /:shopName                           → Product listing for a shop
 /:shopName/product/:uniqueLink       → Product detail page
+/discovery                           → Discovery upload page (SEO-friendly)
+/discovery/results                   → Discovery results page (shareable)
 /seller                              → Seller dashboard (lazy-loaded)
 /admin                               → Admin dashboard (lazy-loaded)
 /about-us                            → About page (SEO)
@@ -70,6 +72,80 @@ The app follows a multi-step flow controlled by `currentStep` state in `src/App.
 - Uses shop display name (not username) for user-friendly URLs
 - Backend UUID `unique_link` for product identification
 - Path parsing with `parseShopAndProductFromPath()` utility in `productLoader.ts`
+
+### Navigation Architecture (Routes vs State)
+
+**CRITICAL**: When asked to create a new "page", "flow", or "feature", you MUST decide whether it needs a URL route or component state. This decision impacts SEO, shareability, and user experience.
+
+#### When to Create a URL Route (Page)
+Create a new URL route when **ANY** of these apply:
+1. **SEO Value**: Content should be indexed by search engines
+2. **Shareability**: Users should be able to copy/paste the URL to share
+3. **Bookmarkability**: Users might want to return to this exact state
+4. **Refresh Resilience**: State should persist after browser refresh
+5. **Direct Entry**: Users might navigate here directly (not just through the flow)
+6. **Distinct Destination**: It represents a "place" in the app (noun: "the upload page", "the results page")
+
+#### When to Use State-Based Transitions
+Keep as component state when **ALL** of these apply:
+1. **Transient**: The state is temporary (loading, processing, validating)
+2. **Contextual**: It only makes sense within the current page context
+3. **Non-shareable**: Sharing this state would be meaningless or confusing
+4. **Ephemeral**: It shouldn't survive a page refresh
+5. **Modal/Overlay**: It's a layer on top of the current page, not a new destination
+
+#### Decision Flowchart
+```
+Is this a distinct destination users might share or bookmark?
+├── YES → Create a URL route
+└── NO → Is this a transient/processing state?
+    ├── YES → Use component state
+    └── NO → Is this a modal/overlay?
+        ├── YES → Use component state (optionally with query param)
+        └── NO → Probably needs a URL route
+```
+
+#### Examples
+
+**Create URL Route:**
+- "Add a page where users see their visualization result" → `/:shop/product/:id/result/:processId`
+- "Add a discovery flow for finding products" → `/discovery`
+- "Add a user profile page" → `/profile`
+- "Add an upload page" → `/:shop/product/:id/try`
+
+**Use Component State:**
+- "Add a loading spinner while fetching data" → State
+- "Add OTP verification modal" → State (modal overlay)
+- "Add upload progress indicator" → State
+- "Add error message when API fails" → State
+- "Add success animation after upload" → State
+
+#### Current Step Classification
+
+| Step | Classification | Rationale |
+|------|---------------|-----------|
+| loading | State | Transient loading indicator |
+| shop-selection | Route (`/`) | SEO, shareable, destination |
+| product-selection | Route (`/:shopName`) | SEO, shareable, destination |
+| product-landing | Route (`/:shopName/product/:id`) | SEO, shareable, destination |
+| product-fallback | State | Contextual error within product page |
+| user-auth | State | Modal overlay |
+| upload | **Should be Route** | Shareable entry point → `/:shop/product/:id/try` |
+| precheck | State | Transient validation |
+| staged-upload | State | Transient progress |
+| confirmation | State | Transient success animation |
+| visualization | **Should be Route** | Shareable result → `/:shop/product/:id/result/:processId` |
+| feedback | State | Modal overlay |
+| error | State | Contextual error display |
+| discovery | Route (`/discovery`) | SEO, shareable, destination |
+| discovery-processing | State | Transient processing modal |
+| discovery-results | Route (`/discovery/results`) | Shareable results page |
+
+#### URL Parameter Patterns
+- Use **path params** for resource identification: `/:shopName/product/:uniqueLink`
+- Use **query params** for filters/options: `/products?category=sofa`
+- Use **query params** for optional modal triggers: `/product/123?auth=true`
+- Use **path params** for shareable states: `/product/123/result/abc123`
 
 ### Backend API Integration
 
