@@ -54,7 +54,7 @@ export function DiscoveryProcessing({
 
   return (
     <div
-      className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center p-6"
+      className="fixed inset-0 z-50 bg-[#F2F2F7] flex flex-col items-center justify-center p-6"
       dir="rtl"
     >
       <div className="max-w-md w-full text-center">
@@ -65,17 +65,15 @@ export function DiscoveryProcessing({
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="relative w-[120px] h-[120px] mx-auto mb-8"
         >
-          {/* Spinner Ring */}
+          {/* Spinner Ring - Smooth conic gradient spinner */}
           <div
-            className="
-              absolute inset-0
-              w-full h-full
-              border-4 border-gray-200
-              border-t-[#0088FF]
-              rounded-full
-              animate-spin
-            "
-            style={{ animationDuration: "1s" }}
+            className="absolute inset-0 w-full h-full rounded-full"
+            style={{
+              background: 'conic-gradient(from 0deg, transparent 0%, #0088FF 50%, transparent 100%)',
+              mask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px))',
+              animation: 'spin 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+            }}
           />
 
           {/* Brain Icon */}
