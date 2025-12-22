@@ -1,19 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
-import type { User } from "../types/auth";
-import svgPaths from "../imports/svg-m4kfj8jpfi";
+import { SuccessIcon, ProcessingIcon } from "./ui/icons";
+// Note: Auth/navigation available via useApp() hook from "../contexts" if needed
 
 interface StagedUploadProps {
   file: File;
   onComplete: () => void;
   onError: (error: string) => void;
-  isAuthenticated?: boolean;
-  user?: User | null;
-  onLogin?: () => void;
-  onLogout?: () => void;
-  onAboutClick?: () => void;
-  onSellerDashboard?: () => void;
 }
 
 type Stage = {
@@ -23,66 +17,10 @@ type Stage = {
   status: "pending" | "active" | "complete" | "error";
 };
 
-// Success Icon - Checkmark Circle
-function SuccessIcon() {
-  return (
-    <svg className="block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-      <g clipPath="url(#clip0_success)" id="Icon">
-        <path 
-          d={svgPaths.p3337cc00} 
-          id="Vector" 
-          stroke="white" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth="2.08159" 
-        />
-        <path 
-          d={svgPaths.p24c9c740} 
-          id="Vector_2" 
-          stroke="white" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth="2.08159" 
-        />
-      </g>
-      <defs>
-        <clipPath id="clip0_success">
-          <rect fill="white" height="19.9832" width="19.9832" />
-        </clipPath>
-      </defs>
-    </svg>
-  );
-}
-
-// Processing Icon - Spinner
-function ProcessingIcon() {
-  return (
-    <svg className="block size-full animate-spin" fill="none" preserveAspectRatio="none" viewBox="0 0 20 20">
-      <g id="Icon">
-        <path 
-          d={svgPaths.p3337cc00} 
-          id="Vector" 
-          stroke="white" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-          strokeWidth="2.08159" 
-          strokeDasharray="50 50"
-        />
-      </g>
-    </svg>
-  );
-}
-
 export function StagedUpload({
   file,
   onComplete,
   onError,
-  isAuthenticated,
-  user,
-  onLogin,
-  onLogout,
-  onAboutClick,
-  onSellerDashboard
 }: StagedUploadProps) {
   const [stages, setStages] = useState<Stage[]>([
     { id: 1, label: "بارگذاری فایل", progress: 0, status: "active" },

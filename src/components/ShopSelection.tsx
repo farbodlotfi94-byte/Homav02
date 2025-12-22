@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "./ui/button";
 import { ShopSearchBar } from "./ShopSearchBar";
 import { ShopCard, ShopCardSkeleton } from "./ShopCard";
+// import { DiscoveryBanner } from "./DiscoveryBanner"; // Temporarily hidden
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
@@ -12,6 +13,7 @@ import type { Shop, ShopListResponse } from "../types/shop";
 
 interface ShopSelectionProps {
   onShopSelect: (shopDisplayName: string) => void;
+  onDiscoveryStart?: () => void;
 }
 
 /**
@@ -25,7 +27,7 @@ interface ShopSelectionProps {
  * - Empty state with friendly message
  * - Shops with 0 products show toast on click
  */
-export function ShopSelection({ onShopSelect }: ShopSelectionProps) {
+export function ShopSelection({ onShopSelect, onDiscoveryStart }: ShopSelectionProps) {
   const shouldAnimate = useAnimationPreference();
 
   // State
@@ -246,6 +248,18 @@ export function ShopSelection({ onShopSelect }: ShopSelectionProps) {
             )}
           </motion.div>
         )}
+
+        {/* Discovery Banner - Shop-wide discovery */}
+        {/* Temporarily hidden - uncomment when ready to show discovery feature
+        {!loading && !error && shops.length > 0 && onDiscoveryStart && (
+          <div className="mb-6">
+            <DiscoveryBanner
+              variant="shop"
+              onDiscoveryStart={onDiscoveryStart}
+            />
+          </div>
+        )}
+        */}
 
         {/* Shop grid */}
         {!error && shops.length > 0 && (

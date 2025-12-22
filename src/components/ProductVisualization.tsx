@@ -5,9 +5,9 @@ import { Download, RotateCcw, AlertTriangle, Store, Check, X, Ruler } from "luci
 import { ProductChip } from "./ProductChip";
 import { isMobileDevice } from "../utils/deviceDetection";
 import type { Product } from "../types/product";
-import type { User } from "../types/auth";
 import { RUG_CATEGORY_ID } from "../constants/rugSizes";
 import roomImage from "figma:asset/2dcfa98ed64c38bd654f16130835649de4da1a8f.png";
+// Note: Auth/navigation available via useApp() hook from "../contexts" if needed
 
 interface ProductVisualizationProps {
   product: Product;
@@ -25,12 +25,6 @@ interface ProductVisualizationProps {
   onPurchase: () => void;
   onBackToStore: () => void;
   onBack?: () => void;
-  isAuthenticated?: boolean;
-  user?: User | null;
-  onLogin?: () => void;
-  onLogout?: () => void;
-  onAboutClick?: () => void;
-  onSellerDashboard?: () => void;
   onChangeSize?: () => void; // Callback to change rug size (for rug products with multiple sizes)
 }
 
@@ -66,13 +60,7 @@ export function ProductVisualization({
   onPurchase,
   onBackToStore,
   onBack,
-  isAuthenticated,
-  user,
-  onLogin,
-  onLogout,
-  onAboutClick,
-  onSellerDashboard,
-  onChangeSize
+  onChangeSize,
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = isMobileDevice();

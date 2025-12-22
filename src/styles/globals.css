@@ -320,219 +320,219 @@ html {
 /* Responsive display utilities */
 @media (min-width: 768px) {
     .md\:block {
-      display: block !important;
+      display: block;
     }
     .md\:hidden {
-      display: none !important;
+      display: none;
     }
     .md\:flex {
-      display: flex !important;
+      display: flex;
     }
     .md\:flex-row {
-      flex-direction: row !important;
+      flex-direction: row;
     }
     .md\:w-64 {
-      width: 16rem !important;
+      width: 16rem;
     }
     .md\:max-w-2xl {
-      max-width: 42rem !important;
+      max-width: 42rem;
     }
     .md\:max-w-4xl {
-      max-width: 56rem !important;
+      max-width: 56rem;
     }
     .md\:max-w-xl {
-      max-width: 36rem !important;
+      max-width: 36rem;
     }
     .md\:w-\[400px\] {
-      width: 400px !important;
+      width: 400px;
     }
     .md\:pt-6 {
-      padding-top: 1.5rem !important;
+      padding-top: 1.5rem;
     }
     .md\:pt-8 {
-      padding-top: 2rem !important;
+      padding-top: 2rem;
     }
     .md\:py-10 {
-      padding-top: 2.5rem !important;
-      padding-bottom: 2.5rem !important;
+      padding-top: 2.5rem;
+      padding-bottom: 2.5rem;
     }
     .md\:px-8 {
-      padding-left: 2rem !important;
-      padding-right: 2rem !important;
+      padding-left: 2rem;
+      padding-right: 2rem;
     }
     .md\:min-h-0 {
-      min-height: 0 !important;
+      min-height: 0;
     }
     .md\:h-auto {
-      height: auto !important;
+      height: auto;
     }
     .md\:static {
-      position: static !important;
+      position: static;
     }
     .md\:z-auto {
-      z-index: auto !important;
+      z-index: auto;
     }
     .md\:translate-x-0 {
-      transform: translateX(0) !important;
+      transform: translateX(0);
     }
     .md\:h-screen {
-      height: 100vh !important;
+      height: 100vh;
     }
     .md\:sticky {
-      position: sticky !important;
+      position: sticky;
     }
     .md\:top-0 {
-      top: 0 !important;
+      top: 0;
     }
   }
 
   @media (min-width: 1024px) {
     .lg\:block {
-      display: block !important;
+      display: block;
     }
     .lg\:hidden {
-      display: none !important;
+      display: none;
     }
     .lg\:flex {
-      display: flex !important;
+      display: flex;
     }
     .lg\:static {
-      position: static !important;
+      position: static;
     }
     .lg\:w-1\/2 {
-      width: 50% !important;
+      width: 50%;
     }
     .lg\:w-2\/5 {
-      width: 40% !important;
+      width: 40%;
     }
     .lg\:w-3\/5 {
-      width: 60% !important;
+      width: 60%;
     }
     .lg\:w-\[480px\] {
-      width: 480px !important;
+      width: 480px;
     }
     .lg\:gap-8 {
-      gap: 2rem !important;
+      gap: 2rem;
     }
     .lg\:items-start {
-      align-items: flex-start !important;
+      align-items: flex-start;
     }
     .lg\:sticky {
-      position: sticky !important;
+      position: sticky;
     }
     .lg\:top-6 {
-      top: 1.5rem !important;
+      top: 1.5rem;
     }
     .lg\:aspect-square {
-      aspect-ratio: 1 / 1 !important;
+      aspect-ratio: 1 / 1;
     }
     .lg\:mt-0 {
-      margin-top: 0 !important;
+      margin-top: 0;
     }
     .lg\:mt-8 {
-      margin-top: 2rem !important;
+      margin-top: 2rem;
     }
     .lg\:mb-0 {
-      margin-bottom: 0 !important;
+      margin-bottom: 0;
     }
     .lg\:pb-8 {
-      padding-bottom: 2rem !important;
+      padding-bottom: 2rem;
     }
     .lg\:max-w-3xl {
-      max-width: 48rem !important;
+      max-width: 48rem;
     }
     .lg\:max-w-4xl {
-      max-width: 56rem !important;
+      max-width: 56rem;
     }
     .lg\:max-w-5xl {
-      max-width: 64rem !important;
+      max-width: 64rem;
     }
     .lg\:max-w-6xl {
-      max-width: 72rem !important;
+      max-width: 72rem;
     }
     .lg\:grid-cols-3 {
-      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
     .lg\:gap-6 {
-      gap: 1.5rem !important;
+      gap: 1.5rem;
     }
   }
 
   /* sm breakpoint utilities */
   @media (min-width: 640px) {
     .sm\:max-w-md {
-      max-width: 28rem !important;
+      max-width: 28rem;
     }
     .sm\:max-w-lg {
-      max-width: 32rem !important;
+      max-width: 32rem;
     }
     .sm\:grid-cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .sm\:gap-5 {
-      gap: 1.25rem !important;
+      gap: 1.25rem;
     }
     .sm\:px-6 {
-      padding-left: 1.5rem !important;
-      padding-right: 1.5rem !important;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
     }
     .sm\:px-10 {
-      padding-left: 2.5rem !important;
-      padding-right: 2.5rem !important;
+      padding-left: 2.5rem;
+      padding-right: 2.5rem;
     }
     .sm\:py-10 {
-      padding-top: 2.5rem !important;
-      padding-bottom: 2.5rem !important;
+      padding-top: 2.5rem;
+      padding-bottom: 2.5rem;
     }
     .sm\:h-16 {
-      height: 4rem !important;
+      height: 4rem;
     }
     .sm\:w-10 {
-      width: 2.5rem !important;
+      width: 2.5rem;
     }
     .sm\:h-10 {
-      height: 2.5rem !important;
+      height: 2.5rem;
     }
     .sm\:w-28 {
-      width: 7rem !important;
+      width: 7rem;
     }
     .sm\:h-28 {
-      height: 7rem !important;
+      height: 7rem;
     }
     .md\:w-32 {
-      width: 8rem !important;
+      width: 8rem;
     }
     .md\:h-32 {
-      height: 8rem !important;
+      height: 8rem;
     }
     /* Modal/Dialog centering utilities */
     .sm\:inset-auto {
-      inset: auto !important;
+      inset: auto;
     }
     .sm\:top-1\/2 {
-      top: 50% !important;
+      top: 50%;
     }
     .sm\:left-1\/2 {
-      left: 50% !important;
+      left: 50%;
     }
     .sm\:-translate-x-1\/2 {
-      --tw-translate-x: -50% !important;
+      --tw-translate-x: -50%;
     }
     .sm\:-translate-y-1\/2 {
-      --tw-translate-y: -50% !important;
+      --tw-translate-y: -50%;
     }
     /* Combined transform for elements using both translate classes */
     .sm\:-translate-x-1\/2.sm\:-translate-y-1\/2 {
-      translate: -50% -50% !important;
+      translate: -50% -50%;
     }
     .sm\:rounded-2xl {
-      border-radius: 1rem !important;
+      border-radius: 1rem;
     }
     .sm\:h-\[90vh\] {
-      height: 90vh !important;
+      height: 90vh;
     }
     .sm\:max-h-\[700px\] {
-      max-height: 700px !important;
+      max-height: 700px;
     }
 }
 
@@ -543,19 +543,19 @@ html {
   width: 100%;
   height: 100dvh;
   border-radius: 0;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Desktop (sm+): Centered modal */
 @media (min-width: 640px) {
   .upload-guidance-modal {
-    inset: auto !important;
-    top: 50% !important;
-    left: 50% !important;
-    right: auto !important;
-    transform: translate(-50%, -50%) !important;
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
     width: 100%;
     max-width: 28rem; /* max-w-md */
     height: auto;
@@ -566,46 +566,46 @@ html {
 
 /* Header section - fixed height, never shrink */
 .upload-guidance-modal > div:first-child {
-  flex-shrink: 0 !important;
+  flex-shrink: 0;
 }
 
 /* Content area - fills remaining space with proper overflow */
 .upload-guidance-modal > div:nth-child(2) {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Image container inside content area */
 .upload-guidance-modal > div:nth-child(2) > div:last-child {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Image wrapper - constrain to available space */
 .upload-guidance-modal > div:nth-child(2) > div:last-child > div:first-child {
-  flex: 1 1 auto !important;
-  min-height: 0 !important;
-  max-height: 100% !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
 }
 
 /* Caption - fixed height */
 .upload-guidance-modal > div:nth-child(2) > div:last-child > div:last-child {
-  flex-shrink: 0 !important;
+  flex-shrink: 0;
 }
 
 /* Footer button section - always visible */
 .upload-guidance-modal > div:last-child {
-  flex-shrink: 0 !important;
+  flex-shrink: 0;
 }
 
 /* Mobile: Limit image section height to leave room for button */
 @media (max-width: 639px) {
   .upload-guidance-modal > div:nth-child(2) > div:last-child {
-    max-height: calc(100dvh - 180px) !important; /* Reserve space for header, title, footer */
+    max-height: calc(100dvh - 180px); /* Reserve space for header, title, footer */
   }
 }
 

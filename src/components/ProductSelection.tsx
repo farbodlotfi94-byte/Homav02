@@ -5,31 +5,22 @@ import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
 import type { BackendProduct, PaginatedResponse } from "../types/product";
-import type { User } from "../types/auth";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+// import { DiscoveryBanner } from "./DiscoveryBanner"; // Temporarily hidden
+// Note: Auth/navigation available via useApp() hook from "../contexts" if needed
 
 interface ProductSelectionProps {
   onProductSelect: (productId: string, uniqueLink: string, productData?: BackendProduct) => void;
   onBack?: () => void;
-  isAuthenticated?: boolean;
-  user?: User | null;
-  onLogin?: () => void;
-  onLogout?: () => void;
-  onAboutClick?: () => void;
-  onSellerDashboard?: () => void;
   shopName?: string | null; // Shop display name (used for both display and API - backend accepts shop_name)
+  onDiscoveryStart?: () => void;
 }
 
 export function ProductSelection({
   onProductSelect,
   onBack,
-  isAuthenticated,
-  user,
-  onLogin,
-  onLogout,
-  onAboutClick,
-  onSellerDashboard,
-  shopName
+  shopName,
+  onDiscoveryStart
 }: ProductSelectionProps) {
   const shouldAnimate = useAnimationPreference();
   const [products, setProducts] = useState<BackendProduct[]>([]);
@@ -210,6 +201,19 @@ export function ProductSelection({
                 : 'عکسی از فضای خود آپلود کنید و ببینید محصولات چطور در خانه‌تان به نظر می‌رسند'}
             </p>
           </motion.div>
+
+          {/* Discovery Banner - Shop-specific discovery */}
+          {/* Temporarily hidden - uncomment when ready to show discovery feature
+          {onDiscoveryStart && products.length > 0 && (
+            <div className="mb-6">
+              <DiscoveryBanner
+                variant="product"
+                shopName={shopName || undefined}
+                onDiscoveryStart={onDiscoveryStart}
+              />
+            </div>
+          )}
+          */}
 
           {/* Products Grid */}
           <motion.div

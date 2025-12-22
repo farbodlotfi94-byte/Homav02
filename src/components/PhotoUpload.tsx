@@ -12,33 +12,21 @@ import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
 import { Upload, Camera } from "lucide-react";
 import { UploadGuidanceModal } from "./UploadGuidanceModal";
-import type { User } from "../types/auth";
 import type { Product } from "../types/product";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
+// Note: Auth/navigation available via useApp() hook from "../contexts" if needed
 // import { optimizeImage } from "../utils/imageOptimizer";
 
 interface PhotoUploadProps {
   onUploadComplete: (file: File) => void;
   onBack: () => void;
   product?: Product | null;
-  isAuthenticated?: boolean;
-  user?: User | null;
-  onLogin?: () => void;
-  onLogout?: () => void;
-  onAboutClick?: () => void;
-  onSellerDashboard?: () => void;
 }
 
 export function PhotoUpload({
   onUploadComplete,
   onBack,
   product,
-  isAuthenticated,
-  user,
-  onLogin,
-  onLogout,
-  onAboutClick,
-  onSellerDashboard
 }: PhotoUploadProps) {
   // Categories that require guidance (numeric strings from backend)
   // '2' = Carpet/Rug (فرش و قالی), '3' = Bedcover (روتختی)

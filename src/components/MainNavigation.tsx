@@ -3,14 +3,19 @@
  *
  * Shows on md+ breakpoints, hidden on mobile (Header shows instead)
  * Follows the same pattern as seller dashboard's SellerNavigation
+ *
+ * Uses AppContext for auth state and navigation handlers.
+ * Falls back to props if context is not available (for backward compatibility).
  */
 
 import { Home, Info, Store, LogIn, LogOut, User as UserIcon } from "lucide-react";
 import { Logo } from "./Logo";
 import { formatPhoneForDisplay } from "../utils/phoneValidator";
+import { useAppOptional } from "../contexts";
 import type { User } from "../types/auth";
 
 interface MainNavigationProps {
+  // These props are optional - will use context if available
   isAuthenticated?: boolean;
   user?: User | null;
   onLogin?: () => void;
@@ -21,14 +26,23 @@ interface MainNavigationProps {
 }
 
 export function MainNavigation({
-  isAuthenticated = false,
-  user = null,
-  onLogin,
-  onLogout,
-  onAboutClick,
-  onSellerDashboard,
+  isAuthenticated: propIsAuthenticated,
+  user: propUser,
+  onLogin: propOnLogin,
+  onLogout: propOnLogout,
+  onAboutClick: propOnAboutClick,
+  onSellerDashboard: propOnSellerDashboard,
   onHomeClick,
 }: MainNavigationProps) {
+  // Use context if available, fall back to props
+  const appContext = useAppOptional();
+
+  const isAuthenticated = appContext?.isAuthenticated ?? propIsAuthenticated ?? false;
+  const user = appContext?.user ?? propUser ?? null;
+  const onLogin = appContext?.onLogin ?? propOnLogin;
+  const onLogout = appContext?.onLogout ?? propOnLogout;
+  const onAboutClick = appContext?.onAboutClick ?? propOnAboutClick;
+  const onSellerDashboard = appContext?.onSellerDashboard ?? propOnSellerDashboard;
   const navItems = [
     { id: "home", label: "خانه", icon: Home, onClick: onHomeClick },
     { id: "about", label: "درباره ما", icon: Info, onClick: onAboutClick },

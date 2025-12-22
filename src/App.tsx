@@ -12,6 +12,10 @@ import { ErrorRecovery } from "./components/ErrorRecovery";
 import { OTPLogin } from "./components/OTPLogin";
 import { AboutUsPage } from "./components/AboutUsPage";
 import { MainNavigation } from "./components/MainNavigation";
+import { DiscoveryUpload } from "./components/DiscoveryUpload";
+import { DiscoveryProcessing } from "./components/DiscoveryProcessing";
+import { DiscoveryResults } from "./components/DiscoveryResults";
+import { DiscoveryResultsWrapper } from "./components/DiscoveryResultsWrapper";
 import { AnimatePresence, motion } from "motion/react";
 import { toast, Toaster } from "sonner";
 import { Menu, ChevronRight } from "lucide-react";
@@ -51,6 +55,15 @@ const FeedbackLoadingFallback = () => (
 );
 import type { Product } from "./types/product";
 import type { User, AuthData } from "./types/auth";
+import { AppProvider, type AppContextType } from "./contexts";
+import type {
+  DiscoveryRequest,
+  DiscoveryResult,
+  DiscoveryContext,
+  ProcessingStep,
+  ProductRecommendation,
+} from "./types/discovery";
+import { processDiscoveryImage, cancelDiscoveryRequest } from "./utils/discoveryProcessor";
 import { userAuthService } from "./services/userAuthService";
 import { submitVote } from "./services/api";
 import {
@@ -87,14 +100,15 @@ type Step =
   | "product-selection" // Product selection from list (within a shop)
   | "product-landing" // Product-aware landing with CTA
   | "product-fallback" // Invalid/unavailable product
-  | "user-auth" // User authentication (login/register) - NEW
+  | "user-auth" // User authentication (login/register)
   | "upload" // File picker/camera
   | "precheck" // Quality validation
   | "staged-upload" // 3-stage upload progress
   | "confirmation" // Upload success
   | "visualization" // Product visualization preview
   | "feedback" // Feedback survey between action and execution
-  | "error"; // Error recovery
+  | "error" // Error recovery
+  | "discovery-processing"; // Discovery: AI processing modal (transient state)
 
 type ErrorType = "network" | "timeout" | "server" | "unknown" | "old_url" | "invalid_shop";
 type FallbackReason =
@@ -179,6 +193,12 @@ export default function App() {
   // Mobile sidebar state
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
+  // Discovery Flow state
+  const [discoveryRequest, setDiscoveryRequest] = useState<DiscoveryRequest | null>(null);
+  const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResult | null>(null);
+  const [discoveryProcessingStep, setDiscoveryProcessingStep] = useState<ProcessingStep>("upload");
+  const [discoveryContext, setDiscoveryContext] = useState<DiscoveryContext | null>(null);
+
   // Rate limit countdown with auto-clear on expiry
   const rateLimitCountdown = useCountdown(rateLimitExpiry, () => {
     console.log('[App] Rate limit expired, clearing state');
@@ -216,7 +236,7 @@ export default function App() {
       // Skip initialization for reserved routes (handled by React Router)
       // These routes have their own components and don't need main app initialization
       const pathname = window.location.pathname;
-      const reservedRoutes = ['/seller', '/admin', '/health', '/about-us'];
+      const reservedRoutes = ['/seller', '/admin', '/health', '/about-us', '/discovery'];
       if (reservedRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
         console.log("[App] Reserved route detected, skipping initialization:", pathname);
         return;
@@ -369,7 +389,7 @@ export default function App() {
 
       // Skip for reserved routes (handled by React Router)
       const pathname = window.location.pathname;
-      const reservedRoutes = ['/seller', '/admin', '/health', '/about-us'];
+      const reservedRoutes = ['/seller', '/admin', '/health', '/about-us', '/discovery'];
       if (reservedRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))) {
         console.log("[App] Reserved route, skipping popstate handling:", pathname);
         return;
@@ -1368,17 +1388,218 @@ export default function App() {
       errorType,
       productId: product?.id,
     });
-    
+
     // For old_url and invalid_shop errors, redirect to root
     if (errorType === "old_url" || errorType === "invalid_shop") {
       navigate("/");
       return;
     }
-    
+
     setSelectedFile(null);
     setProcessedImageId(null); // Clear processed image_id on error cancel
     setApiStatus('idle');
     setCurrentStep("product-landing");
+  };
+
+  // ============================================
+  // Discovery Flow Handlers
+  // ============================================
+
+  // Start Discovery Flow (from banner click)
+  const handleDiscoveryStart = (context?: DiscoveryContext) => {
+    trackKPI("Discovery Started", {
+      source: context?.shopId ? "product_selection" : "shop_selection",
+      shopId: context?.shopId,
+      shopName: context?.shopName,
+    });
+
+    console.log("[App] Discovery flow started:", context);
+    setDiscoveryContext(context || null);
+    setDiscoveryResult(null);
+    setDiscoveryProcessingStep("upload");
+    // Navigate to discovery page (SEO-friendly route)
+    navigate("/discovery");
+  };
+
+  // Handle Discovery Upload (user uploads photo with preferences)
+  const handleDiscoveryUpload = async (request: DiscoveryRequest) => {
+    trackKPI("Discovery Upload", {
+      hasRoomType: !!request.roomType,
+      hasStyle: !!request.style,
+      shopId: discoveryContext?.shopId,
+    });
+
+    console.log("[App] Discovery upload:", {
+      roomType: request.roomType,
+      style: request.style,
+      fileSize: request.image.size,
+    });
+
+    setDiscoveryRequest(request);
+    setDiscoveryProcessingStep("upload");
+    // Show processing modal (stays as state - transient)
+    setCurrentStep("discovery-processing");
+
+    // Start API processing with real progress callbacks
+    try {
+      // Progress callback that updates UI based on real API status
+      const onProgress = (step: ProcessingStep, _progress: number) => {
+        setDiscoveryProcessingStep(step);
+      };
+
+      // Call the API with progress callback
+      const result = await processDiscoveryImage(request, onProgress);
+
+      if (result.success && result.result) {
+        console.log("[App] Discovery processing complete:", result.result);
+        setDiscoveryResult(result.result);
+        // Navigate to results page with sessionId (SEO-friendly, shareable route)
+        navigate(`/discovery/results/${result.result.sessionId}`);
+
+        trackKPI("Discovery Complete", {
+          recommendationCount: result.result.recommendations.length,
+          hasProcessedImage: !!result.result.processedImageUrl,
+          sessionId: result.result.sessionId,
+          shopId: discoveryContext?.shopId,
+        });
+      } else {
+        console.error("[App] Discovery processing failed:", result.error);
+
+        // Handle authentication required
+        if (result.requiresLogin) {
+          toast.error("لطفاً ابتدا وارد شوید");
+          // Could trigger login modal here if needed
+        } else if (result.isRateLimited) {
+          toast.error(result.error || "محدودیت تعداد درخواست رسیده است");
+        } else {
+          toast.error(result.error || "خطا در پردازش تصویر");
+        }
+        navigate("/discovery");
+      }
+    } catch (error) {
+      console.error("[App] Discovery processing error:", error);
+      toast.error("خطا در پردازش تصویر. لطفاً دوباره تلاش کنید.");
+      navigate("/discovery");
+    }
+  };
+
+  // Handle Discovery Cancel (during processing)
+  const handleDiscoveryCancel = () => {
+    trackKPI("Discovery Cancelled", {
+      step: discoveryProcessingStep,
+      shopId: discoveryContext?.shopId,
+    });
+
+    console.log("[App] Discovery cancelled at step:", discoveryProcessingStep);
+
+    // Cancel the ongoing API request
+    cancelDiscoveryRequest();
+
+    setDiscoveryRequest(null);
+    setDiscoveryResult(null);
+    setDiscoveryProcessingStep("upload");
+    // Navigate back to discovery upload page
+    navigate("/discovery");
+  };
+
+  // Handle Discovery Product Click (view product details)
+  const handleDiscoveryProductClick = async (recommendation: ProductRecommendation) => {
+    trackKPI("Discovery Product Click", {
+      productId: recommendation.id,
+      productName: recommendation.name,
+      matchScore: recommendation.matchScore,
+      shopId: recommendation.shopId,
+    });
+
+    console.log("[App] Discovery product clicked:", recommendation);
+
+    // Navigate to product page
+    navigate(
+      `/${encodeURIComponent(recommendation.shopName)}/product/${recommendation.uniqueLink}`
+    );
+  };
+
+  // Handle Discovery Share
+  const handleDiscoveryShare = async () => {
+    // Use processed image if available, otherwise use original
+    const imageUrl = discoveryResult?.processedImageUrl || discoveryResult?.originalImageUrl;
+    if (!imageUrl) return;
+
+    trackKPI("Discovery Share", {
+      shopId: discoveryContext?.shopId,
+    });
+
+    const isMobile = isMobileDevice();
+    const canShare = isWebShareSupported();
+
+    if (isMobile && canShare) {
+      try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], "homa-discovery.jpg", { type: "image/jpeg" });
+
+        await navigator.share({
+          files: [file],
+          title: "HOMA - پیشنهادات هوش مصنوعی",
+          text: "تصویر طراحی شده با HOMA",
+        });
+      } catch (error: any) {
+        if (error.name !== "AbortError") {
+          console.error("[App] Share failed:", error);
+          toast.error("خطا در اشتراک‌گذاری");
+        }
+      }
+    } else {
+      // Fallback: copy URL to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("لینک کپی شد");
+      } catch {
+        toast.error("خطا در کپی لینک");
+      }
+    }
+  };
+
+  // Handle Discovery Save
+  const handleDiscoverySave = async () => {
+    // Use processed image if available, otherwise use original
+    const imageUrl = discoveryResult?.processedImageUrl || discoveryResult?.originalImageUrl;
+    if (!imageUrl) return;
+
+    trackKPI("Discovery Save", {
+      shopId: discoveryContext?.shopId,
+    });
+
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      const isMobile = isMobileDevice();
+      const canShare = isWebShareSupported() && canShareFiles();
+
+      if (isMobile && canShare) {
+        const file = new File([blob], "homa-discovery.jpg", { type: "image/jpeg" });
+        await navigator.share({
+          files: [file],
+          title: "HOMA - پیشنهادات AI",
+        });
+        toast.success("تصویر ذخیره شد");
+      } else {
+        // Desktop download
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "homa-discovery.jpg";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success("تصویر دانلود شد");
+      }
+    } catch (error) {
+      console.error("[App] Save failed:", error);
+      toast.error("خطا در ذخیره تصویر");
+    }
   };
 
   // Feedback Survey
@@ -1487,13 +1708,161 @@ export default function App() {
     }
   };
 
+  // Create app context value to eliminate prop drilling
+  const appContextValue: AppContextType = {
+    user,
+    isAuthenticated,
+    onLogin: handleLoginClick,
+    onLogout: handleLogout,
+    onAboutClick: handleAboutUsClick,
+    onSellerDashboard: handleSellerDashboard,
+  };
+
   return (
-    <Routes>
-      {/* Admin Route */}
-      <Route path="/admin" element={<AdminDashboard />} />
+    <AppProvider value={appContextValue}>
+      <Routes>
+        {/* Admin Route */}
+        <Route path="/admin" element={<AdminDashboard />} />
 
       {/* About Us Route - standalone page for SEO */}
       <Route path="/about-us" element={<AboutUsPage />} />
+
+      {/* Discovery Routes - SEO-friendly pages with sidebar */}
+      <Route path="/discovery/*" element={
+        <div className="flex flex-col md:flex-row min-h-screen" dir="rtl">
+          {/* Mobile Hamburger Button */}
+          {!isMobileSidebarOpen && (
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="md:hidden fixed top-4 right-4 z-50 p-3 rounded-full shadow-lg border bg-white border-gray-100"
+              aria-label="منو"
+            >
+              <Menu className="w-5 h-5 text-gray-700" />
+            </button>
+          )}
+
+          {/* Mobile Backdrop Overlay */}
+          <AnimatePresence>
+            {isMobileSidebarOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+              />
+            )}
+          </AnimatePresence>
+
+          {/* Sidebar */}
+          <aside
+            dir="ltr"
+            className={`
+              fixed top-0 right-0 h-full z-50
+              md:sticky md:top-0 md:z-auto md:h-screen md:translate-x-0
+              bg-white
+              transition-transform duration-300 ease-in-out
+              flex flex-col flex-shrink-0
+              ${isMobileSidebarOpen ? 'translate-x-0' : 'translate-x-full'}
+            `}
+            style={{ width: '280px', minWidth: '280px', borderLeft: '1px solid #f3f4f6' }}
+          >
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="md:hidden absolute p-2 rounded-full hover:bg-gray-100 transition-colors"
+              style={{ top: '1.25rem', left: '1rem' }}
+              aria-label="بستن"
+            >
+              <ChevronRight className="w-6 h-6 text-gray-700" strokeWidth={2.5} />
+            </button>
+
+            <MainNavigation
+              isAuthenticated={isAuthenticated}
+              user={user}
+              onLogin={() => {
+                setIsMobileSidebarOpen(false);
+                handleLoginClick();
+              }}
+              onLogout={() => {
+                setIsMobileSidebarOpen(false);
+                handleLogout(false);
+              }}
+              onAboutClick={() => {
+                setIsMobileSidebarOpen(false);
+                handleAboutUsClick();
+              }}
+              onSellerDashboard={() => {
+                setIsMobileSidebarOpen(false);
+                handleSellerDashboard();
+              }}
+              onHomeClick={() => {
+                setIsMobileSidebarOpen(false);
+                navigate('/');
+              }}
+            />
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 min-w-0 overflow-hidden">
+            <Routes>
+              <Route index element={
+                <DiscoveryUpload
+                  onUpload={handleDiscoveryUpload}
+                  onBack={() => navigate(discoveryContext?.shopId ? `/${encodeURIComponent(discoveryContext.shopName || "")}` : "/")}
+                  shopContext={
+                    discoveryContext
+                      ? {
+                          name: discoveryContext.shopName || "",
+                          id: discoveryContext.shopId || "",
+                        }
+                      : undefined
+                  }
+                />
+              } />
+
+              <Route path="results/:sessionId?" element={
+                <DiscoveryResultsWrapper
+                  cachedResult={discoveryResult}
+                  onRetry={() => {
+                    setDiscoveryResult(null);
+                    setDiscoveryProcessingStep("upload");
+                    navigate("/discovery");
+                  }}
+                  onBackToShops={() => {
+                    setDiscoveryRequest(null);
+                    setDiscoveryResult(null);
+                    setDiscoveryContext(null);
+                    setDiscoveryProcessingStep("upload");
+                    navigate(discoveryContext?.shopId ? `/${encodeURIComponent(discoveryContext.shopName || "")}` : "/");
+                  }}
+                  onProductClick={handleDiscoveryProductClick}
+                  onShare={handleDiscoveryShare}
+                  onSave={handleDiscoverySave}
+                  onResultLoaded={(result) => setDiscoveryResult(result)}
+                />
+              } />
+            </Routes>
+
+            {/* Discovery Processing Modal */}
+            {currentStep === "discovery-processing" && (
+              <DiscoveryProcessing
+                currentStep={discoveryProcessingStep}
+                onCancel={handleDiscoveryCancel}
+              />
+            )}
+
+            {/* Toast Notifications */}
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              dir="rtl"
+            />
+          </main>
+        </div>
+      } />
 
       {/* Seller Dashboard Route - must come before catch-all */}
       <Route path="/seller" element={
@@ -1610,6 +1979,7 @@ export default function App() {
                 <ShopSelection
                   key="shop-selection"
                   onShopSelect={handleShopSelect}
+                  onDiscoveryStart={() => handleDiscoveryStart()}
                 />
               )}
 
@@ -1619,12 +1989,7 @@ export default function App() {
                   key="product-selection"
                   onProductSelect={handleProductSelect}
                   shopName={shopFilter}
-                  isAuthenticated={isAuthenticated}
-                  user={user}
-                  onLogin={handleLoginClick}
-                  onLogout={handleLogout}
-                  onAboutClick={handleAboutUsClick}
-                  onSellerDashboard={handleSellerDashboard}
+                  onDiscoveryStart={() => handleDiscoveryStart(shopFilter || undefined)}
                 />
               )}
 
@@ -1678,12 +2043,6 @@ export default function App() {
                       onUploadComplete={handleFileSelected}
                       onBack={() => setCurrentStep("product-landing")}
                       product={product}
-                      isAuthenticated={isAuthenticated}
-                      user={user}
-                      onLogin={handleLoginClick}
-                      onLogout={handleLogout}
-                      onAboutClick={handleAboutUsClick}
-                      onSellerDashboard={handleSellerDashboard}
                     />
                   )}
 
@@ -1695,12 +2054,6 @@ export default function App() {
                       onApprove={handlePrecheckApprove}
                       onRetake={handlePrecheckRetake}
                       onContinueAnyway={handleContinueAnyway}
-                      isAuthenticated={isAuthenticated}
-                      user={user}
-                      onLogin={handleLoginClick}
-                      onLogout={handleLogout}
-                      onAboutClick={handleAboutUsClick}
-                      onSellerDashboard={handleSellerDashboard}
                     />
                   )}
 
@@ -1711,12 +2064,6 @@ export default function App() {
                       file={selectedFile}
                       onComplete={handleUploadComplete}
                       onError={handleUploadError}
-                      isAuthenticated={isAuthenticated}
-                      user={user}
-                      onLogin={handleLoginClick}
-                      onLogout={handleLogout}
-                      onAboutClick={handleAboutUsClick}
-                      onSellerDashboard={handleSellerDashboard}
                     />
                   )}
 
@@ -1825,12 +2172,6 @@ export default function App() {
                         onPurchase={handlePurchase}
                         onBackToStore={handleBackToStoreClick}
                         onBack={() => setCurrentStep("product-landing")}
-                        isAuthenticated={isAuthenticated}
-                        user={user}
-                        onLogin={handleLoginClick}
-                        onLogout={handleLogout}
-                        onAboutClick={handleAboutUsClick}
-                        onSellerDashboard={handleSellerDashboard}
                         onChangeSize={handleChangeRugSize}
                       />
                     )}
@@ -1892,6 +2233,7 @@ export default function App() {
           </main>
         </div>
       } />
-    </Routes>
+      </Routes>
+    </AppProvider>
   );
 }
