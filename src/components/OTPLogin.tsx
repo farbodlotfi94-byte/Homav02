@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle, RefreshCcw, X, Eye, EyeOff, Smartphone, Crown, User, Lock } from "lucide-react";
 import { PhoneInput } from "./ui/PhoneInput";
@@ -338,8 +339,6 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
         onClose();
     };
 
-    if (!isOpen) return null;
-
     // Tab component for mode switching - Clean minimal design
     const LoginModeTabs = () => (
         <div className="relative flex w-full rounded-xl bg-gray-100 p-1">
@@ -384,19 +383,35 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
         </div>
     );
 
-    return (
+    // Don't render if not open
+    if (!isOpen) return null;
+
+    // Use portal to render modal at document.body level, outside any parent containers
+    return createPortal(
         <AnimatePresence>
+            {/* Backdrop with blur effect */}
             <motion.div
+                key="otp-backdrop"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[1000] flex items-center justify-center overflow-y-auto p-4 sm:p-6"
+                className="fixed inset-0"
                 style={{
-                    background: "linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.7) 100%)",
+                    zIndex: 9998,
+                    backgroundColor: "rgba(255, 255, 255, 0.7)",
                     backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)"
+                    WebkitBackdropFilter: "blur(12px)",
                 }}
                 onClick={handleClose}
+            />
+            {/* Modal container */}
+            <motion.div
+                key="otp-modal-container"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 flex items-center justify-center overflow-y-auto p-4 sm:p-6 pointer-events-none"
+                style={{ zIndex: 9999 }}
             >
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0, y: 10 }}
@@ -404,15 +419,16 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
                     exit={{ scale: 0.95, opacity: 0, y: 10 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     onClick={(event) => event.stopPropagation()}
-                    className="relative rounded-2xl bg-white overflow-hidden"
+                    className="relative rounded-2xl overflow-hidden pointer-events-auto"
                     style={{
                         width: "100%",
                         maxWidth: "400px",
-                        boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.2)",
+                        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+                        backgroundColor: "#ffffff",
                     }}
                 >
                     {/* Content wrapper */}
-                    <div className="p-6 sm:p-8">
+                    <div className="p-6 sm:p-8" style={{ backgroundColor: "#ffffff" }}>
                         {/* Close button */}
                         <button
                             onClick={handleClose}
@@ -730,6 +746,7 @@ export function OTPLogin({ isOpen, onClose, onSuccess, initialPhoneNumber }: OTP
                     </div>
                 </motion.div>
             </motion.div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }

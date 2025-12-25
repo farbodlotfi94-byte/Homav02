@@ -293,13 +293,13 @@ class UserAuthService {
 
       console.log('[UserAuth] Refreshing access token...');
 
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/refresh/`, {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/users/token/refresh/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          refresh: this.refreshToken,  // Changed from refresh_token to refresh
+          refresh: this.refreshToken,
         }),
       });
 

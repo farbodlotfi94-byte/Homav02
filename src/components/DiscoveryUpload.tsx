@@ -1,9 +1,8 @@
 import { useState, useCallback, useRef } from "react";
 import { motion } from "motion/react";
-import { Sofa, Armchair, Bed, UtensilsCrossed, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
-import type { RoomType, StylePreference, DiscoveryRequest } from "../types/discovery";
-import { ROOM_TYPE_OPTIONS, STYLE_OPTIONS } from "../types/discovery";
+import type { DiscoveryRequest } from "../types/discovery";
 
 interface DiscoveryUploadProps {
     onUpload: (request: DiscoveryRequest) => void;
@@ -18,24 +17,10 @@ export function DiscoveryUpload({
 }: DiscoveryUploadProps) {
     const shouldAnimate = useAnimationPreference();
     const [isDragging, setIsDragging] = useState(false);
-    const [selectedRoomType, setSelectedRoomType] = useState<RoomType>("reception");
-    const [selectedStyle, setSelectedStyle] = useState<StylePreference>("classic");
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const backgroundImage = "/images/discovery-banner.jpg";
-
-    // Icons Helper
-    const getRoomIcon = (iconName: string, isSelected: boolean) => {
-        const className = `w-4 h-4 ${isSelected ? "text-white" : "text-gray-600"}`;
-        switch (iconName) {
-            case "Sofa": return <Sofa className={className} />;
-            case "Armchair": return <Armchair className={className} />;
-            case "Bed": return <Bed className={className} />;
-            case "UtensilsCrossed": return <UtensilsCrossed className={className} />;
-            default: return <Sofa className={className} />;
-        }
-    };
 
     // Drag & Drop Handlers
     const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -55,25 +40,21 @@ export function DiscoveryUpload({
         if (droppedFile && droppedFile.type.startsWith("image/")) {
             onUpload({
                 image: droppedFile,
-                roomType: selectedRoomType,
-                style: selectedStyle,
                 shopId: shopContext?.id,
             });
         }
-    }, [onUpload, selectedRoomType, selectedStyle, shopContext]);
+    }, [onUpload, shopContext]);
 
     const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
             onUpload({
                 image: selectedFile,
-                roomType: selectedRoomType,
-                style: selectedStyle,
                 shopId: shopContext?.id,
             });
         }
         e.target.value = "";
-    }, [onUpload, selectedRoomType, selectedStyle, shopContext]);
+    }, [onUpload, shopContext]);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
@@ -83,7 +64,7 @@ export function DiscoveryUpload({
         <div className="min-h-screen bg-white font-sans text-right" dir="rtl">
 
             {/* HERO SECTION WITH BACKGROUND */}
-            <div className="relative">
+            <div className="relative min-h-[60vh] flex flex-col">
                 {/* Background Image */}
                 <div className="absolute inset-0 z-0">
                     <img
@@ -95,7 +76,7 @@ export function DiscoveryUpload({
                 </div>
 
                 {/* Hero Content */}
-                <div className="relative z-10 px-4 md:px-8 pt-6 pb-8">
+                <div className="relative z-[1] px-4 md:px-8 pt-6 pb-8 flex-1 flex flex-col justify-center">
                     {/* Header Text */}
                     <motion.div
                         initial={shouldAnimate ? { opacity: 0, y: -20 } : false}
@@ -117,7 +98,7 @@ export function DiscoveryUpload({
                         initial={shouldAnimate ? { opacity: 0, scale: 0.98 } : false}
                         animate={shouldAnimate ? { opacity: 1, scale: 1 } : false}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="max-w-4xl mx-auto"
+                        className="max-w-4xl mx-auto w-full"
                     >
                         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
@@ -144,79 +125,20 @@ export function DiscoveryUpload({
                             </p>
                         </div>
                     </motion.div>
+
+                    {/* Info text below upload zone */}
+                    <motion.div
+                        initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
+                        animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        className="max-w-2xl mx-auto mt-6 text-center"
+                    >
+                        <p className="text-white/80 text-sm">
+                            بعد از آپلود، هوش مصنوعی اتاقت رو تحلیل می‌کنه و چند سوال می‌پرسه تا بهترین پیشنهادات رو بهت بده
+                        </p>
+                    </motion.div>
                 </div>
             </div>
-
-            {/* FILTER SECTION - Flat white area below hero */}
-            <motion.div
-                initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
-                animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
-                transition={{ duration: 0.5, delay: 0.3 }}
-                className="bg-white px-4 md:px-8 py-6"
-            >
-                <div className="max-w-4xl mx-auto space-y-6">
-
-                    {/* Row 1: Room Type */}
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 text-gray-800">
-                            <Sofa className="w-5 h-5" />
-                            <span className="font-bold text-base">نوع اتاق</span>
-                        </div>
-
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {ROOM_TYPE_OPTIONS.map((option) => {
-                                const isSelected = selectedRoomType === option.id;
-                                return (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => setSelectedRoomType(option.id)}
-                                        className={`
-                                            flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-                                            transition-all duration-200 border
-                                            ${isSelected
-                                                ? "bg-[#1e3a5f] text-white border-[#1e3a5f]"
-                                                : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"}
-                                        `}
-                                    >
-                                        {getRoomIcon(option.icon, isSelected)}
-                                        <span>{option.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Row 2: Style */}
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 text-gray-800">
-                            <div className="w-4 h-4 rounded bg-gray-400" />
-                            <span className="font-bold text-base">سبک مورد علاقه</span>
-                        </div>
-
-                        <div className="flex flex-wrap justify-center gap-2">
-                            {STYLE_OPTIONS.map((option) => {
-                                const isSelected = selectedStyle === option.id;
-                                return (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => setSelectedStyle(option.id)}
-                                        className={`
-                                            px-5 py-2 rounded-full text-sm font-medium
-                                            transition-all duration-200 border
-                                            ${isSelected
-                                                ? "bg-[#1e3a5f] text-white border-[#1e3a5f]"
-                                                : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"}
-                                        `}
-                                    >
-                                        {option.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                </div>
-            </motion.div>
 
         </div>
     );

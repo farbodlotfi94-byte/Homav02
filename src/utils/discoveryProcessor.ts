@@ -12,6 +12,7 @@ import { stripExifData } from './stripExif';
 import type {
   DiscoveryRequest,
   DiscoveryResult,
+  DiscoveryResultWithQuestions,
   ProductRecommendation,
   ProcessingStep,
   BackendSessionResponse,
@@ -21,6 +22,8 @@ import type {
   SessionStatus,
   DiscoveryRateLimitError,
   GroupedRecommendations,
+  DiscoveryQuestionsPayload,
+  DiscoveryAnswers,
 } from '../types/discovery';
 
 // Polling configuration
@@ -68,7 +71,7 @@ let currentAbortController: AbortController | null = null;
 
 export interface DiscoveryProcessResponse {
   success: boolean;
-  result?: DiscoveryResult;
+  result?: DiscoveryResultWithQuestions;
   processingTime: number;
   error?: string;
   errorCode?: string;
@@ -76,6 +79,18 @@ export interface DiscoveryProcessResponse {
   requiresLogin?: boolean;
   isRateLimited?: boolean;
   rateLimitInfo?: DiscoveryRateLimitError;
+  // Indicates session paused waiting for user to answer questions
+  waitingForAnswers?: boolean;
+}
+
+/**
+ * Response type for submitting answers
+ */
+export interface SubmitAnswersResponse {
+  success: boolean;
+  status?: SessionStatus;
+  error?: string;
+  requiresLogin?: boolean;
 }
 
 export interface DiscoveryProgressCallback {
@@ -84,8 +99,12 @@ export interface DiscoveryProgressCallback {
 
 /**
  * Map backend matched product to frontend ProductRecommendation
+ * Optionally includes Persian explanation fields from the parent session item
  */
-function mapProduct(product: BackendMatchedProduct): ProductRecommendation {
+function mapProduct(
+  product: BackendMatchedProduct,
+  itemContext?: BackendSessionItem
+): ProductRecommendation {
   return {
     id: product.id,
     name: product.name,
@@ -97,18 +116,24 @@ function mapProduct(product: BackendMatchedProduct): ProductRecommendation {
     uniqueLink: product.unique_link,
     category: product.category,
     categoryDisplay: product.category_display,
+    // Smart Redesign Flow: Persian explanations from item context
+    persianReason: itemContext?.persian_reason,
+    matchHighlights: itemContext?.match_highlights,
+    replacesItem: itemContext?.replaces_item,
   };
 }
 
 /**
  * Extract all product recommendations from session items
+ * Includes Persian explanations from item context
  */
 function extractRecommendations(items: BackendSessionItem[]): ProductRecommendation[] {
   const allProducts: ProductRecommendation[] = [];
 
   for (const item of items) {
     for (const product of item.matched_products) {
-      allProducts.push(mapProduct(product));
+      // Pass item context to include Persian explanations
+      allProducts.push(mapProduct(product, item));
     }
   }
 
@@ -125,6 +150,7 @@ function extractRecommendations(items: BackendSessionItem[]): ProductRecommendat
 
 /**
  * Extract product recommendations grouped by item type (category)
+ * Includes Persian explanations from item context
  */
 function extractGroupedRecommendations(items: BackendSessionItem[]): GroupedRecommendations[] {
   return items
@@ -132,7 +158,8 @@ function extractGroupedRecommendations(items: BackendSessionItem[]): GroupedReco
       itemType: item.item_type,
       itemTypeDisplay: getItemTypeDisplay(item.item_type),
       products: item.matched_products
-        .map(mapProduct)
+        // Pass item context to include Persian explanations
+        .map(product => mapProduct(product, item))
         .sort((a, b) => b.matchScore - a.matchScore),
     }))
     .filter(group => group.products.length > 0);
@@ -183,27 +210,6 @@ async function createSession(
   }
 
   // Add optional parameters per API spec
-  if (request.roomType) {
-    // Map frontend room types to API format
-    const roomTypeMap: Record<string, string> = {
-      'living': 'living_room',
-      'bedroom': 'bedroom',
-      'dining': 'dining_room',
-      'reception': 'living_room',
-    };
-    formData.append('room_type', roomTypeMap[request.roomType] || request.roomType);
-  }
-
-  if (request.style) {
-    // Map frontend styles to API format
-    const styleMap: Record<string, string> = {
-      'minimal': 'minimalist',
-      'modern': 'modern',
-      'classic': 'classic',
-    };
-    formData.append('preferred_style', styleMap[request.style] || request.style);
-  }
-
   if (request.userNotes) {
     formData.append('user_notes', request.userNotes);
   }
@@ -265,17 +271,19 @@ async function createSession(
 }
 
 /**
- * Poll session status until ready or failed
+ * Poll session status until ready, questions_ready, or failed
+ * Returns early with questions if status = 'questions_ready'
  */
 async function pollSession(
   sessionId: string,
   onProgress?: DiscoveryProgressCallback,
-  abortSignal?: AbortSignal
-): Promise<DiscoveryResult> {
+  abortSignal?: AbortSignal,
+  skipQuestionsReady: boolean = false
+): Promise<DiscoveryResultWithQuestions> {
   const startTime = Date.now();
   const endpoint = `/api/recommendations/sessions/${sessionId}/`;
 
-  console.log('[Discovery] Starting to poll session:', sessionId);
+  console.log('[Discovery] Starting to poll session:', sessionId, { skipQuestionsReady });
 
   let lastStatus: SessionStatus = 'pending';
 
@@ -311,8 +319,8 @@ async function pollSession(
     }
 
     // Map API status to UI progress steps
-    // API: pending -> analyzing -> generating -> matching -> ready
-    // UI: upload -> analysis -> matching -> generation
+    // API: pending -> analyzing -> questions_ready -> generating -> matching -> ready
+    // UI: upload -> analysis -> (questions UI) -> matching -> generation
     switch (currentStatus) {
       case 'pending':
         onProgress?.('upload', 100);
@@ -322,12 +330,44 @@ async function pollSession(
         onProgress?.('analysis', 50);
         break;
 
+      case 'questions_ready':
+        // Return early with questions for user to answer
+        // Unless we're resuming after answers (skipQuestionsReady = true)
+        if (!skipQuestionsReady) {
+          onProgress?.('analysis', 100);
+          onProgress?.('questions', 50); // Show questions step as active
+          console.log('[Discovery] Questions ready, returning for user input');
+
+          const questionsResult: DiscoveryResultWithQuestions = {
+            sessionId: data.session_id,
+            originalImageUrl: '',
+            processedImageUrl: undefined,
+            recommendations: [],
+            groupedRecommendations: [],
+            roomAnalysis: undefined,
+            status: 'questions_ready',
+            discoveryQuestions: data.discovery_questions,
+          };
+
+          console.log('[Discovery] Questions payload:', {
+            sessionId: questionsResult.sessionId,
+            hasQuestions: !!questionsResult.discoveryQuestions,
+            questionCount: questionsResult.discoveryQuestions?.questions?.length || 0,
+          });
+
+          return questionsResult;
+        }
+        // If skipQuestionsReady, continue polling
+        break;
+
       case 'generating':
         onProgress?.('analysis', 100);
+        onProgress?.('questions', 100); // Questions answered
         onProgress?.('matching', 25);
         break;
 
       case 'matching':
+        onProgress?.('questions', 100); // Questions answered
         onProgress?.('matching', 75);
         break;
 
@@ -340,13 +380,14 @@ async function pollSession(
         const recommendations = data.items ? extractRecommendations(data.items) : [];
         const groupedRecommendations = data.items ? extractGroupedRecommendations(data.items) : [];
 
-        const result: DiscoveryResult = {
+        const result: DiscoveryResultWithQuestions = {
           sessionId: data.session_id,
           originalImageUrl: '', // Original image not returned by API
           processedImageUrl: data.redesigned_image_url,
           recommendations,
           groupedRecommendations,
           roomAnalysis: undefined, // Session API doesn't return room analysis in the same format
+          status: 'ready',
         };
 
         console.log('[Discovery] Mapped result:', {
@@ -403,8 +444,6 @@ export async function processDiscoveryImage(
     console.log('[Discovery] Starting image processing:', {
       fileName: request.image.name,
       fileSize: request.image.size,
-      roomType: request.roomType,
-      style: request.style,
       retryAttempt: retryCount + 1,
     });
 
@@ -430,7 +469,7 @@ export async function processDiscoveryImage(
     onProgress?.('upload', 100);
     console.log('[Discovery] Session created:', createResult.sessionId);
 
-    // Step 2: Poll for results
+    // Step 2: Poll for results (may return early with questions)
     onProgress?.('analysis', 0);
 
     const result = await pollSession(
@@ -440,6 +479,21 @@ export async function processDiscoveryImage(
     );
 
     const processingTime = Date.now() - startTime;
+
+    // Check if we stopped at questions_ready
+    if (result.status === 'questions_ready') {
+      console.log('[Discovery] Paused for questions:', {
+        processingTime: Math.round(processingTime),
+        questionCount: result.discoveryQuestions?.questions?.length || 0,
+      });
+
+      return {
+        success: true,
+        result,
+        processingTime: Math.round(processingTime),
+        waitingForAnswers: true,
+      };
+    }
 
     console.log('[Discovery] Processing complete:', {
       processingTime: Math.round(processingTime),
@@ -524,6 +578,131 @@ export function cancelDiscoveryRequest(): void {
 }
 
 /**
+ * Submit answers to discovery questions (Phase 1 → Phase 2)
+ * POST /api/recommendations/sessions/{session_id}/answers/
+ */
+export async function submitDiscoveryAnswers(
+  sessionId: string,
+  answers: DiscoveryAnswers
+): Promise<SubmitAnswersResponse> {
+  const endpoint = `/api/recommendations/sessions/${sessionId}/answers/`;
+
+  console.log('[Discovery] Submitting answers:', {
+    sessionId,
+    answerCount: Object.keys(answers).length,
+    answers,
+  });
+
+  try {
+    const response = await apiPost<{ session_id: string; status: SessionStatus }>(
+      endpoint,
+      { answers }
+    );
+
+    console.log('[Discovery] Submit answers response:', {
+      success: response.success,
+      status: response.status,
+      error: response.error,
+      data: response.data,
+    });
+
+    if (response.status === 401 && response.requiresLogin) {
+      return {
+        success: false,
+        error: 'نشست شما منقضی شده است. لطفاً دوباره وارد شوید',
+        requiresLogin: true,
+      };
+    }
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.error || 'خطا در ارسال پاسخ‌ها',
+      };
+    }
+
+    return {
+      success: true,
+      status: response.data?.status,
+    };
+  } catch (error) {
+    console.error('[Discovery] Submit answers exception:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'خطا در ارسال پاسخ‌ها',
+    };
+  }
+}
+
+/**
+ * Continue polling after answers are submitted (Phase 2)
+ * Skips questions_ready check since answers were already submitted
+ */
+export async function pollSessionAfterAnswers(
+  sessionId: string,
+  onProgress?: DiscoveryProgressCallback
+): Promise<DiscoveryProcessResponse> {
+  const startTime = Date.now();
+
+  // Create new AbortController for this request
+  currentAbortController = new AbortController();
+  const abortSignal = currentAbortController.signal;
+
+  try {
+    console.log('[Discovery] Resuming polling after answers:', sessionId);
+
+    // Mark questions as complete since answers were submitted
+    onProgress?.('analysis', 100);
+    onProgress?.('questions', 100);
+    onProgress?.('matching', 0);
+
+    // Poll with skipQuestionsReady = true to continue past questions_ready
+    const result = await pollSession(
+      sessionId,
+      onProgress,
+      abortSignal,
+      true // skipQuestionsReady
+    );
+
+    const processingTime = Date.now() - startTime;
+
+    console.log('[Discovery] Phase 2 complete:', {
+      processingTime: Math.round(processingTime),
+      recommendationsCount: result.recommendations.length,
+    });
+
+    return {
+      success: true,
+      result,
+      processingTime: Math.round(processingTime),
+    };
+  } catch (error) {
+    console.error('[Discovery] Phase 2 polling exception:', error);
+
+    let persianError = 'خطای ناشناخته در پردازش';
+
+    if (error instanceof Error) {
+      if (error.message === 'درخواست لغو شد') {
+        return {
+          success: false,
+          processingTime: Date.now() - startTime,
+          error: 'درخواست لغو شد',
+        };
+      }
+      persianError = error.message;
+    }
+
+    return {
+      success: false,
+      processingTime: Date.now() - startTime,
+      error: persianError,
+    };
+  } finally {
+    currentAbortController = null;
+  }
+}
+
+/**
  * Fetch an existing session by ID
  * Used for URL-based session recovery (e.g., after page refresh or sharing)
  */
@@ -550,13 +729,62 @@ export async function fetchDiscoverySession(
 
     const data = response.data;
 
-    // Only return if session is ready
-    if (data.status !== 'ready') {
-      console.log('[Discovery] Session not ready:', data.status);
+    // Handle questions_ready status - return questions for user to answer
+    if (data.status === 'questions_ready' && data.discovery_questions) {
+      console.log('[Discovery] Session has questions ready:', {
+        sessionId: data.session_id,
+        questionCount: data.discovery_questions.questions?.length || 0,
+      });
+
+      const questionsResult: DiscoveryResultWithQuestions = {
+        sessionId: data.session_id,
+        originalImageUrl: '',
+        processedImageUrl: undefined,
+        recommendations: [],
+        groupedRecommendations: [],
+        roomAnalysis: undefined,
+        status: 'questions_ready',
+        discoveryQuestions: data.discovery_questions,
+      };
+
+      return {
+        success: true,
+        result: questionsResult,
+        processingTime: 0,
+        waitingForAnswers: true,
+      };
+    }
+
+    // Handle processing states (pending, analyzing, generating, matching)
+    // Return success with the status so UI can show processing state and poll
+    if (data.status !== 'ready' && data.status !== 'failed') {
+      console.log('[Discovery] Session still processing:', data.status);
+
+      // Return a partial result with status so UI knows to show processing
+      const processingResult: DiscoveryResultWithQuestions = {
+        sessionId: data.session_id,
+        originalImageUrl: '',
+        processedImageUrl: undefined,
+        recommendations: [],
+        groupedRecommendations: [],
+        roomAnalysis: undefined,
+        status: data.status,
+      };
+
+      return {
+        success: true,
+        result: processingResult,
+        processingTime: 0,
+      };
+    }
+
+    // Handle failed status
+    if (data.status === 'failed') {
+      console.log('[Discovery] Session failed');
       return {
         success: false,
         processingTime: 0,
-        error: 'جلسه هنوز آماده نیست',
+        error: 'پردازش با خطا مواجه شد',
       };
     }
 
@@ -568,13 +796,14 @@ export async function fetchDiscoverySession(
       ? extractGroupedRecommendations(data.items)
       : [];
 
-    const result: DiscoveryResult = {
+    const result: DiscoveryResultWithQuestions = {
       sessionId: data.session_id,
       originalImageUrl: '',
       processedImageUrl: data.redesigned_image_url,
       recommendations,
       groupedRecommendations,
       roomAnalysis: undefined,
+      status: 'ready', // Include status so UI knows session is complete
     };
 
     console.log('[Discovery] Fetched session successfully:', {

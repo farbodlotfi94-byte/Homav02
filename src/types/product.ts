@@ -2,6 +2,7 @@
 
 export interface Product {
   id: string; // Internal productId for URL compatibility
+  backendId: number; // Numeric ID from backend database
   unique_link: string; // UUID from backend API
   name: string;
   nameEn?: string;

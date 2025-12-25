@@ -18,6 +18,7 @@ interface DiscoveryProcessingProps {
 const STEPS: { key: ProcessingStep; label: string }[] = [
   { key: "upload", label: "آپلود عکس" },
   { key: "analysis", label: "تحلیل فضای اتاق" },
+  { key: "questions", label: "پاسخ به سوالات AI" },
   { key: "matching", label: "جستجوی محصولات مناسب" },
   { key: "generation", label: "آماده‌سازی نتایج" },
 ];

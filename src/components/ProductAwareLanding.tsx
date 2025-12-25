@@ -6,6 +6,7 @@ import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { useCountdown } from "../hooks/useCountdown";
 import { RichTextDisplay } from "./ui/RichTextDisplay";
 import { RUG_CATEGORY_ID } from "../constants/rugSizes";
+import { ProductGallery } from "./ProductGallery";
 
 interface ProductAwareLandingProps {
   product: Product;
@@ -112,6 +113,16 @@ export function ProductAwareLanding({
               {product.description && (
                 <div className="text-gray-600 text-base lg:text-lg leading-relaxed mb-6 lg:mb-8 line-clamp-3">
                   <RichTextDisplay content={product.description} />
+                </div>
+              )}
+
+              {/* Social Proof Gallery - Show user try-on images */}
+              {product.backendId && (
+                <div className="mb-6 lg:mb-8">
+                  <ProductGallery
+                    productId={product.backendId}
+                    productName={product.name}
+                  />
                 </div>
               )}
 

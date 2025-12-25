@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { motion, AnimatePresence } from "motion/react";
-import { Download, RotateCcw, AlertTriangle, Store, Check, X, Ruler } from "lucide-react";
+import { Download, RotateCcw, AlertTriangle, Store, Check, X, Ruler, Camera } from "lucide-react";
 import { ProductChip } from "./ProductChip";
 import { isMobileDevice } from "../utils/deviceDetection";
 import type { Product } from "../types/product";
@@ -26,6 +26,7 @@ interface ProductVisualizationProps {
   onBackToStore: () => void;
   onBack?: () => void;
   onChangeSize?: () => void; // Callback to change rug size (for rug products with multiple sizes)
+  onShareToGallery?: () => void; // Callback to share try-on to public gallery
 }
 
 // Helper function to get contextual subtext for errors
@@ -61,6 +62,7 @@ export function ProductVisualization({
   onBackToStore,
   onBack,
   onChangeSize,
+  onShareToGallery,
 }: ProductVisualizationProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isMobile = isMobileDevice();
@@ -204,6 +206,17 @@ export function ProductVisualization({
                     <Check className="w-5 h-5" />
                     {isMobile ? 'در گالری ذخیره شد' : 'ذخیره شد'}
                   </motion.div>
+                )}
+
+                {/* Share to Gallery Button */}
+                {onShareToGallery && (
+                  <button
+                    onClick={onShareToGallery}
+                    className="w-full flex items-center justify-center gap-2 py-3 text-[#0088FF] hover:text-[#0066CC] transition-colors border-t border-gray-100"
+                  >
+                    <Camera className="w-4 h-4" />
+                    اشتراک در گالری هما
+                  </button>
                 )}
 
                 {/* Secondary Actions */}

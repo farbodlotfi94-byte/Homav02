@@ -27,6 +27,7 @@ const FeedbackSurvey = lazy(() => import("./components/FeedbackSurvey").then(m =
 const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const BrandColors = lazy(() => import("./components/BrandColors").then(m => ({ default: m.BrandColors })));
 const SellerDashboardApp = lazy(() => import("./integrations/seller-dashboard/SellerDashboardApp").then(m => ({ default: m.SellerDashboardApp })));
+const GallerySubmissionModal = lazy(() => import("./components/GallerySubmissionModal").then(m => ({ default: m.GallerySubmissionModal })));
 
 // Loading fallback component
 const ModalLoadingFallback = () => null;
@@ -62,10 +63,19 @@ import type {
   DiscoveryContext,
   ProcessingStep,
   ProductRecommendation,
+  DiscoveryQuestionsPayload,
+  DiscoveryAnswers,
 } from "./types/discovery";
-import { processDiscoveryImage, cancelDiscoveryRequest } from "./utils/discoveryProcessor";
+import {
+  processDiscoveryImage,
+  cancelDiscoveryRequest,
+  submitDiscoveryAnswers,
+  pollSessionAfterAnswers,
+} from "./utils/discoveryProcessor";
+import { DiscoveryQuestionnaire } from "./components/discovery";
 import { userAuthService } from "./services/userAuthService";
 import { submitVote } from "./services/api";
+import { submitToGallery } from "./services/galleryService";
 import {
   parseEntryParams,
   parseUniqueLinkFromPath,
@@ -108,7 +118,8 @@ type Step =
   | "visualization" // Product visualization preview
   | "feedback" // Feedback survey between action and execution
   | "error" // Error recovery
-  | "discovery-processing"; // Discovery: AI processing modal (transient state)
+  | "discovery-processing" // Discovery: AI processing modal (transient state)
+  | "discovery-questions"; // Discovery: AI-generated questions before final processing
 
 type ErrorType = "network" | "timeout" | "server" | "unknown" | "old_url" | "invalid_shop";
 type FallbackReason =
@@ -198,6 +209,11 @@ export default function App() {
   const [discoveryResult, setDiscoveryResult] = useState<DiscoveryResult | null>(null);
   const [discoveryProcessingStep, setDiscoveryProcessingStep] = useState<ProcessingStep>("upload");
   const [discoveryContext, setDiscoveryContext] = useState<DiscoveryContext | null>(null);
+  const [discoveryQuestions, setDiscoveryQuestions] = useState<DiscoveryQuestionsPayload | null>(null);
+  const [discoverySessionId, setDiscoverySessionId] = useState<string | null>(null);
+
+  // Gallery submission state
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
 
   // Rate limit countdown with auto-clear on expiry
   const rateLimitCountdown = useCountdown(rateLimitExpiry, () => {
@@ -1450,11 +1466,32 @@ export default function App() {
       // Call the API with progress callback
       const result = await processDiscoveryImage(request, onProgress);
 
-      if (result.success && result.result) {
+      if (result.waitingForAnswers && result.result?.discoveryQuestions && result.result?.sessionId) {
+        // Phase 1 complete - AI has questions for the user
+        console.log("[App] Discovery questions ready:", {
+          sessionId: result.result.sessionId,
+          questionCount: result.result.discoveryQuestions.questions.length,
+        });
+
+        setDiscoveryQuestions(result.result.discoveryQuestions);
+        setDiscoverySessionId(result.result.sessionId);
+        setCurrentStep("loading"); // Reset step to dismiss processing modal
+
+        trackKPI("Discovery Questions Ready", {
+          questionCount: result.result.discoveryQuestions.questions.length,
+          roomType: result.result.discoveryQuestions.room_analysis.room_type,
+          sessionId: result.result.sessionId,
+          shopId: discoveryContext?.shopId,
+        });
+
+        // Navigate to session page which will show questions
+        navigate(`/discovery/${result.result.sessionId}`);
+      } else if (result.success && result.result) {
         console.log("[App] Discovery processing complete:", result.result);
         setDiscoveryResult(result.result);
+        setCurrentStep("loading"); // Reset step to dismiss modal
         // Navigate to results page with sessionId (SEO-friendly, shareable route)
-        navigate(`/discovery/results/${result.result.sessionId}`);
+        navigate(`/discovery/${result.result.sessionId}`);
 
         trackKPI("Discovery Complete", {
           recommendationCount: result.result.recommendations.length,
@@ -1474,11 +1511,13 @@ export default function App() {
         } else {
           toast.error(result.error || "خطا در پردازش تصویر");
         }
+        setCurrentStep("loading"); // Reset step to dismiss modal
         navigate("/discovery");
       }
     } catch (error) {
       console.error("[App] Discovery processing error:", error);
       toast.error("خطا در پردازش تصویر. لطفاً دوباره تلاش کنید.");
+      setCurrentStep("loading"); // Reset step to dismiss modal
       navigate("/discovery");
     }
   };
@@ -1498,8 +1537,101 @@ export default function App() {
     setDiscoveryRequest(null);
     setDiscoveryResult(null);
     setDiscoveryProcessingStep("upload");
+    setCurrentStep("loading"); // Reset step to dismiss modal
     // Navigate back to discovery upload page
     navigate("/discovery");
+  };
+
+  // Handle Discovery Questions Cancel
+  const handleDiscoveryQuestionsCancel = () => {
+    trackKPI("Discovery Questions Cancelled", {
+      sessionId: discoverySessionId,
+      shopId: discoveryContext?.shopId,
+    });
+
+    console.log("[App] Discovery questions cancelled");
+
+    // Clear questions state and go back to discovery
+    setDiscoveryQuestions(null);
+    setDiscoverySessionId(null);
+    setCurrentStep("loading"); // Reset step
+    navigate("/discovery");
+  };
+
+  // Handle Discovery Answers Submit (Phase 2)
+  // sessionIdOverride allows passing sessionId directly (e.g., from DiscoveryResultsWrapper after page refresh)
+  const handleDiscoveryAnswersSubmit = async (answers: DiscoveryAnswers, sessionIdOverride?: string) => {
+    const sessionId = sessionIdOverride || discoverySessionId;
+
+    if (!sessionId) {
+      console.error("[App] No session ID for answers submission");
+      toast.error("خطا در ارسال پاسخ‌ها");
+      return;
+    }
+
+    trackKPI("Discovery Answers Submitted", {
+      sessionId: sessionId,
+      answerCount: Object.keys(answers).length,
+      shopId: discoveryContext?.shopId,
+    });
+
+    console.log("[App] Submitting discovery answers:", {
+      sessionId: sessionId,
+      answers,
+    });
+
+    // Show processing modal
+    setCurrentStep("discovery-processing");
+    setDiscoveryProcessingStep("questions"); // Mark questions as done
+    setDiscoveryProcessingStep("matching");
+
+    try {
+      // Submit answers to backend
+      const submitResult = await submitDiscoveryAnswers(sessionId, answers);
+
+      if (!submitResult.success) {
+        console.error("[App] Failed to submit answers:", submitResult.error);
+        toast.error(submitResult.error || "خطا در ارسال پاسخ‌ها");
+        setCurrentStep("loading"); // Reset step to dismiss modal
+        navigate("/discovery");
+        return;
+      }
+
+      // Progress callback for Phase 2 polling
+      const onProgress = (step: ProcessingStep, _progress: number) => {
+        setDiscoveryProcessingStep(step);
+      };
+
+      // Poll for final results
+      const result = await pollSessionAfterAnswers(sessionId, onProgress);
+
+      if (result.success && result.result) {
+        console.log("[App] Discovery Phase 2 complete:", result.result);
+        setDiscoveryResult(result.result);
+        setDiscoveryQuestions(null);
+        setDiscoverySessionId(null);
+        setCurrentStep("loading"); // Reset step to dismiss modal
+        // Navigate to results page
+        navigate(`/discovery/${result.result.sessionId}`);
+
+        trackKPI("Discovery Complete", {
+          recommendationCount: result.result.recommendations.length,
+          hasProcessedImage: !!result.result.processedImageUrl,
+          sessionId: result.result.sessionId,
+          shopId: discoveryContext?.shopId,
+        });
+      } else {
+        console.error("[App] Discovery Phase 2 failed:", result.error);
+        toast.error(result.error || "خطا در پردازش نهایی");
+        setCurrentStep("loading"); // Reset step to dismiss modal
+        navigate("/discovery");
+      }
+    } catch (error) {
+      console.error("[App] Discovery answers submission error:", error);
+      toast.error("خطا در ارسال پاسخ‌ها. لطفاً دوباره تلاش کنید.");
+      setCurrentStep("loading"); // Reset step to dismiss modal
+      navigate("/discovery");
+    }
   };
 
   // Handle Discovery Product Click (view product details)
@@ -1599,6 +1731,63 @@ export default function App() {
     } catch (error) {
       console.error("[App] Save failed:", error);
       toast.error("خطا در ذخیره تصویر");
+    }
+  };
+
+  // Gallery Submission Handler
+  const handleShareToGallery = () => {
+    // Only show modal if we have a successful visualization
+    if (apiStatus === 'success' && processedImageId && product) {
+      trackKPI("Gallery Share Modal Opened", {
+        productId: product.id,
+        imageId: processedImageId,
+      });
+      setShowGalleryModal(true);
+    }
+  };
+
+  const handleGallerySubmit = async () => {
+    if (!processedImageId || !product) {
+      toast.error("اطلاعات تصویر موجود نیست");
+      setShowGalleryModal(false);
+      return;
+    }
+
+    try {
+      trackKPI("Gallery Submission Started", {
+        productId: product.id,
+        imageId: processedImageId,
+      });
+
+      const response = await submitToGallery({
+        sessionId,
+        itemId: processedImageId,
+      });
+
+      if (response.success) {
+        toast.success("تصویر شما با موفقیت ارسال شد و پس از تأیید در گالری نمایش داده می‌شود");
+        trackKPI("Gallery Submission Success", {
+          productId: product.id,
+          imageId: processedImageId,
+        });
+      } else {
+        toast.error(response.message || "خطا در ارسال تصویر به گالری");
+        trackKPI("Gallery Submission Failed", {
+          productId: product.id,
+          imageId: processedImageId,
+          error: response.message,
+        });
+      }
+    } catch (error) {
+      console.error("[App] Gallery submission error:", error);
+      toast.error("خطا در ارسال تصویر به گالری");
+      trackKPI("Gallery Submission Error", {
+        productId: product.id,
+        imageId: processedImageId,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setShowGalleryModal(false);
     }
   };
 
@@ -1822,7 +2011,8 @@ export default function App() {
                 />
               } />
 
-              <Route path="results/:sessionId?" element={
+              {/* Unified session page - handles questions, processing, and results */}
+              <Route path=":sessionId" element={
                 <DiscoveryResultsWrapper
                   cachedResult={discoveryResult}
                   onRetry={() => {
@@ -1841,17 +2031,24 @@ export default function App() {
                   onShare={handleDiscoveryShare}
                   onSave={handleDiscoverySave}
                   onResultLoaded={(result) => setDiscoveryResult(result)}
+                  onQuestionsReady={(questions, sessionId) => {
+                    // Update state when questions are ready (for tracking)
+                    setDiscoveryQuestions(questions);
+                    setDiscoverySessionId(sessionId);
+                  }}
                 />
               } />
             </Routes>
 
-            {/* Discovery Processing Modal */}
+            {/* Discovery Processing Modal - Only for initial upload before sessionId is available */}
             {currentStep === "discovery-processing" && (
               <DiscoveryProcessing
                 currentStep={discoveryProcessingStep}
                 onCancel={handleDiscoveryCancel}
               />
             )}
+
+            {/* Note: Questions modal removed - DiscoverySessionPage now handles questions via /discovery/:sessionId route */}
 
             {/* Toast Notifications */}
             <Toaster
@@ -2014,17 +2211,6 @@ export default function App() {
                 />
               )}
 
-                  {/* User Auth (OTP) */}
-                  {currentStep === "user-auth" && (
-                    <OTPLogin
-                      key="user-auth"
-                      isOpen={true}
-                      initialPhoneNumber={user?.phone_number || undefined}
-                      onClose={handleAuthClose}
-                      onSuccess={handleAuthSuccess}
-                    />
-                  )}
-
                   {/* Product Fallback */}
                   {currentStep === "product-fallback" && (
                     <ProductFallback
@@ -2173,6 +2359,7 @@ export default function App() {
                         onBackToStore={handleBackToStoreClick}
                         onBack={() => setCurrentStep("product-landing")}
                         onChangeSize={handleChangeRugSize}
+                        onShareToGallery={handleShareToGallery}
                       />
                     )}
 
@@ -2218,6 +2405,19 @@ export default function App() {
               />
             </Suspense>
 
+            {/* Gallery Submission Modal - Share try-on to public gallery */}
+            {product && visualizedImageUrl && (
+              <Suspense fallback={<ModalLoadingFallback />}>
+                <GallerySubmissionModal
+                  isOpen={showGalleryModal}
+                  onClose={() => setShowGalleryModal(false)}
+                  onSubmit={handleGallerySubmit}
+                  imageUrl={visualizedImageUrl}
+                  productName={product.name}
+                />
+              </Suspense>
+            )}
+
             {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
             <Suspense fallback={null}>
               <BrandColors />
@@ -2234,6 +2434,17 @@ export default function App() {
         </div>
       } />
       </Routes>
+
+      {/* Global User Auth Modal - Available on all routes */}
+      {currentStep === "user-auth" && (
+        <OTPLogin
+          key="user-auth-global"
+          isOpen={true}
+          initialPhoneNumber={user?.phone_number || undefined}
+          onClose={handleAuthClose}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
     </AppProvider>
   );
 }

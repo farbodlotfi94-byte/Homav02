@@ -37,6 +37,7 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
 
   return {
     id: productId,
+    backendId: backendProduct.id,
     unique_link: backendProduct.unique_link,
     name: backendProduct.name,
     thumbnail: thumbnailUrl,

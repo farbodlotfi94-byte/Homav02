@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { MatchScoreBadge } from "./MatchScoreBadge";
+import { MatchHighlightTags } from "./MatchHighlightTags";
 import { isMobileDevice } from "../utils/deviceDetection";
 import type { DiscoveryResult, ProductRecommendation, GroupedRecommendations } from "../types/discovery";
 
@@ -484,6 +485,19 @@ function ProductRecommendationCard({
           </span>
           <MatchScoreBadge score={product.matchScore} />
         </div>
+
+        {/* Persian Reason & Match Highlights (Smart Redesign Flow) */}
+        {product.persianReason && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-600 leading-relaxed flex items-start gap-1">
+              <span className="shrink-0">💡</span>
+              <span>{product.persianReason}</span>
+            </p>
+            {product.matchHighlights && product.matchHighlights.length > 0 && (
+              <MatchHighlightTags highlights={product.matchHighlights} size="sm" />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Arrow */}

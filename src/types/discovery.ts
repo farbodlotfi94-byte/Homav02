@@ -1,29 +1,13 @@
 /**
  * Discovery Flow Types
  *
- * Types for the AI-powered room analysis and furniture recommendation feature
+ * Types for the AI-powered room analysis and furniture recommendation feature.
+ * The AI analyzes uploaded room images and asks contextual questions
+ * to determine preferences (no manual selection needed).
  */
-
-export type RoomType = 'living' | 'bedroom' | 'dining' | 'reception';
-export type StylePreference = 'minimal' | 'modern' | 'classic';
-
-export interface RoomTypeOption {
-  id: RoomType;
-  label: string;
-  icon: string; // Icon name from lucide-react
-  previewImage?: string;
-}
-
-export interface StyleOption {
-  id: StylePreference;
-  label: string;
-  previewImage?: string;
-}
 
 export interface DiscoveryRequest {
   image: File;
-  roomType?: RoomType;
-  style?: StylePreference;
   shopId?: string; // For shop-specific recommendations
   userNotes?: string; // Additional notes or preferences
 }
@@ -45,6 +29,10 @@ export interface ProductRecommendation {
   uniqueLink?: string;
   category?: string;
   categoryDisplay?: string;
+  // Smart Redesign Flow: Persian explanations for product matches
+  persianReason?: string;       // e.g., "این محصول با مبل چرم قهوه‌ای شما هماهنگ است"
+  matchHighlights?: string[];   // e.g., ["رنگ", "سبک"]
+  replacesItem?: string;        // What existing item this product could replace
 }
 
 export interface RoomAnalysis {
@@ -55,6 +43,16 @@ export interface RoomAnalysis {
   designNotes: string;
   searchQueries?: string[];
   recommendedProductTypes?: string[];
+}
+
+/**
+ * Room assessment from AI analysis (Smart Redesign Flow)
+ * Indicates what items the AI decided to keep, replace, or add
+ */
+export interface RoomAssessment {
+  items_to_keep: string[];
+  items_to_replace: string[];
+  gaps_identified: string[];
 }
 
 export interface GroupedRecommendations {
@@ -72,11 +70,107 @@ export interface DiscoveryResult {
   roomAnalysis?: RoomAnalysis;
 }
 
-export type ProcessingStep = 'upload' | 'analysis' | 'matching' | 'generation';
+/**
+ * Extended result type that includes status and questions
+ * Used for intermediate states (e.g., questions_ready)
+ */
+export interface DiscoveryResultWithQuestions extends DiscoveryResult {
+  status?: SessionStatus;
+  discoveryQuestions?: DiscoveryQuestionsPayload;
+}
+
+export type ProcessingStep = 'upload' | 'analysis' | 'questions' | 'matching' | 'generation';
 
 // Session status from backend API (/api/recommendations/sessions/)
-// pending -> analyzing -> generating -> matching -> ready
-export type SessionStatus = 'pending' | 'analyzing' | 'generating' | 'matching' | 'ready' | 'failed';
+// pending -> analyzing -> questions_ready -> generating -> matching -> ready
+export type SessionStatus = 'pending' | 'analyzing' | 'questions_ready' | 'generating' | 'matching' | 'ready' | 'failed';
+
+// =============================================================================
+// AI-Guided Discovery Questions (Two-Phase Conversation Flow)
+// =============================================================================
+
+/**
+ * Question option for single_select and multi_select question types
+ * Supports text-based and image-based options for visual selection
+ */
+export interface QuestionOption {
+  value: string;
+  label: string;
+  imageUrl?: string;        // For image-based selection (mood boards, style cards)
+  description?: string;     // Optional description below label
+  icon?: string;            // Optional emoji/icon
+}
+
+/**
+ * Slider configuration for preference questions
+ */
+export interface SliderConfig {
+  min: number;
+  max: number;
+  step: number;
+  minLabel: string;         // e.g., "کم‌نور" (Dim)
+  maxLabel: string;         // e.g., "پرنور" (Bright)
+  defaultValue?: number;
+}
+
+/**
+ * Question categories for grouping and visual transitions
+ */
+export type QuestionCategory = 'layout' | 'color' | 'style' | 'budget' | 'general';
+
+/**
+ * Individual discovery question from AI
+ * Questions are displayed one-by-one in a full-screen visual UI
+ */
+export interface DiscoveryQuestion {
+  id: string;                          // e.g., "q1", "q2"
+  question: string;                    // Persian question text
+  type: 'single_select' | 'multi_select' | 'boolean' | 'slider' | 'image_select';
+  options: QuestionOption[] | null;    // null for boolean/slider types
+  reason: string;                      // Why AI is asking this (Persian)
+  category?: QuestionCategory;         // For section grouping
+  sliderConfig?: SliderConfig;         // Required for slider type
+  subtitle?: string;                   // Optional subtitle/helper text
+}
+
+/**
+ * Room analysis summary from AI
+ * Displayed before questions to give context
+ */
+export interface RoomAnalysisSummary {
+  room_type: string;                   // e.g., "پذیرایی"
+  room_size: 'small' | 'medium' | 'large';
+  detected_accessories: string[];      // e.g., ["فرش قرمز بزرگ", "پرده کرم‌رنگ"]
+  key_accessory_notes: string;         // Main accessory observation
+  detected_furniture: string[];        // e.g., ["دو دست مبل راحتی", "میز عسلی"]
+  architectural_features: string[];    // e.g., ["پنجره بزرگ با نور طبیعی"]
+  functional_observations: string;     // e.g., "مسیر رفت‌وآمد بین مبل‌ها کمی تنگ است"
+}
+
+/**
+ * Discovery questions payload from backend (status = 'questions_ready')
+ */
+export interface DiscoveryQuestionsPayload {
+  room_analysis: RoomAnalysisSummary;
+  questions: DiscoveryQuestion[];
+}
+
+/**
+ * Answer types for different question types
+ */
+export type SingleSelectAnswer = string;
+export type MultiSelectAnswer = string[];
+export type BooleanAnswer = boolean;
+export type SliderAnswer = number;
+export type QuestionAnswer = SingleSelectAnswer | MultiSelectAnswer | BooleanAnswer | SliderAnswer;
+
+/**
+ * Answers map to submit to backend
+ * Keys are question IDs (e.g., "q1", "q2")
+ */
+export interface DiscoveryAnswers {
+  [questionId: string]: QuestionAnswer;
+}
 
 // Backend API response shapes for /api/recommendations/sessions/
 export interface BackendMatchedProduct {
@@ -104,6 +198,10 @@ export interface BackendSessionItem {
   matched_products: BackendMatchedProduct[];
   tryon_status: 'pending' | 'processing' | 'completed' | 'failed';
   tryon_image_url: string | null;
+  // Smart Redesign Flow: Persian explanations
+  persian_reason?: string;       // AI-generated Persian explanation for match
+  match_highlights?: string[];   // Match aspects: ["رنگ", "سبک", "طرح"]
+  replaces_item?: string;        // What existing item this could replace
 }
 
 export interface BackendSessionData {
@@ -113,6 +211,14 @@ export interface BackendSessionData {
   expires_at?: string;
   redesigned_image_url?: string; // The AI-generated redesigned room image
   items?: BackendSessionItem[]; // Items detected in the room with matched products
+  // Smart Redesign Flow: Room assessment
+  room_assessment?: {
+    items_to_keep: string[];
+    items_to_replace: string[];
+    gaps_identified: string[];
+  };
+  // AI-Guided Discovery: Questions payload (when status = 'questions_ready')
+  discovery_questions?: DiscoveryQuestionsPayload;
 }
 
 export interface BackendSessionResponse {
@@ -137,17 +243,3 @@ export interface DiscoveryRateLimitError {
   resetAt: string;
 }
 
-// Room type options with Persian labels
-export const ROOM_TYPE_OPTIONS: RoomTypeOption[] = [
-  { id: 'reception', label: 'پذیرایی', icon: 'Sofa' },
-  { id: 'living', label: 'نشیمن', icon: 'Armchair' },
-  { id: 'bedroom', label: 'اتاق خواب', icon: 'Bed' },
-  { id: 'dining', label: 'ناهارخوری', icon: 'UtensilsCrossed' },
-];
-
-// Style options with Persian labels
-export const STYLE_OPTIONS: StyleOption[] = [
-  { id: 'minimal', label: 'مینیمال' },
-  { id: 'modern', label: 'مدرن' },
-  { id: 'classic', label: 'کلاسیک' },
-];
