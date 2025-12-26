@@ -143,6 +143,13 @@ function DiscoverySessionPage({
 
       // Handle ready state
       if (status === 'ready') {
+        console.log('[DiscoverySessionPage] Status ready, transitioning to results:', {
+          hasResult: !!response.result,
+          sessionId: response.result?.sessionId,
+          processedImageUrl: response.result?.processedImageUrl?.substring(0, 50) + '...',
+          recommendationsCount: response.result?.recommendations?.length || 0,
+          groupedCount: response.result?.groupedRecommendations?.length || 0,
+        });
         setResult(response.result);
         setSessionState('results');
         onResultLoadedRef.current(response.result);
@@ -244,7 +251,7 @@ function DiscoverySessionPage({
   // Loading state
   if (sessionState === 'loading') {
     return (
-      <div className="min-h-screen bg-[#F5F3F0] flex items-center justify-center" dir="rtl">
+      <div className="min-h-full flex-1 bg-[#F5F3F0] flex items-center justify-center overflow-y-auto" dir="rtl">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -276,7 +283,7 @@ function DiscoverySessionPage({
   // Questions state - show questionnaire
   if (sessionState === 'questions' && questionsData) {
     return (
-      <div className="min-h-screen bg-[#FAF7F4]" dir="rtl">
+      <div className="min-h-full flex-1 bg-[#FAF7F4] overflow-y-auto" dir="rtl">
         <DiscoveryQuestionnaire
           questionsPayload={questionsData}
           onSubmit={handleAnswersSubmit}
@@ -289,7 +296,7 @@ function DiscoverySessionPage({
   // Error state
   if (sessionState === 'error' || error) {
     return (
-      <div className="min-h-screen bg-[#F5F3F0] flex items-center justify-center" dir="rtl">
+      <div className="min-h-full flex-1 bg-[#F5F3F0] flex items-center justify-center overflow-y-auto" dir="rtl">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -310,6 +317,7 @@ function DiscoverySessionPage({
 
   // Results state
   if (sessionState === 'results' && result) {
+    console.log('[DiscoverySessionPage] Rendering DiscoveryResults component');
     return (
       <DiscoveryResults
         result={result}
@@ -322,10 +330,16 @@ function DiscoverySessionPage({
     );
   }
 
-  // Fallback loading
+  // Fallback loading - should not normally be reached
+  console.warn('[DiscoverySessionPage] Reached fallback state:', { sessionState, hasResult: !!result });
   return (
-    <div className="min-h-screen bg-[#F5F3F0] flex items-center justify-center" dir="rtl">
+    <div className="min-h-full flex-1 bg-[#F5F3F0] flex flex-col items-center justify-center gap-4 overflow-y-auto" dir="rtl">
       <div className="animate-spin w-10 h-10 border-3 border-gray-300 border-t-gray-900 rounded-full" />
+      {import.meta.env.DEV && (
+        <p className="text-xs text-gray-400">
+          Debug: state={sessionState}, result={result ? 'yes' : 'no'}
+        </p>
+      )}
     </div>
   );
 }

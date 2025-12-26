@@ -1,448 +1,448 @@
-# CLAUDE.md
+# CLAUDE.md - HOMA Frontend
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Persian/Farsi RTL furniture visualization app** - Users upload room photos, AI shows products in their space.
 
-## Project Overview
+---
 
-HOMA is a Persian/Farsi furniture visualization web application built with React, TypeScript, and Vite. The application has three main user flows:
+## 1. Critical Rules
 
-1. **User Flow**: Customers browse shops, select products, authenticate via OTP, upload photos of their space, and see AI-generated visualizations of furniture in their environment
-2. **Seller Flow**: Shop owners manage products, track analytics, and configure their storefronts via a dedicated dashboard at `/seller`
-3. **Admin Flow**: System administrators manage prompts and view analytics at `/admin`
+### MUST Follow
+1. **All UI text in Persian** - Error messages, labels, buttons, placeholders
+2. **RTL layout** - Use `text-right`, `flex-row-reverse`, right-aligned content by default
+3. **Use shadcn/ui components** from `src/components/ui/` - Never recreate existing components
+4. **Use Lucide icons** - Import from `lucide-react`, no other icon libraries
+5. **Use `cn()` utility** - Import from `./ui/utils` for className merging
+6. **Use Motion for animations** - Import from `motion/react`, not `framer-motion`
+7. **Persian number formatting** - Use `toLocaleString('fa-IR')` for numbers and prices
+8. **Read files before editing** - Understand existing patterns first
 
-## Development Commands
+### NEVER Do
+- Create new UI components when shadcn/ui has one (check `src/components/ui/`)
+- Use `framer-motion` import (use `motion/react` instead)
+- Hardcode colors - Use CSS variables (`bg-primary`, `text-muted-foreground`)
+- Skip animation preference check - Use `useAnimationPreference()` hook
+- Use LTR patterns - This is an RTL app (Persian/Farsi)
+- Add English user-facing text
+- Use `px` values when spacing tokens exist (`p-4`, `gap-6`, etc.)
+- Create inline styles when Tailwind classes exist
+
+### Route vs State Decision
+
+| Need URL Route When... | Use State When... |
+|------------------------|-------------------|
+| SEO matters | Transient/processing |
+| Shareable link needed | Modal/overlay |
+| Bookmarkable | Ephemeral state |
+| Direct navigation | Contextual to page |
+
+```
+User asks for "new page" → Create route
+User asks for "modal/popup" → Use state
+User asks for "loading indicator" → Use state
+```
+
+---
+
+## 2. UI & Design System
+
+### Design Philosophy
+- **Apple-inspired** - Clean, spacious, subtle animations
+- **Modern & polished** - Not generic or flat
+- **Mobile-first** - Responsive with `sm:`, `md:`, `lg:` breakpoints
+- **Accessibility** - Focus rings, proper contrast, semantic HTML
+
+### Color Palette (from CSS Variables)
+
+```css
+/* Primary Colors */
+--primary: #0088FF          /* Blue - buttons, links */
+--accent: #E31E24           /* HOMA Red - brand accent */
+--accent-light: #F5E6D3     /* Beige/cream - subtle backgrounds */
+
+/* Semantic Colors */
+--background: #F2F2F7       /* App background */
+--card: #FFFFFF             /* Card backgrounds */
+--muted: rgba(118,118,128,0.12)
+--destructive: #FF383C      /* Errors, delete actions */
+
+/* Seller Portal Theme */
+--seller-primary: #EEFF41   /* Yellow accent for seller dashboard */
+```
+
+**Usage:**
+```tsx
+// DO - Use semantic classes
+<div className="bg-background text-foreground">
+<button className="bg-primary text-primary-foreground">
+<p className="text-muted-foreground">
+
+// DON'T - Hardcode colors
+<div style={{ background: '#F2F2F7' }}>
+```
+
+### Typography
+
+| Level | Class | Use For |
+|-------|-------|---------|
+| H1 | `text-2xl sm:text-3xl lg:text-4xl font-bold` | Page titles |
+| H2 | `text-xl lg:text-2xl font-bold` | Section headers |
+| H3 | `text-lg font-semibold` | Card titles |
+| Body | `text-base` | Paragraphs |
+| Caption | `text-sm text-muted-foreground` | Helper text |
+
+**Font**: Vazirmatn (Persian) - Already loaded globally via `src/styles/fonts.css`
+
+### Border Radius Tokens
+
+```tsx
+rounded-2xl      // 16px - Cards, modals (--radius-card: 20px)
+rounded-full     // Pill buttons (--radius-button: 100px)
+rounded-lg       // 8px - Inputs, smaller elements
+```
+
+### Shadows
+
+```tsx
+shadow-xl shadow-gray-900/10    // Subtle elevation
+shadow-2xl shadow-gray-900/10   // Card elevation
+shadow-lg                        // Standard elevation
+```
+
+### Icons (Lucide React)
+
+```tsx
+import { Upload, ChevronDown, Clock, X, Check } from "lucide-react";
+
+// Size patterns
+<Icon className="w-4 h-4" />   // Small (buttons)
+<Icon className="w-5 h-5" />   // Default
+<Icon className="w-6 h-6" />   // Large
+```
+
+**Common icons used**: `Upload`, `ChevronDown`, `ChevronRight`, `Clock`, `X`, `Check`, `Menu`, `ArrowRight`, `Camera`, `Image`
+
+### shadcn/ui Components Available
+
+**Layout**: `Card`, `Separator`, `ScrollArea`, `Sheet`, `Dialog`, `Drawer`
+**Forms**: `Button`, `Input`, `Select`, `Checkbox`, `Switch`, `RadioGroup`, `Form`, `Label`
+**Feedback**: `Alert`, `AlertDialog`, `Progress`, `Skeleton`, `Badge`
+**Navigation**: `Tabs`, `Accordion`, `Breadcrumb`, `NavigationMenu`
+**Overlay**: `Dialog`, `Sheet`, `Popover`, `Tooltip`, `DropdownMenu`
+**Data**: `Table`, `Calendar`, `Carousel`
+**Custom**: `OTPInput`, `PhoneInput`, `CountdownTimer`, `RichTextEditor`
+
+**Import pattern:**
+```tsx
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+```
+
+### Animation Patterns
+
+**Using Motion (Framer Motion):**
+```tsx
+import { motion, AnimatePresence } from "motion/react";
+import { useAnimationPreference } from "../hooks/useAnimationPreference";
+
+function MyComponent() {
+  const shouldAnimate = useAnimationPreference();
+
+  return (
+    <motion.div
+      initial={shouldAnimate ? { opacity: 0, y: 20 } : false}
+      animate={shouldAnimate ? { opacity: 1, y: 0 } : false}
+      transition={shouldAnimate ? { duration: 0.5, ease: "easeOut" } : undefined}
+    >
+      Content
+    </motion.div>
+  );
+}
+```
+
+**AnimatePresence for exit animations:**
+```tsx
+<AnimatePresence>
+  {isOpen && (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      Expandable content
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+**CSS Animation Classes** (from `animations.css`):
+```tsx
+className="animate-slide-in-bottom"  // Entrance from bottom
+className="animate-scale-in"         // Scale entrance
+className="animate-spin"             // Loading spinner
+className="animate-bounce"           // Attention getter
+className="hover-scale"              // Hover scale effect
+```
+
+### Component Creation Checklist
+
+When creating a new component:
+
+- [ ] Check if shadcn/ui has it in `src/components/ui/`
+- [ ] Import `cn` from `./ui/utils` for classNames
+- [ ] Use CSS variables for colors (`bg-primary`, not `bg-blue-500`)
+- [ ] Add RTL support (`text-right`, `flex-row-reverse` where needed)
+- [ ] Use `useAnimationPreference()` for animations
+- [ ] All user-facing text in Persian
+- [ ] Responsive classes (`sm:`, `md:`, `lg:`)
+- [ ] Focus states for accessibility
+- [ ] TypeScript interface for props
+
+### Example Component Pattern
+
+```tsx
+import { motion } from "motion/react";
+import { cn } from "@/components/ui/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Upload } from "lucide-react";
+import { useAnimationPreference } from "@/hooks/useAnimationPreference";
+
+interface ProductCardProps {
+  product: Product;
+  onSelect: (id: string) => void;
+  className?: string;
+}
+
+export function ProductCard({ product, onSelect, className }: ProductCardProps) {
+  const shouldAnimate = useAnimationPreference();
+
+  return (
+    <motion.div
+      initial={shouldAnimate ? { opacity: 0, scale: 0.95 } : false}
+      animate={shouldAnimate ? { opacity: 1, scale: 1 } : false}
+      transition={shouldAnimate ? { duration: 0.3 } : undefined}
+    >
+      <Card className={cn("overflow-hidden", className)}>
+        <CardContent className="p-4">
+          <h3 className="text-lg font-semibold text-right">{product.name}</h3>
+          <p className="text-muted-foreground text-sm text-right">
+            {product.price.toLocaleString('fa-IR')} تومان
+          </p>
+          <Button
+            onClick={() => onSelect(product.id)}
+            className="w-full mt-4"
+          >
+            <Upload className="w-4 h-4 ml-2" />
+            امتحان کن
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+```
+
+---
+
+## 3. Quick Reference
+
+### Commands
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server (port 3000)
-npm run dev
-
-# Build for production (output: build/)
-npm run build
-
-# Run tests (watch mode)
-npm test
-
-# Run tests once
-npm run test:run
-
-# Run tests with UI dashboard
-npm run test:ui
-
-# Docker deployment
-docker-compose up -d --build
+npm run dev      # Start dev server (port 3000)
+npm run build    # Production build → build/
+npm test         # Vitest watch mode
+npm run test:run # Run tests once
 ```
 
-## Architecture Overview
+### File Locations
 
-### Application Flow (Step-Based State Machine)
+| Need to... | Look in... |
+|------------|------------|
+| Add UI component | `src/components/ui/` |
+| Edit main flow | `src/App.tsx` |
+| Add product type | `src/types/product.ts` |
+| Edit API calls | `src/services/api.ts` |
+| Add auth logic | `src/services/userAuthService.ts` |
+| Add analytics | `src/utils/analytics.ts` |
+| Edit styling | `src/styles/globals.css` |
+| Add animation | `src/styles/animations.css` |
 
-The app follows a multi-step flow controlled by `currentStep` state in `src/App.tsx`:
+### Common Code Templates
 
-1. **loading** → Initial shop/product data fetch
-2. **shop-selection** → User selects from available shops (root view)
-3. **product-selection** → User selects from products within a shop
-4. **product-landing** → Product-aware landing page with CTA
-5. **product-fallback** → Error state when product is unavailable/inactive
-6. **user-auth** → OTP-based user authentication (login/register)
-7. **upload** → User uploads/captures photo
-8. **precheck** → Quality validation of uploaded image
-9. **staged-upload** → 3-stage upload progress indicator
-10. **confirmation** → Success state with HOMA branding
-11. **visualization** → Display AI-processed result with product placement
-12. **feedback** → Feedback survey between action and execution
-13. **error** → Error recovery flow
-
-### URL Routing Structure
-
-```
-/                                    → Shop selection (root)
-/:shopName                           → Product listing for a shop
-/:shopName/product/:uniqueLink       → Product detail page
-/discovery                           → Discovery upload page (SEO-friendly)
-/discovery/results                   → Discovery results page (shareable)
-/seller                              → Seller dashboard (lazy-loaded)
-/admin                               → Admin dashboard (lazy-loaded)
-/about-us                            → About page (SEO)
+**Toast notification:**
+```tsx
+import { toast } from "sonner";
+toast.success("عملیات موفق");
+toast.error("خطایی رخ داد");
 ```
 
-**URL Conventions:**
-- Uses shop display name (not username) for user-friendly URLs
-- Backend UUID `unique_link` for product identification
-- Path parsing with `parseShopAndProductFromPath()` utility in `productLoader.ts`
+**API call pattern:**
+```tsx
+import { apiClient } from "@/services/api";
 
-### Navigation Architecture (Routes vs State)
-
-**CRITICAL**: When asked to create a new "page", "flow", or "feature", you MUST decide whether it needs a URL route or component state. This decision impacts SEO, shareability, and user experience.
-
-#### When to Create a URL Route (Page)
-Create a new URL route when **ANY** of these apply:
-1. **SEO Value**: Content should be indexed by search engines
-2. **Shareability**: Users should be able to copy/paste the URL to share
-3. **Bookmarkability**: Users might want to return to this exact state
-4. **Refresh Resilience**: State should persist after browser refresh
-5. **Direct Entry**: Users might navigate here directly (not just through the flow)
-6. **Distinct Destination**: It represents a "place" in the app (noun: "the upload page", "the results page")
-
-#### When to Use State-Based Transitions
-Keep as component state when **ALL** of these apply:
-1. **Transient**: The state is temporary (loading, processing, validating)
-2. **Contextual**: It only makes sense within the current page context
-3. **Non-shareable**: Sharing this state would be meaningless or confusing
-4. **Ephemeral**: It shouldn't survive a page refresh
-5. **Modal/Overlay**: It's a layer on top of the current page, not a new destination
-
-#### Decision Flowchart
-```
-Is this a distinct destination users might share or bookmark?
-├── YES → Create a URL route
-└── NO → Is this a transient/processing state?
-    ├── YES → Use component state
-    └── NO → Is this a modal/overlay?
-        ├── YES → Use component state (optionally with query param)
-        └── NO → Probably needs a URL route
+const response = await apiClient.get('/api/products/');
+if (response.success) {
+  setProducts(response.data);
+} else {
+  toast.error(response.message || "خطا در دریافت محصولات");
+}
 ```
 
-#### Examples
+**Persian number formatting:**
+```tsx
+const price = 1500000;
+const formatted = price.toLocaleString('fa-IR'); // "۱٬۵۰۰٬۰۰۰"
+```
 
-**Create URL Route:**
-- "Add a page where users see their visualization result" → `/:shop/product/:id/result/:processId`
-- "Add a discovery flow for finding products" → `/discovery`
-- "Add a user profile page" → `/profile`
-- "Add an upload page" → `/:shop/product/:id/try`
+**Conditional animation:**
+```tsx
+const shouldAnimate = useAnimationPreference();
+<motion.div
+  initial={shouldAnimate ? { opacity: 0 } : false}
+  animate={shouldAnimate ? { opacity: 1 } : false}
+/>
+```
 
-**Use Component State:**
-- "Add a loading spinner while fetching data" → State
-- "Add OTP verification modal" → State (modal overlay)
-- "Add upload progress indicator" → State
-- "Add error message when API fails" → State
-- "Add success animation after upload" → State
+---
 
-#### Current Step Classification
+## 4. Architecture Overview
 
-| Step | Classification | Rationale |
-|------|---------------|-----------|
-| loading | State | Transient loading indicator |
-| shop-selection | Route (`/`) | SEO, shareable, destination |
-| product-selection | Route (`/:shopName`) | SEO, shareable, destination |
-| product-landing | Route (`/:shopName/product/:id`) | SEO, shareable, destination |
-| product-fallback | State | Contextual error within product page |
-| user-auth | State | Modal overlay |
-| upload | **Should be Route** | Shareable entry point → `/:shop/product/:id/try` |
-| precheck | State | Transient validation |
-| staged-upload | State | Transient progress |
-| confirmation | State | Transient success animation |
-| visualization | **Should be Route** | Shareable result → `/:shop/product/:id/result/:processId` |
-| feedback | State | Modal overlay |
-| error | State | Contextual error display |
-| discovery | Route (`/discovery`) | SEO, shareable, destination |
-| discovery-processing | State | Transient processing modal |
-| discovery-results | Route (`/discovery/results`) | Shareable results page |
+### Application Flow
 
-#### URL Parameter Patterns
-- Use **path params** for resource identification: `/:shopName/product/:uniqueLink`
-- Use **query params** for filters/options: `/products?category=sofa`
-- Use **query params** for optional modal triggers: `/product/123?auth=true`
-- Use **path params** for shareable states: `/product/123/result/abc123`
+```
+[Shop Selection] → [Product Selection] → [Product Landing] → [Upload] → [Processing] → [Visualization]
+       /                 /:shop              /:shop/product/:id         (state)        (state)
+```
 
-### Backend API Integration
+**Routes** (in `App.tsx`):
+- `/` - Shop selection grid
+- `/:shopName` - Product listing for shop
+- `/:shopName/product/:uniqueLink` - Product detail
+- `/discovery` - AI product discovery
+- `/discovery/results` - Discovery results
+- `/seller` - Seller dashboard
+- `/admin` - Admin panel
+- `/about-us` - About page
 
-- **Base URL**: Configured via `VITE_API_BASE_URL` environment variable
-- **Configuration**: `src/config/api.ts`
-- **API Client**: `src/services/api.ts` with timeout handling and retry logic
-- **Image Processing**: `src/utils/aiImageProcessor.ts` handles AI backend calls
+### State Machine Steps
 
-**Key API Endpoints:**
-- `GET /api/shops/list/` - Fetch all shops
-- `GET /api/products/` - Fetch all products (supports `?shop=` filter)
-- `GET /api/products/{unique_link}/` - Fetch specific product
-- `POST /api/products/{unique_link}/process/` - Process image with AI (multipart/form-data)
-- `GET /api/products/images/{object_path}` - Serve images from MinIO
-- `POST /api/products/vote/` - Submit user feedback
+| Step | Type | Purpose |
+|------|------|---------|
+| `loading` | State | Initial fetch |
+| `shop-selection` | Route | Pick shop |
+| `product-selection` | Route | Pick product |
+| `product-landing` | Route | Product CTA |
+| `product-fallback` | State | Error display |
+| `user-auth` | State | OTP modal |
+| `upload` | State | Photo upload |
+| `precheck` | State | Quality check |
+| `staged-upload` | State | Upload progress |
+| `confirmation` | State | Success message |
+| `visualization` | State | Show result |
+| `feedback` | State | Survey modal |
+| `error` | State | Error recovery |
 
-**User Auth Endpoints:**
-- `POST /api/users/otp/phone-verify/send/` - Send OTP
-- `POST /api/users/otp/phone-verify/verify/` - Verify OTP
-- `POST /api/users/register/` - Register new user
-- `POST /api/users/login/` - Login with phone + password
-- `POST /api/users/token/refresh/` - Refresh access token
-- `POST /api/users/logout/` - Logout user
+### API Endpoints
 
-### Image Processing Flow
+| Action | Method | Endpoint |
+|--------|--------|----------|
+| List shops | GET | `/api/shops/list/` |
+| List products | GET | `/api/products/?shop=` |
+| Get product | GET | `/api/products/{unique_link}/` |
+| Process image | POST | `/api/products/{unique_link}/process/` |
+| Send OTP | POST | `/api/users/otp/phone-verify/send/` |
+| Verify OTP | POST | `/api/users/otp/phone-verify/verify/` |
+| Login | POST | `/api/users/login/` |
+| Register | POST | `/api/users/register/` |
 
-1. User uploads image → `PhotoUpload` component
-2. Quality validation → `FilePrecheck` component
-3. Background API processing starts immediately
-4. Upload with progress → `StagedUpload` component
-5. API call to `/api/products/{unique_link}/process/` with FormData
-6. Backend returns `customer_image_path` and `processed_image_path`
-7. Display visualization → `ProductVisualization` component
+### Key Services
 
-**Timeout Configuration:**
-- Standard API calls: 5 minutes (`VITE_API_TIMEOUT`)
-- Image processing: 10 minutes (`VITE_API_IMAGE_PROCESSING_TIMEOUT`)
-- Retry mechanism: Up to 2 retries with exponential backoff
+- `userAuthService.ts` - User auth with JWT tokens
+- `sellerAuthService.ts` - Seller auth with JWT tokens
+- `api.ts` - HTTP client with retry logic
+- `posthog.ts` - Analytics tracking
+- `aiImageProcessor.ts` - Image processing calls
 
-**Rate Limiting:**
-- 5 requests/hour per user for image processing
-- Rate limit state persisted in localStorage via `rateLimitStorage.ts`
+---
 
-### State Management Patterns
+## 5. Conventions
 
-- All state is managed in `src/App.tsx` using React hooks
-- Component props for data flow (no Redux/Context)
-- Analytics tracking via `trackKPI()` function for business metrics
-- Session tracking with unique `sessionId` per user session
-- User authentication state: `user`, `isAuthenticated`
+### Display Field Pattern
+Backend returns both raw and display fields:
+```tsx
+// Render display value in UI
+<span>{product.category_display}</span>
 
-### Key Components
+// Use raw value for logic
+if (product.category === 'rug') { ... }
+```
 
-**Main User Flow:**
-- `ShopSelection` - Grid of available shops (root view)
-- `ProductSelection` - Grid of available products with search/filtering
-- `ProductAwareLanding` - Product landing page with upload CTA
-- `OTPLogin` - Multi-step OTP authentication modal
-- `PhotoUpload` - File picker and camera integration
-- `FilePrecheck` - Image quality validation
-- `StagedUpload` - 3-stage progress indicator
-- `ProductVisualization` - Display AI-processed result with actions
-- `FeedbackSurvey` - Collect user feedback (lazy-loaded)
-- `ErrorRecovery` - Error recovery UI
+### Event Handler Naming
+```tsx
+const handleUploadStart = () => { ... }
+const handleProductSelect = (id: string) => { ... }
+const handleBack = () => { ... }
+```
 
-**Seller Dashboard** (`/seller` route, located in `src/integrations/seller-dashboard/`):
-- `SellerLogin` - Multi-step OTP-based authentication (phone verification → password setup)
-- `SellerDashboard` - Overview with analytics and product stats
-- `ProductsPage` - Product management (CRUD operations)
-- `SettingsPage` - Shop profile and configuration
-- Uses `sellerAuthService.ts` for authentication with automatic token refresh
-- Includes comprehensive UI components in `src/integrations/seller-dashboard/components/ui/`
+### Console Logging
+```tsx
+console.log('[ComponentName] action description', data);
+// Example: console.log('[ProductSelection] fetching products', { shopId });
+```
 
-**Admin Panel** (accessible via `/admin` URL):
-- `AdminDashboard` - Admin control center (lazy-loaded)
-- `components/admin/` - Admin-specific components (products, analytics, Gemini prompt, Groq prompt)
+### Type Locations
+- `src/types/product.ts` - Product, ProductVariant
+- `src/types/auth.ts` - User, AuthData
+- `src/types/shop.ts` - Shop
+- `src/types/discovery.ts` - Discovery flow types
+- `src/types/seller-api.ts` - Seller API responses
 
-**Shared UI Library:**
-- `components/ui/` - Radix UI + shadcn/ui reusable components
-- Tailwind CSS with Persian typography (Vazirmatn font)
+---
 
-## User Authentication
+## 6. Environment & Deployment
 
-The app uses **OTP-based authentication** for end users:
-
-### Authentication Flow
-1. **Phone Entry**: User enters Iranian phone number (09XX, +989XX, 989XX formats)
-2. **OTP Verification**: 6-digit OTP sent via SMS, auto-fill supported via WebOTP API
-3. **Registration/Login**: New users set password, existing users login directly
-4. **Token Storage**: JWT tokens stored in localStorage
-
-**Key Service**: `src/services/userAuthService.ts`
-- Stores tokens in localStorage (keys: `homa_user_access_token`, `homa_user_refresh_token`, `homa_user_data`)
-- No clock-based auto-refresh (refreshes only on 401 response)
-- Provides methods: `login()`, `register()`, `logout()`, `refreshToken()`, `checkAuth()`
-
-**Key Utilities:**
-- `phoneValidator.ts` - Phone normalization & validation
-- `normalizeDigits.ts` - Persian to English digit conversion
-- `otpValidator.ts` - OTP format validation
-- `otpRateLimitStorage.ts` - OTP attempt limiting
-
-## Environment Variables
-
-Required in `.env` or build args:
+### Environment Variables
 
 ```bash
-# API Configuration
 VITE_API_BASE_URL=https://api.myhoma.ir
 VITE_API_TIMEOUT=300000
 VITE_API_IMAGE_PROCESSING_TIMEOUT=600000
-
-# Analytics (PostHog)
 VITE_PUBLIC_POSTHOG_KEY=
 VITE_PUBLIC_POSTHOG_HOST=https://eu.i.posthog.com
-VITE_ENABLE_POSTHOG_IN_DEV=true
 ```
 
-## Analytics & Error Tracking
-
-**PostHog** (`src/services/posthog.ts`):
-- Product analytics and user tracking
-- Initialized in `main.tsx` before app render
-- Configurable via environment variables
-
-**Sentry** (`src/config/sentry.ts`):
-- Error tracking and performance monitoring
-- `AppErrorBoundary` component wraps the entire app
-- Initialized in `main.tsx` before app render
-
-## Docker Deployment
-
-**Multi-stage Dockerfile:**
-- **Builder stage**: Node 18 Alpine, npm build with env vars
-- **Production stage**: Nginx Alpine serving static files
-- Non-root user (nodejs:1001) for security
-
-**Docker Compose:**
-- Port mapping: `3000:80`
-- Network: `homav-network`
-- Health checks enabled
-- Environment variables passed as build args
-
-**Deployment with Dokploy:**
-See `DEPLOYMENT.md` for detailed Dokploy deployment instructions.
-
-## Code Conventions
-
-### TypeScript Strict Mode
-- All components and utilities are strongly typed
-- Product types defined in `src/types/product.ts`
-- User auth types in `src/types/auth.ts`
-- Shop types in `src/types/shop.ts`
-- Backend API types separate from frontend types
-
-### Persian/Farsi Language
-- All UI text is in Persian (RTL support with Tailwind)
-- Font: Vazirmatn (loaded locally from `src/assets/fonts/vazirmatn/fonts/webfonts/Vazirmatn[wght].woff2`)
-- Font declarations in `src/styles/fonts.css` with @font-face
-- Error messages in Persian for user-facing errors
-- Console logs can be in English or Persian
-
-### Component Patterns
-- Functional components with hooks
-- Props interfaces defined inline or exported
-- Motion (Framer Motion) for animations with `AnimatePresence`
-- Event handlers prefixed with `handle` (e.g., `handleStartUpload`)
-- Lazy loading for modals and admin components
-
-### Display Field Convention
-- When both a raw backend field and a user-facing display variant exist (e.g., `category` and `category_display`):
-  - Always render the `*_display` value in the UI (e.g., show `category_display`).
-  - Always use the raw field for programmatic operations (API calls, filters, comparisons).
-- Apply this convention consistently across the project for any similar pairs: `name`/`name_display`, `brand`/`brand_display`, etc.
-
-### Error Handling
-- API errors handled with Persian user messages
-- Console logging for debugging with `[ComponentName]` prefixes
-- Retry logic for transient network failures
-- Graceful fallbacks when AI processing fails
-- Sentry integration for error tracking
-
-## Seller Dashboard Architecture
-
-### Authentication Flow
-The seller dashboard uses **OTP-based authentication** with automatic token refresh:
-
-1. **Login**: Phone + password → access/refresh tokens stored in localStorage
-2. **Registration**: Send OTP → Verify OTP → Create account with username/password
-3. **Password Reset**: Send OTP → Verify OTP → Set new password
-4. **Token Refresh**: Automatic refresh using `sellerAuthService.refreshToken()` when access token expires
-
-**Key Service**: `src/services/sellerAuthService.ts` manages all authentication logic
-- Stores tokens in localStorage (keys: `homa_shop_access_token`, `homa_shop_refresh_token`)
-- Provides methods: `login()`, `register()`, `resetPassword()`, `refreshToken()`, `logout()`
-- Returns `ShopAuthData` interface with user and token info
-
-### Seller API Integration
-- **Base endpoint**: Same as main API (configured via `VITE_API_BASE_URL`)
-- **Endpoints**: All prefixed with `/api/shops/` (e.g., `/api/shops/login/`, `/api/shops/otp/phone-verify/send/`)
-- **Service**: `src/services/sellerApiService.ts` handles product CRUD and dashboard data
-- **Type definitions**: `src/types/seller-api.ts` contains backend response shapes
-
-### Styling Notes
-- Seller dashboard has **isolated Tailwind CSS** in `src/integrations/seller-dashboard/index.css`
-- Must be imported in `SellerDashboardApp.tsx` to override parent app's global styles
-- Component imports use vendored libraries with version aliases (configured in `vite.config.ts`)
-
-## Important Files to Check
-
-When working on specific features:
-
-- **User flow - Shop/Product loading**: `src/utils/productLoader.ts`, `src/App.tsx`
-- **User flow - Authentication**: `src/services/userAuthService.ts`, `src/components/OTPLogin.tsx`
-- **User flow - Image upload**: `src/components/PhotoUpload.tsx`, `src/components/StagedUpload.tsx`
-- **User flow - AI processing**: `src/utils/aiImageProcessor.ts`, `src/services/api.ts`
-- **Seller flow - Authentication**: `src/services/sellerAuthService.ts`
-- **Seller flow - Dashboard**: `src/integrations/seller-dashboard/SellerDashboardApp.tsx`
-- **Seller flow - API calls**: `src/services/sellerApiService.ts`
-- **Admin features**: `src/components/AdminDashboard.tsx`, `src/components/admin/*`
-- **API configuration**: `src/config/api.ts`
-- **Analytics**: `src/services/posthog.ts`, `src/utils/analytics.ts`
-- **Type definitions**: `src/types/product.ts`, `src/types/auth.ts`, `src/types/shop.ts`, `src/types/seller-api.ts`
-- **Font configuration**: `src/styles/fonts.css`, `src/assets/fonts/vazirmatn/`
-
-## Testing and Debugging
-
-### Browser Console Debug Logs
-The app includes extensive console logging with prefixes:
-- `[App]` - Main app flow and state changes
-- `[KPI]` - Analytics events
-- `[API]` - API requests/responses
-- `[AI Processing]` - Image processing
-- `[UserAuth]` - User authentication
-- `[fetchProduct]`, `[ProductSelection]` - Product loading
-
 ### Debug Tools
-- **Admin Dashboard**: Navigate to `/admin` URL path
-- **Brand Colors Guide**: Shift+Ctrl+B
-- **Test helpers**: `src/utils/testHelpers.ts` adds `window.testProductSelection()`
-- **Mock URL**: `src/utils/mockUrl.ts` adds `window.updateProductId()`
+- `/admin` - Admin dashboard
+- `Shift+Ctrl+B` - Brand colors guide
+- `window.testProductSelection()` - Test helper
+- Console prefixes: `[App]`, `[API]`, `[KPI]`, `[UserAuth]`
 
-### Common Issues
-See `DEBUGGING_GUIDE.md` for troubleshooting product selection and API connectivity issues.
+### Seller Dashboard Notes
+- Isolated CSS in `src/integrations/seller-dashboard/index.css`
+- Vendored packages with version aliases in `vite.config.ts`
+- Yellow accent theme (`--seller-primary: #EEFF41`)
 
-## Admin Panel Access
+---
 
-Navigate to `/admin` URL path to access the admin dashboard. Features include:
-- Product management (CRUD operations)
-- Analytics dashboard with charts
-- Gemini prompt management for image generation
-- Groq prompt management for prompt enhancement
-- Login form (check `src/components/admin/LoginForm.tsx` for credentials)
-- Four tabs: Products | Gemini Prompt | Groq Prompt | Analytics
+## Quick Answers
 
-## Database Integration
+**Q: Where do I add a new shadcn component?**
+A: `src/components/ui/` - Or check if it already exists there
 
-Backend uses PostgreSQL with these key tables:
-- `products` - Product catalog (id, name, unique_link, image_path, etc.)
-- `shops` - Shop information
-- `users` - User accounts (phone, password, etc.)
-- `upload_process` - Image processing records
-- MinIO for object storage (images)
+**Q: How do I make text Persian?**
+A: Just write in Persian, font is already configured
 
-## Performance Considerations
+**Q: How do I format currency?**
+A: `price.toLocaleString('fa-IR') + ' تومان'`
 
-- Images served from MinIO object storage via API proxy
-- Vite build optimizations enabled (SWC compiler)
-- Lazy loading for: FeedbackSurvey, AdminDashboard, SellerDashboard, BrandColors
-- Production build output to `build/` directory
-- Nginx serves static files with caching headers
-- Vazirmatn font loaded locally (not from CDN) for improved performance
-- Font file: Variable font supports all weights (100-900) in single WOFF2 file (~111 KB)
-- Font-display: swap for optimal Largest Contentful Paint (LCP)
-- Manual chunk splitting in Vite (vendor-react, vendor-motion, vendor-radix, vendor-ui)
-- Gzip + Brotli compression enabled
+**Q: How do I add an animation?**
+A: Use `motion/react` with `useAnimationPreference()` hook
 
-## Seller Dashboard Integration Notes
+**Q: Route or state for my feature?**
+A: Shareable/SEO = Route. Transient/modal = State.
 
-### Stylesheet & CSS Isolation
-- Import bundled Tailwind CSS (`src/integrations/seller-dashboard/index.css`) inside `SellerDashboardApp.tsx`
-- Without this import, the parent app's `globals.css` overrides typography, spacing, and color tokens, resulting in broken UI
-- The seller dashboard CSS is isolated and self-contained; don't remove or rely on parent styles
-
-### Vendor Package Aliases
-- Seller dashboard components reference packages with inline version suffixes (e.g. `@radix-ui/react-slot@1.1.2`, `sonner@2.0.3`)
-- Vite and Vitest cannot resolve these specifiers; they must match `package.json` dependencies
-- **Resolution**: Vite's `resolve.alias` config in `vite.config.ts` strips version suffixes at build time
-- When adding new seller dashboard dependencies, ensure they're added to `package.json` AND the alias list
-
-### Testing with Vitest
-- Recharts' `ResponsiveContainer` instantiates `ResizeObserver` during render
-- Vitest jsdom environment doesn't provide a native `ResizeObserver`
-- Solution: Provide a class-based `ResizeObserver` mock in `src/test/setup.ts`
-- Without this mock, seller dashboard component tests fail during rendering phase
-
-### Routing & Access
-- Seller dashboard accessible at `/seller` route via routing in `src/App.tsx`
-- ProtectedRoute wrapper handles authentication checks
-- Redirect to login if no valid access token or refresh fails
+**Q: How do I show a toast?**
+A: `import { toast } from "sonner"` then `toast.success("پیام")`

@@ -90,7 +90,7 @@ export function DiscoveryResults({
   );
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7]" dir="rtl">
+    <div className="min-h-full flex-1 bg-[#F2F2F7] overflow-y-auto" dir="rtl">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#FAFAFA]/90 backdrop-blur-md border-b border-gray-200/50">
         <div className="max-w-xl mx-auto px-4 py-5">

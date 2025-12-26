@@ -27,8 +27,11 @@ export interface ProductRecommendation {
   shopId?: string;
   shopName: string;
   uniqueLink?: string;
-  category?: string;
+  category?: string | number;
   categoryDisplay?: string;
+  // Size fields for rug products
+  available_sizes?: string[];        // e.g., ["200x300", "250x350"]
+  available_sizes_display?: string[]; // e.g., ["۲×۳ متر", "۲.۵×۳.۵ متر"]
   // Smart Redesign Flow: Persian explanations for product matches
   persianReason?: string;       // e.g., "این محصول با مبل چرم قهوه‌ای شما هماهنگ است"
   matchHighlights?: string[];   // e.g., ["رنگ", "سبک"]
@@ -241,5 +244,53 @@ export interface DiscoveryRateLimitError {
   limit: number;
   remaining: number;
   resetAt: string;
+}
+
+// =============================================================================
+// Discovery Try-On Types (Auto Try-On from Discovery Results)
+// =============================================================================
+
+/**
+ * State for the discovery try-on modal
+ * Tracks the product being tried on, size selection, and generation status
+ */
+export interface DiscoveryTryOnState {
+  isOpen: boolean;
+  product: ProductRecommendation | null;
+  selectedSize: string | null;
+  status: 'idle' | 'selecting-size' | 'generating' | 'completed' | 'error';
+  resultImageUrl: string | null;
+  errorMessage: string | null;
+}
+
+/**
+ * Initial state for discovery try-on
+ */
+export const INITIAL_DISCOVERY_TRYON_STATE: DiscoveryTryOnState = {
+  isOpen: false,
+  product: null,
+  selectedSize: null,
+  status: 'idle',
+  resultImageUrl: null,
+  errorMessage: null,
+};
+
+/**
+ * Response from discovery try-on trigger API
+ */
+export interface DiscoveryTryOnResponse {
+  success: boolean;
+  status: 'pending' | 'completed';
+  imageUrl?: string;
+  error?: string;
+}
+
+/**
+ * Visualization status from discovery session
+ */
+export interface DiscoveryVisualization {
+  product_id: number;
+  image_url: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
 }
 

@@ -827,3 +827,157 @@ export async function fetchDiscoverySession(
     };
   }
 }
+
+// =============================================================================
+// Discovery Try-On Functions (Auto Try-On from Discovery Results)
+// =============================================================================
+
+/**
+ * Trigger a try-on visualization for a product from discovery results.
+ * Uses the existing room image from the discovery session.
+ *
+ * POST /api/recommendations/discover/{session_id}/visualize/{product_id}/
+ */
+export async function triggerDiscoveryTryOn(
+  sessionId: string,
+  productId: number,
+  selectedSize?: string
+): Promise<{ success: boolean; status: string; imageUrl?: string; error?: string }> {
+  const endpoint = `/api/recommendations/discover/${sessionId}/visualize/${productId}/`;
+
+  console.log('[Discovery TryOn] Triggering visualization:', {
+    sessionId,
+    productId,
+    selectedSize: selectedSize || 'none',
+  });
+
+  try {
+    const body: { selected_size?: string } = {};
+    if (selectedSize) {
+      body.selected_size = selectedSize;
+    }
+
+    const response = await apiPost<{ status: string; image_url?: string }>(
+      endpoint,
+      body
+    );
+
+    console.log('[Discovery TryOn] Response:', {
+      success: response.success,
+      status: response.status,
+      data: response.data,
+    });
+
+    if (!response.success) {
+      return {
+        success: false,
+        status: 'error',
+        error: response.error || 'خطا در ایجاد تصویر',
+      };
+    }
+
+    return {
+      success: true,
+      status: response.data?.status || 'pending',
+      imageUrl: response.data?.image_url,
+    };
+  } catch (error) {
+    console.error('[Discovery TryOn] Exception:', error);
+    return {
+      success: false,
+      status: 'error',
+      error: error instanceof Error ? error.message : 'خطا در ارتباط با سرور',
+    };
+  }
+}
+
+/**
+ * Poll discovery session for visualization completion.
+ * Checks the session status endpoint for the visualization image URL.
+ *
+ * GET /api/recommendations/discover/{session_id}/
+ */
+export async function pollDiscoveryVisualization(
+  sessionId: string,
+  productId: number,
+  onStatusChange?: (status: string, imageUrl?: string) => void,
+  maxWaitMs: number = 120000
+): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+  const startTime = Date.now();
+  const pollInterval = 2000; // 2 seconds
+  const endpoint = `/api/recommendations/discover/${sessionId}/`;
+
+  console.log('[Discovery TryOn] Starting to poll for visualization:', {
+    sessionId,
+    productId,
+    maxWaitMs,
+  });
+
+  while (Date.now() - startTime < maxWaitMs) {
+    try {
+      const response = await apiGet<{
+        session_id: string;
+        status: string;
+        visualizations?: Array<{
+          product_id: number;
+          image_url: string;
+          status: string;
+        }>;
+      }>(endpoint);
+
+      if (!response.success) {
+        console.error('[Discovery TryOn] Poll error:', response.error);
+        return {
+          success: false,
+          error: response.error || 'خطا در دریافت وضعیت',
+        };
+      }
+
+      // Find visualization for our product
+      const visualization = response.data?.visualizations?.find(
+        (v) => v.product_id === productId
+      );
+
+      if (visualization) {
+        console.log('[Discovery TryOn] Visualization status:', visualization.status);
+
+        if (visualization.status === 'completed' && visualization.image_url) {
+          onStatusChange?.('completed', visualization.image_url);
+          console.log('[Discovery TryOn] Visualization complete:', visualization.image_url);
+          return {
+            success: true,
+            imageUrl: visualization.image_url,
+          };
+        }
+
+        if (visualization.status === 'failed') {
+          console.error('[Discovery TryOn] Visualization failed');
+          return {
+            success: false,
+            error: 'پردازش با خطا مواجه شد',
+          };
+        }
+
+        onStatusChange?.(visualization.status);
+      } else {
+        onStatusChange?.('pending');
+      }
+
+      // Wait before next poll
+      await sleep(pollInterval);
+    } catch (error) {
+      console.error('[Discovery TryOn] Poll exception:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'خطا در ارتباط با سرور',
+      };
+    }
+  }
+
+  // Timeout reached
+  console.error('[Discovery TryOn] Polling timeout after', maxWaitMs, 'ms');
+  return {
+    success: false,
+    error: 'زمان پردازش تمام شد - لطفاً دوباره تلاش کنید',
+  };
+}

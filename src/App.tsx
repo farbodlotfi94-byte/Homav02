@@ -28,6 +28,7 @@ const AdminDashboard = lazy(() => import("./components/AdminDashboard").then(m =
 const BrandColors = lazy(() => import("./components/BrandColors").then(m => ({ default: m.BrandColors })));
 const SellerDashboardApp = lazy(() => import("./integrations/seller-dashboard/SellerDashboardApp").then(m => ({ default: m.SellerDashboardApp })));
 const GallerySubmissionModal = lazy(() => import("./components/GallerySubmissionModal").then(m => ({ default: m.GallerySubmissionModal })));
+const DiscoveryTryOnModal = lazy(() => import("./components/DiscoveryTryOnModal").then(m => ({ default: m.DiscoveryTryOnModal })));
 
 // Loading fallback component
 const ModalLoadingFallback = () => null;
@@ -65,13 +66,18 @@ import type {
   ProductRecommendation,
   DiscoveryQuestionsPayload,
   DiscoveryAnswers,
+  DiscoveryTryOnState,
 } from "./types/discovery";
+import { INITIAL_DISCOVERY_TRYON_STATE } from "./types/discovery";
 import {
   processDiscoveryImage,
   cancelDiscoveryRequest,
   submitDiscoveryAnswers,
   pollSessionAfterAnswers,
+  triggerDiscoveryTryOn,
+  pollDiscoveryVisualization,
 } from "./utils/discoveryProcessor";
+import { RUG_CATEGORY_ID } from "./constants/rugSizes";
 import { DiscoveryQuestionnaire } from "./components/discovery";
 import { userAuthService } from "./services/userAuthService";
 import { submitVote } from "./services/api";
@@ -211,6 +217,9 @@ export default function App() {
   const [discoveryContext, setDiscoveryContext] = useState<DiscoveryContext | null>(null);
   const [discoveryQuestions, setDiscoveryQuestions] = useState<DiscoveryQuestionsPayload | null>(null);
   const [discoverySessionId, setDiscoverySessionId] = useState<string | null>(null);
+
+  // Discovery Try-On state (auto try-on when clicking products in discovery results)
+  const [discoveryTryOn, setDiscoveryTryOn] = useState<DiscoveryTryOnState>(INITIAL_DISCOVERY_TRYON_STATE);
 
   // Gallery submission state
   const [showGalleryModal, setShowGalleryModal] = useState(false);
@@ -1634,8 +1643,8 @@ export default function App() {
     }
   };
 
-  // Handle Discovery Product Click (view product details)
-  const handleDiscoveryProductClick = async (recommendation: ProductRecommendation) => {
+  // Handle Discovery Product Click - triggers auto try-on instead of navigating away
+  const handleDiscoveryProductClick = (recommendation: ProductRecommendation) => {
     trackKPI("Discovery Product Click", {
       productId: recommendation.id,
       productName: recommendation.name,
@@ -1645,10 +1654,232 @@ export default function App() {
 
     console.log("[App] Discovery product clicked:", recommendation);
 
-    // Navigate to product page
-    navigate(
-      `/${encodeURIComponent(recommendation.shopName)}/product/${recommendation.uniqueLink}`
-    );
+    // Check if this is a rug with multiple sizes
+    const isRug = String(recommendation.category) === RUG_CATEGORY_ID;
+    const sizes = recommendation.available_sizes || [];
+
+    if (isRug && sizes.length > 1) {
+      // Show size selector first
+      console.log("[App] Rug with multiple sizes, showing size selector");
+      setDiscoveryTryOn({
+        isOpen: true,
+        product: recommendation,
+        selectedSize: null,
+        status: 'selecting-size',
+        resultImageUrl: null,
+        errorMessage: null,
+      });
+    } else {
+      // Auto-trigger try-on (with auto-selected size for single-size rugs)
+      const autoSize = isRug && sizes.length === 1 ? sizes[0] : undefined;
+      console.log("[App] Auto-triggering try-on", { isRug, autoSize });
+      setDiscoveryTryOn({
+        isOpen: true,
+        product: recommendation,
+        selectedSize: autoSize || null,
+        status: 'generating',
+        resultImageUrl: null,
+        errorMessage: null,
+      });
+      executeDiscoveryTryOn(recommendation, autoSize);
+    }
+  };
+
+  // Execute discovery try-on (call API and poll for result)
+  const executeDiscoveryTryOn = async (product: ProductRecommendation, selectedSize?: string) => {
+    if (!discoverySessionId) {
+      console.error("[App] No discovery session ID for try-on");
+      setDiscoveryTryOn(prev => ({
+        ...prev,
+        status: 'error',
+        errorMessage: 'جلسه کشف پیدا نشد',
+      }));
+      return;
+    }
+
+    try {
+      console.log("[App] Triggering discovery try-on", { sessionId: discoverySessionId, productId: product.id, selectedSize });
+
+      // Trigger the visualization
+      const triggerResult = await triggerDiscoveryTryOn(discoverySessionId, product.id, selectedSize);
+
+      if (!triggerResult.success) {
+        console.error("[App] Try-on trigger failed:", triggerResult.error);
+        setDiscoveryTryOn(prev => ({
+          ...prev,
+          status: 'error',
+          errorMessage: triggerResult.error || 'خطا در شروع پردازش',
+        }));
+        return;
+      }
+
+      // If already completed (cached), show result immediately
+      if (triggerResult.status === 'completed' && triggerResult.imageUrl) {
+        console.log("[App] Try-on already completed:", triggerResult.imageUrl);
+        setDiscoveryTryOn(prev => ({
+          ...prev,
+          status: 'completed',
+          resultImageUrl: triggerResult.imageUrl!,
+        }));
+        return;
+      }
+
+      // Poll for completion
+      console.log("[App] Polling for try-on result...");
+      const pollResult = await pollDiscoveryVisualization(
+        discoverySessionId,
+        product.id,
+        (status, imageUrl) => {
+          console.log("[App] Try-on status update:", status, imageUrl);
+        }
+      );
+
+      if (pollResult.success && pollResult.imageUrl) {
+        console.log("[App] Try-on completed:", pollResult.imageUrl);
+        setDiscoveryTryOn(prev => ({
+          ...prev,
+          status: 'completed',
+          resultImageUrl: pollResult.imageUrl!,
+        }));
+
+        trackKPI("Discovery Try-On Complete", {
+          productId: product.id,
+          productName: product.name,
+          selectedSize,
+        });
+      } else {
+        console.error("[App] Try-on polling failed:", pollResult.error);
+        setDiscoveryTryOn(prev => ({
+          ...prev,
+          status: 'error',
+          errorMessage: pollResult.error || 'خطا در پردازش تصویر',
+        }));
+      }
+    } catch (error) {
+      console.error("[App] Try-on error:", error);
+      setDiscoveryTryOn(prev => ({
+        ...prev,
+        status: 'error',
+        errorMessage: 'خطای غیرمنتظره در پردازش',
+      }));
+    }
+  };
+
+  // Handle size selection in try-on modal
+  const handleTryOnSizeSelect = (size: string) => {
+    setDiscoveryTryOn(prev => ({
+      ...prev,
+      selectedSize: size,
+    }));
+  };
+
+  // Handle size confirmation in try-on modal
+  const handleTryOnConfirmSize = () => {
+    if (!discoveryTryOn.product || !discoveryTryOn.selectedSize) return;
+
+    setDiscoveryTryOn(prev => ({
+      ...prev,
+      status: 'generating',
+    }));
+    executeDiscoveryTryOn(discoveryTryOn.product, discoveryTryOn.selectedSize);
+  };
+
+  // Handle try-on modal close
+  const handleTryOnClose = () => {
+    setDiscoveryTryOn(INITIAL_DISCOVERY_TRYON_STATE);
+  };
+
+  // Handle try-on retry
+  const handleTryOnRetry = () => {
+    if (!discoveryTryOn.product) return;
+
+    setDiscoveryTryOn(prev => ({
+      ...prev,
+      status: 'generating',
+      errorMessage: null,
+    }));
+    executeDiscoveryTryOn(discoveryTryOn.product, discoveryTryOn.selectedSize || undefined);
+  };
+
+  // Handle try-on save (download image)
+  const handleTryOnSave = async () => {
+    if (!discoveryTryOn.resultImageUrl) return;
+
+    trackKPI("Discovery Try-On Save", {
+      productId: discoveryTryOn.product?.id,
+      productName: discoveryTryOn.product?.name,
+    });
+
+    try {
+      const response = await fetch(discoveryTryOn.resultImageUrl);
+      const blob = await response.blob();
+
+      const isMobile = isMobileDevice();
+      const canShare = isWebShareSupported() && canShareFiles();
+
+      if (isMobile && canShare) {
+        const file = new File([blob], "homa-tryon.jpg", { type: "image/jpeg" });
+        await navigator.share({
+          files: [file],
+          title: "HOMA - نتیجه امتحان محصول",
+        });
+        toast.success("تصویر ذخیره شد");
+      } else {
+        // Desktop download
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `homa-tryon-${discoveryTryOn.product?.name || 'result'}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        toast.success("تصویر دانلود شد");
+      }
+    } catch (error) {
+      console.error("[App] Try-on save error:", error);
+      toast.error("خطا در ذخیره تصویر");
+    }
+  };
+
+  // Handle try-on share
+  const handleTryOnShare = async () => {
+    if (!discoveryTryOn.resultImageUrl) return;
+
+    trackKPI("Discovery Try-On Share", {
+      productId: discoveryTryOn.product?.id,
+      productName: discoveryTryOn.product?.name,
+    });
+
+    const isMobile = isMobileDevice();
+    const canShare = isWebShareSupported();
+
+    if (isMobile && canShare) {
+      try {
+        const response = await fetch(discoveryTryOn.resultImageUrl);
+        const blob = await response.blob();
+        const file = new File([blob], "homa-tryon.jpg", { type: "image/jpeg" });
+
+        await navigator.share({
+          files: [file],
+          title: "HOMA - نتیجه امتحان محصول",
+          text: `این تصویر را با ${discoveryTryOn.product?.name || 'محصول'} در HOMA ایجاد کردم!`,
+        });
+      } catch (error: any) {
+        if (error.name !== "AbortError") {
+          console.error("[App] Try-on share failed:", error);
+          toast.error("خطا در اشتراک‌گذاری");
+        }
+      }
+    } else {
+      // Fallback: copy URL to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("لینک کپی شد");
+      } catch {
+        toast.error("خطا در کپی لینک");
+      }
+    }
   };
 
   // Handle Discovery Share
@@ -1918,7 +2149,7 @@ export default function App() {
 
       {/* Discovery Routes - SEO-friendly pages with sidebar */}
       <Route path="/discovery/*" element={
-        <div className="flex flex-col md:flex-row min-h-screen" dir="rtl">
+        <div className="flex flex-col md:flex-row min-h-screen h-screen md:h-auto" dir="rtl">
           {/* Mobile Hamburger Button */}
           {!isMobileSidebarOpen && (
             <button
@@ -1994,7 +2225,7 @@ export default function App() {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0 overflow-hidden">
+          <main className="flex-1 min-w-0 overflow-y-auto">
             <Routes>
               <Route index element={
                 <DiscoveryUpload
@@ -2417,6 +2648,24 @@ export default function App() {
                 />
               </Suspense>
             )}
+
+            {/* Discovery Try-On Modal - Auto try-on when clicking products in discovery results */}
+            <Suspense fallback={<ModalLoadingFallback />}>
+              <DiscoveryTryOnModal
+                isOpen={discoveryTryOn.isOpen}
+                product={discoveryTryOn.product}
+                selectedSize={discoveryTryOn.selectedSize}
+                status={discoveryTryOn.status}
+                resultImageUrl={discoveryTryOn.resultImageUrl}
+                errorMessage={discoveryTryOn.errorMessage}
+                onSizeSelect={handleTryOnSizeSelect}
+                onConfirmSize={handleTryOnConfirmSize}
+                onClose={handleTryOnClose}
+                onRetry={handleTryOnRetry}
+                onSave={handleTryOnSave}
+                onShare={handleTryOnShare}
+              />
+            </Suspense>
 
             {/* Brand Colors Guide - Accessible with Shift + Ctrl + B */}
             <Suspense fallback={null}>
