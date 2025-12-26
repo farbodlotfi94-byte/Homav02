@@ -1,15 +1,28 @@
-/* Import system fonts - SF Pro is Apple's system font, not available on Google Fonts */
-/* Using system font fallbacks for cross-platform compatibility */
-/* Import Vazirmatn font for Persian/Farsi text */
-@import './fonts.css';
+/**
+ * HOMA Design System - Global Styles
+ *
+ * This file defines the design tokens and base styles for the HOMA platform.
+ * All colors, typography, spacing, and component styles are documented here.
+ *
+ * Usage:
+ * - Colors: bg-primary, text-accent, border-destructive
+ * - Radius: rounded-sm, rounded-md, rounded-lg, rounded-button
+ * - Shadows: shadow-elevation-sm
+ * - Typography: font-vazirmatn (default), text-h1, text-caption
+ */
 
-@custom-variant dark (&:is(.dark *));
+/* ============================================
+   DESIGN TOKENS - CSS Custom Properties
+   ============================================ */
 
 :root {
-  /* Typography Variables - Responsive using clamp() */
-  /* clamp(min, preferred, max) scales smoothly between breakpoints */
+  /* ----------------------------------------
+     TYPOGRAPHY
+     ---------------------------------------- */
   --font-family-vazirmatn: 'Vazirmatn', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-family-sf-pro: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+
+  /* Responsive Typography Scale (using clamp for fluid sizing) */
   --text-h1-size: clamp(26px, 4vw + 0.5rem, 34px);
   --text-h2-size: clamp(20px, 3vw + 0.25rem, 22px);
   --text-h3-size: clamp(18px, 2.5vw + 0.25rem, 20px);
@@ -17,147 +30,171 @@
   --text-p-size: clamp(15px, 2vw + 0.25rem, 17px);
   --text-label-size: clamp(14px, 1.5vw + 0.25rem, 15px);
   --text-caption-size: clamp(11px, 1.25vw + 0.125rem, 12px);
+
+  /* Font Weights */
   --font-weight-bold: 700;
   --font-weight-semibold: 600;
+  --font-weight-medium: 500;
   --font-weight-regular: 400;
+
+  /* Base Font Size */
   --font-size: clamp(15px, 2vw + 0.25rem, 16px);
 
-  /* Responsive Spacing Scale */
+  /* ----------------------------------------
+     SPACING
+     ---------------------------------------- */
   --spacing-container: clamp(1rem, 3vw, 2rem);
   --spacing-section: clamp(1.5rem, 4vw, 3rem);
   --spacing-element: clamp(0.75rem, 2vw, 1.5rem);
-  
-  /* The default background color for the application. */
-  --background: rgba(242, 242, 247, 1.00);
-  /* The default color for elements or text that appears on top of the background. */
-  --foreground: rgba(0, 0, 0, 1.00);
-  /* The background color for cards, modals, and other containers. */
-  --card: rgba(255, 255, 255, 1.00);
-  /* The default color for text or elements that appear on top of cards, modals and other background containers. */
-  --card-foreground: rgba(0, 0, 0, 1.00);
-  /* The background color for dropdowns and tooltips. */
-  --popover: rgba(245, 245, 245, 0.60);
-  /* The default color for text or elements that appear on top of dropdowns and tooltips. */
-  --popover-foreground: rgba(51, 51, 51, 1.00);
-  /* The primary color used for buttons, links, and other interactive elements. */
-  --primary: rgba(0, 136, 255, 1.00);
-  /* The default color for text or elements that appear on top of primary colored elements. */
-  --primary-foreground: rgba(255, 255, 255, 1.00);
-  /* The secondary color used for secondary(but NOT-DESTRUCTIVE) buttons and interactive elements. */
-  --secondary: rgba(120, 120, 128, 0.16);
-  /* The default color for text or elements that appear on top of secondary colored elements. */
-  --secondary-foreground: rgba(0, 0, 0, 1.00);
-  /* The muted color used for less prominent elements, such as disabled buttons or disabled text. */
-  --muted: rgba(118, 118, 128, 0.12);
-  /* The default color for text or elements that appear on top of muted colored elements. */
-  --muted-foreground: rgba(60, 60, 67, 0.60);
-  
-  /* HOMA Brand Colors - Primary Accent (Red) */
-  --accent: #E31E24;
-  /* The default color for text or elements that appear on top of accent colored elements. */
-  --accent-foreground: #ffffff;
-  
-  /* HOMA Brand Colors - Secondary Accent (Beige/Cream) */
-  --accent-light: #F5E6D3;
-  --accent-light-foreground: #1a1a1a;
-  
-  /* The color used for background in destructive actions, such as delete buttons or error messages. */
-  --destructive: rgba(255, 56, 60, 1.00);
-  /* The default color for text or elements that appear on top of destructive colored elements. */
-  --destructive-foreground: rgba(255, 255, 255, 1.00);
-  /* The default border color for elements such as inputs, buttons, and other containers. */
-  --border: rgba(230, 230, 230, 1.00);
-  /* The default background color for input fields once the text has been filled. Should be either transparent or match the input-background. */
-  --input: rgba(0, 0, 0, 0);
-  /* The default background color for input fields, text areas, and other input elements. */
-  --input-background: rgba(255, 255, 255, 1.00);
-  /* The color for focus rings, outlines, and other focus indicators. */
-  --ring: rgba(0, 136, 255, 1.00);
-  /* Shadow for small elevations, such as cards or modals. */
-  --elevation-sm: 0px 15px 75px 0px rgba(0, 0, 0, 0.18);
-  /* The color for chart elements, such as a bar or line in a chart. */
-  --chart-1: rgba(0, 136, 255, 1.00);
-  /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-2: rgba(52, 199, 89, 1.00);
-  /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-3: rgba(255, 204, 0, 1.00);
-  /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-4: rgba(255, 56, 60, 1.00);
-  /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-5: rgba(203, 48, 224, 1.00);
-  /* The default border radius for elements such as buttons, cards, and other containers. */
-  --radius: 26px;
-  /* The border radius for button elements. */
-  --radius-button: 100px;
-  /* The border radius for card elements. */
-  --radius-card: 20px;
-  /* The background color for sidebars, navigation menus, and other persistent elements. */
-  --sidebar: rgba(250, 250, 250, 0.70);
-  /* The default color for text or elements that appear on top of sidebars, navigation menus, and other persistent elements. */
-  --sidebar-foreground: rgba(51, 51, 51, 1.00);
-  /* The primary color used for buttons, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-primary: rgba(0, 136, 255, 1.00);
-  /* The default color for text or elements that appear on top of primary colored elements in sidebars and navigation menus. */
-  --sidebar-primary-foreground: rgba(0, 136, 255, 1.00);
-  /* The accent color used for highlights, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-accent: rgba(237, 237, 237, 1.00);
-  /* The default color for text or elements that appear on top of accent colored elements in sidebars and navigation menus. */
-  --sidebar-accent-foreground: rgba(0, 136, 255, 1.00);
-  /* The default border color for elements in sidebars and navigation menus. */
-  --sidebar-border: rgba(0, 0, 0, 0);
-  /* The default color for focus rings, outlines, and other focus indicators in sidebars and navigation menus. */
-  --sidebar-ring: rgba(0, 136, 255, 1.00);
-  
-  /* Feedback Survey Colors */
+
+  /* ----------------------------------------
+     COLORS - Light Theme
+     ---------------------------------------- */
+
+  /* Base Colors */
+  --background: oklch(0.97 0.00 0);           /* #F2F2F7 - App background */
+  --foreground: oklch(0.00 0.00 0);           /* #000000 - Primary text */
+
+  /* Surface Colors */
+  --card: oklch(1.00 0.00 0);                 /* #FFFFFF - Card backgrounds */
+  --card-foreground: oklch(0.00 0.00 0);      /* #000000 - Card text */
+  --popover: oklch(0.96 0.00 0 / 0.60);       /* Dropdown/tooltip bg */
+  --popover-foreground: oklch(0.20 0.00 0);   /* #333333 */
+
+  /* Interactive Colors */
+  --primary: oklch(0.62 0.19 250);            /* #0088FF - Blue */
+  --primary-foreground: oklch(1.00 0.00 0);   /* #FFFFFF */
+
+  --secondary: oklch(0.55 0.00 0 / 0.16);     /* Gray transparent */
+  --secondary-foreground: oklch(0.00 0.00 0); /* #000000 */
+
+  /* HOMA Brand Colors */
+  --accent: oklch(0.53 0.22 27);              /* #E31E24 - HOMA Red */
+  --accent-foreground: oklch(1.00 0.00 0);    /* #FFFFFF */
+  --accent-light: oklch(0.93 0.04 70);        /* #F5E6D3 - Beige/Cream */
+  --accent-light-foreground: oklch(0.13 0.00 0); /* #1a1a1a */
+
+  /* State Colors */
+  --muted: oklch(0.55 0.00 0 / 0.12);
+  --muted-foreground: oklch(0.30 0.00 0 / 0.60);
+  --destructive: oklch(0.60 0.24 25);         /* #FF383C - Error red */
+  --destructive-foreground: oklch(1.00 0.00 0);
+
+  /* Border & Input */
+  --border: oklch(0.91 0.00 0);               /* #E6E6E6 */
+  --input: transparent;
+  --input-background: oklch(1.00 0.00 0);     /* #FFFFFF */
+  --ring: oklch(0.62 0.19 250);               /* Same as primary */
+
+  /* ----------------------------------------
+     SHADOWS & ELEVATION
+     ---------------------------------------- */
+  --elevation-sm: 0px 15px 75px 0px oklch(0 0 0 / 0.18);
+  --elevation-md: 0px 20px 60px -10px oklch(0 0 0 / 0.15);
+  --elevation-lg: 0px 25px 80px -12px oklch(0 0 0 / 0.20);
+
+  /* ----------------------------------------
+     BORDER RADIUS
+     ---------------------------------------- */
+  --radius: 26px;           /* Large - default */
+  --radius-button: 100px;   /* Pill buttons */
+  --radius-card: 20px;      /* Cards, modals */
+  --radius-input: 12px;     /* Inputs, small elements */
+
+  /* ----------------------------------------
+     CHART COLORS
+     ---------------------------------------- */
+  --chart-1: oklch(0.62 0.19 250);  /* Blue */
+  --chart-2: oklch(0.72 0.18 145);  /* Green */
+  --chart-3: oklch(0.85 0.18 85);   /* Yellow */
+  --chart-4: oklch(0.60 0.24 25);   /* Red */
+  --chart-5: oklch(0.60 0.25 310);  /* Purple */
+
+  /* ----------------------------------------
+     SIDEBAR COLORS
+     ---------------------------------------- */
+  --sidebar: oklch(0.98 0.00 0 / 0.70);
+  --sidebar-foreground: oklch(0.20 0.00 0);
+  --sidebar-primary: oklch(0.62 0.19 250);
+  --sidebar-primary-foreground: oklch(0.62 0.19 250);
+  --sidebar-accent: oklch(0.93 0.00 0);
+  --sidebar-accent-foreground: oklch(0.62 0.19 250);
+  --sidebar-border: transparent;
+  --sidebar-ring: oklch(0.62 0.19 250);
+
+  /* ----------------------------------------
+     FEEDBACK COLORS
+     ---------------------------------------- */
   --feedback-good: #00312D;
   --feedback-neutral: #FC6F20;
   --feedback-bad: #5D0D02;
   --feedback-bg: #FEE8D0;
-  
-  /* Custom Colors - Old Flax & Jet Black */
+
+  /* ----------------------------------------
+     SPECIAL COLORS
+     ---------------------------------------- */
   --old-flax: #dff370;
   --old-flax-light: #edf9b5;
   --old-flax-bg: #f7fcde;
   --jet-black: #292b2d;
 }
 
+/* ============================================
+   DARK THEME
+   ============================================ */
+
 .dark {
-  --background: rgba(28, 28, 30, 1.00);
-  --foreground: rgba(255, 255, 255, 1.00);
-  --card: rgba(44, 44, 46, 1.00);
-  --card-foreground: rgba(255, 255, 255, 1.00);
-  --popover: rgba(44, 44, 46, 0.90);
-  --popover-foreground: rgba(255, 255, 255, 1.00);
-  --primary: rgba(10, 132, 255, 1.00);
-  --primary-foreground: rgba(255, 255, 255, 1.00);
-  --secondary: rgba(120, 120, 128, 0.24);
-  --secondary-foreground: rgba(255, 255, 255, 1.00);
-  --muted: rgba(118, 118, 128, 0.18);
-  --muted-foreground: rgba(235, 235, 245, 0.60);
-  --accent: rgba(10, 132, 255, 1.00);
-  --accent-foreground: rgba(255, 255, 255, 1.00);
-  --destructive: rgba(255, 69, 58, 1.00);
-  --destructive-foreground: rgba(255, 255, 255, 1.00);
-  --border: rgba(84, 84, 88, 1.00);
-  --input: rgba(0, 0, 0, 0);
-  --input-background: rgba(44, 44, 46, 1.00);
-  --ring: rgba(10, 132, 255, 1.00);
-  --chart-1: rgba(10, 132, 255, 1.00);
-  --chart-2: rgba(48, 209, 88, 1.00);
-  --chart-3: rgba(255, 214, 10, 1.00);
-  --chart-4: rgba(255, 69, 58, 1.00);
-  --chart-5: rgba(191, 90, 242, 1.00);
-  --sidebar: rgba(44, 44, 46, 0.80);
-  --sidebar-foreground: rgba(255, 255, 255, 1.00);
-  --sidebar-primary: rgba(10, 132, 255, 1.00);
-  --sidebar-primary-foreground: rgba(10, 132, 255, 1.00);
-  --sidebar-accent: rgba(72, 72, 74, 1.00);
-  --sidebar-accent-foreground: rgba(10, 132, 255, 1.00);
-  --sidebar-border: rgba(0, 0, 0, 0);
-  --sidebar-ring: rgba(10, 132, 255, 1.00);
+  --background: oklch(0.15 0.00 0);           /* #1C1C1E */
+  --foreground: oklch(1.00 0.00 0);           /* #FFFFFF */
+
+  --card: oklch(0.21 0.00 0);                 /* #2C2C2E */
+  --card-foreground: oklch(1.00 0.00 0);
+  --popover: oklch(0.21 0.00 0 / 0.90);
+  --popover-foreground: oklch(1.00 0.00 0);
+
+  --primary: oklch(0.65 0.19 250);            /* Slightly lighter blue */
+  --primary-foreground: oklch(1.00 0.00 0);
+
+  --secondary: oklch(0.55 0.00 0 / 0.24);
+  --secondary-foreground: oklch(1.00 0.00 0);
+
+  --muted: oklch(0.55 0.00 0 / 0.18);
+  --muted-foreground: oklch(0.92 0.00 0 / 0.60);
+
+  --accent: oklch(0.65 0.19 250);
+  --accent-foreground: oklch(1.00 0.00 0);
+
+  --destructive: oklch(0.62 0.24 25);
+  --destructive-foreground: oklch(1.00 0.00 0);
+
+  --border: oklch(0.40 0.00 0);
+  --input: transparent;
+  --input-background: oklch(0.21 0.00 0);
+  --ring: oklch(0.65 0.19 250);
+
+  --chart-1: oklch(0.65 0.19 250);
+  --chart-2: oklch(0.74 0.18 145);
+  --chart-3: oklch(0.87 0.18 85);
+  --chart-4: oklch(0.62 0.24 25);
+  --chart-5: oklch(0.65 0.22 310);
+
+  --sidebar: oklch(0.21 0.00 0 / 0.80);
+  --sidebar-foreground: oklch(1.00 0.00 0);
+  --sidebar-primary: oklch(0.65 0.19 250);
+  --sidebar-primary-foreground: oklch(0.65 0.19 250);
+  --sidebar-accent: oklch(0.35 0.00 0);
+  --sidebar-accent-foreground: oklch(0.65 0.19 250);
+  --sidebar-border: transparent;
+  --sidebar-ring: oklch(0.65 0.19 250);
 }
 
+/* ============================================
+   TAILWIND v4 THEME CONFIGURATION
+   Maps CSS variables to Tailwind utilities
+   ============================================ */
+
 @theme inline {
+  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -180,17 +217,15 @@
   --color-input: var(--input);
   --color-input-background: var(--input-background);
   --color-ring: var(--ring);
+
+  /* Chart Colors */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius-card) - 6px);
-  --radius-md: var(--radius-card);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 6px);
-  --radius-button: var(--radius-button);
-  --shadow-elevation-sm: var(--elevation-sm);
+
+  /* Sidebar Colors */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -199,7 +234,43 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Feedback Colors */
+  --color-feedback-good: var(--feedback-good);
+  --color-feedback-neutral: var(--feedback-neutral);
+  --color-feedback-bad: var(--feedback-bad);
+  --color-feedback-bg: var(--feedback-bg);
+
+  /* Special Colors */
+  --color-old-flax: var(--old-flax);
+  --color-old-flax-light: var(--old-flax-light);
+  --color-old-flax-bg: var(--old-flax-bg);
+  --color-jet-black: var(--jet-black);
+
+  /* Border Radius */
+  --radius-sm: calc(var(--radius-card) - 6px);  /* 14px */
+  --radius-md: var(--radius-card);               /* 20px */
+  --radius-lg: var(--radius);                    /* 26px */
+  --radius-xl: calc(var(--radius) + 6px);        /* 32px */
+  --radius-button: var(--radius-button);         /* 100px - pill */
+  --radius-input: var(--radius-input);           /* 12px */
+
+  /* Shadows */
+  --shadow-elevation-sm: var(--elevation-sm);
+  --shadow-elevation-md: var(--elevation-md);
+  --shadow-elevation-lg: var(--elevation-lg);
+
+  /* Font Families */
+  --font-family-vazirmatn: var(--font-family-vazirmatn);
+  --font-family-sf-pro: var(--font-family-sf-pro);
 }
+
+/* Dark mode variant */
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
 
 @layer base {
   * {
@@ -208,336 +279,183 @@
 
   html {
     direction: rtl;
+    font-size: var(--font-size);
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-family-vazirmatn);
     direction: rtl;
   }
-}
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
-@layer base {
-  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
-    h1 {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-h1-size);
-      font-weight: var(--font-weight-bold);
-      line-height: 1.5;
-    }
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
 
-    h2 {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-h2-size);
-      font-weight: var(--font-weight-bold);
-      line-height: 1.5;
-    }
-
-    h3 {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-h3-size);
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-    }
-
-    h4 {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-h4-size);
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-    }
-
-    p {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-p-size);
-      font-weight: var(--font-weight-regular);
-      line-height: 1.5;
-    }
-
-    label {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-label-size);
-      font-weight: var(--font-weight-regular);
-      line-height: 1.5;
-    }
-
-    button {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-p-size);
-      font-weight: var(--font-weight-regular);
-      line-height: 1.5;
-    }
-
-    input {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-p-size);
-      font-weight: var(--font-weight-regular);
-      line-height: 1.5;
-    }
-
-    .caption {
-      font-family: var(--font-family-vazirmatn);
-      font-size: var(--text-caption-size);
-      font-weight: var(--font-weight-regular);
-      line-height: 1.5;
-    }
+  /* Better focus visibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 }
 
-html {
-  font-size: var(--font-size);
+/* ============================================
+   TYPOGRAPHY - Base Element Styles
+   ============================================ */
+
+@layer base {
+  h1 {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-h1-size);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-h2-size);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-h3-size);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-h4-size);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+  }
+
+  p {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-p-size);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.6;
+  }
+
+  label {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-label-size);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-p-size);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input, textarea, select {
+    font-family: var(--font-family-vazirmatn);
+    font-size: var(--text-p-size);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.5;
+  }
 }
 
-/* Glass Effect Utility Classes */
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
 @layer utilities {
+  /* Glass Effects */
   .glass {
-    background: rgba(237, 255, 0, 0.7);
+    background: oklch(0.95 0.12 100 / 0.7);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
 
   .glass-dark {
-    background: rgba(0, 0, 0, 0.4);
+    background: oklch(0 0 0 / 0.4);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
-}
 
-/* Custom Responsive Utilities - Added for desktop sidebar layout */
-/* These classes are not in the pre-bundled Tailwind CSS, so we add them manually */
-
-/* Base transform utilities for mobile sidebar */
-.translate-x-0 {
-  transform: translateX(0);
-}
-.translate-x-full {
-  transform: translateX(100%);
-}
-
-/* Responsive display utilities */
-@media (min-width: 768px) {
-    .md\:block {
-      display: block;
-    }
-    .md\:hidden {
-      display: none;
-    }
-    .md\:flex {
-      display: flex;
-    }
-    .md\:flex-row {
-      flex-direction: row;
-    }
-    .md\:w-64 {
-      width: 16rem;
-    }
-    .md\:max-w-2xl {
-      max-width: 42rem;
-    }
-    .md\:max-w-4xl {
-      max-width: 56rem;
-    }
-    .md\:max-w-xl {
-      max-width: 36rem;
-    }
-    .md\:w-\[400px\] {
-      width: 400px;
-    }
-    .md\:pt-6 {
-      padding-top: 1.5rem;
-    }
-    .md\:pt-8 {
-      padding-top: 2rem;
-    }
-    .md\:py-10 {
-      padding-top: 2.5rem;
-      padding-bottom: 2.5rem;
-    }
-    .md\:px-8 {
-      padding-left: 2rem;
-      padding-right: 2rem;
-    }
-    .md\:min-h-0 {
-      min-height: 0;
-    }
-    .md\:h-auto {
-      height: auto;
-    }
-    .md\:static {
-      position: static;
-    }
-    .md\:z-auto {
-      z-index: auto;
-    }
-    .md\:translate-x-0 {
-      transform: translateX(0);
-    }
-    .md\:h-screen {
-      height: 100vh;
-    }
-    .md\:sticky {
-      position: sticky;
-    }
-    .md\:top-0 {
-      top: 0;
-    }
+  .glass-light {
+    background: oklch(1 0 0 / 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
-  @media (min-width: 1024px) {
-    .lg\:block {
-      display: block;
-    }
-    .lg\:hidden {
-      display: none;
-    }
-    .lg\:flex {
-      display: flex;
-    }
-    .lg\:static {
-      position: static;
-    }
-    .lg\:w-1\/2 {
-      width: 50%;
-    }
-    .lg\:w-2\/5 {
-      width: 40%;
-    }
-    .lg\:w-3\/5 {
-      width: 60%;
-    }
-    .lg\:w-\[480px\] {
-      width: 480px;
-    }
-    .lg\:gap-8 {
-      gap: 2rem;
-    }
-    .lg\:items-start {
-      align-items: flex-start;
-    }
-    .lg\:sticky {
-      position: sticky;
-    }
-    .lg\:top-6 {
-      top: 1.5rem;
-    }
-    .lg\:aspect-square {
-      aspect-ratio: 1 / 1;
-    }
-    .lg\:mt-0 {
-      margin-top: 0;
-    }
-    .lg\:mt-8 {
-      margin-top: 2rem;
-    }
-    .lg\:mb-0 {
-      margin-bottom: 0;
-    }
-    .lg\:pb-8 {
-      padding-bottom: 2rem;
-    }
-    .lg\:max-w-3xl {
-      max-width: 48rem;
-    }
-    .lg\:max-w-4xl {
-      max-width: 56rem;
-    }
-    .lg\:max-w-5xl {
-      max-width: 64rem;
-    }
-    .lg\:max-w-6xl {
-      max-width: 72rem;
-    }
-    .lg\:grid-cols-3 {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .lg\:gap-6 {
-      gap: 1.5rem;
-    }
+  /* Typography Utilities */
+  .text-h1 {
+    font-size: var(--text-h1-size);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.3;
   }
 
-  /* sm breakpoint utilities */
-  @media (min-width: 640px) {
-    .sm\:max-w-md {
-      max-width: 28rem;
-    }
-    .sm\:max-w-lg {
-      max-width: 32rem;
-    }
-    .sm\:grid-cols-2 {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .sm\:gap-5 {
-      gap: 1.25rem;
-    }
-    .sm\:px-6 {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
-    }
-    .sm\:px-10 {
-      padding-left: 2.5rem;
-      padding-right: 2.5rem;
-    }
-    .sm\:py-10 {
-      padding-top: 2.5rem;
-      padding-bottom: 2.5rem;
-    }
-    .sm\:h-16 {
-      height: 4rem;
-    }
-    .sm\:w-10 {
-      width: 2.5rem;
-    }
-    .sm\:h-10 {
-      height: 2.5rem;
-    }
-    .sm\:w-28 {
-      width: 7rem;
-    }
-    .sm\:h-28 {
-      height: 7rem;
-    }
-    .md\:w-32 {
-      width: 8rem;
-    }
-    .md\:h-32 {
-      height: 8rem;
-    }
-    /* Modal/Dialog centering utilities */
-    .sm\:inset-auto {
-      inset: auto;
-    }
-    .sm\:top-1\/2 {
-      top: 50%;
-    }
-    .sm\:left-1\/2 {
-      left: 50%;
-    }
-    .sm\:-translate-x-1\/2 {
-      --tw-translate-x: -50%;
-    }
-    .sm\:-translate-y-1\/2 {
-      --tw-translate-y: -50%;
-    }
-    /* Combined transform for elements using both translate classes */
-    .sm\:-translate-x-1\/2.sm\:-translate-y-1\/2 {
-      translate: -50% -50%;
-    }
-    .sm\:rounded-2xl {
-      border-radius: 1rem;
-    }
-    .sm\:h-\[90vh\] {
-      height: 90vh;
-    }
-    .sm\:max-h-\[700px\] {
-      max-height: 700px;
-    }
+  .text-h2 {
+    font-size: var(--text-h2-size);
+    font-weight: var(--font-weight-bold);
+    line-height: 1.35;
+  }
+
+  .text-h3 {
+    font-size: var(--text-h3-size);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+  }
+
+  .text-caption {
+    font-size: var(--text-caption-size);
+    font-weight: var(--font-weight-regular);
+    line-height: 1.5;
+  }
+
+  /* RTL Helpers */
+  .rtl {
+    direction: rtl;
+  }
+
+  .ltr {
+    direction: ltr;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
-/* Upload Guidance Modal - Responsive Positioning */
-/* Mobile: Full screen with proper flex containment */
+/* ============================================
+   SELLER PORTAL THEME
+   Yellow accent for seller dashboard
+   ============================================ */
+
+[data-seller-theme="true"] {
+  --seller-primary: #EEFF41;
+  --seller-primary-hover: #D9E838;
+  --seller-primary-dark: #C4D02F;
+  --seller-primary-light: oklch(0.95 0.15 100 / 0.1);
+
+  /* Override main theme colors */
+  --primary: #EEFF41;
+  --primary-foreground: #1a1a1a;
+  --accent: #EEFF41;
+  --accent-foreground: #1a1a1a;
+  --ring: #EEFF41;
+}
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+
+/* Upload Guidance Modal */
 .upload-guidance-modal {
   inset: 0;
   width: 100%;
@@ -548,7 +466,6 @@ html {
   overflow: hidden;
 }
 
-/* Desktop (sm+): Centered modal */
 @media (min-width: 640px) {
   .upload-guidance-modal {
     inset: auto;
@@ -557,19 +474,17 @@ html {
     right: auto;
     transform: translate(-50%, -50%);
     width: 100%;
-    max-width: 28rem; /* max-w-md */
+    max-width: 28rem;
     height: auto;
     max-height: 85vh;
-    border-radius: 1rem; /* rounded-2xl */
+    border-radius: 1rem;
   }
 }
 
-/* Header section - fixed height, never shrink */
 .upload-guidance-modal > div:first-child {
   flex-shrink: 0;
 }
 
-/* Content area - fills remaining space with proper overflow */
 .upload-guidance-modal > div:nth-child(2) {
   flex: 1 1 auto;
   min-height: 0;
@@ -578,54 +493,37 @@ html {
   flex-direction: column;
 }
 
-/* Image container inside content area */
 .upload-guidance-modal > div:nth-child(2) > div:last-child {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
 }
 
-/* Image wrapper - constrain to available space */
 .upload-guidance-modal > div:nth-child(2) > div:last-child > div:first-child {
   flex: 1 1 auto;
   min-height: 0;
   max-height: 100%;
 }
 
-/* Caption - fixed height */
 .upload-guidance-modal > div:nth-child(2) > div:last-child > div:last-child {
   flex-shrink: 0;
 }
 
-/* Footer button section - always visible */
 .upload-guidance-modal > div:last-child {
   flex-shrink: 0;
 }
 
-/* Mobile: Limit image section height to leave room for button */
 @media (max-width: 639px) {
   .upload-guidance-modal > div:nth-child(2) > div:last-child {
-    max-height: calc(100dvh - 180px); /* Reserve space for header, title, footer */
+    max-height: calc(100dvh - 180px);
   }
 }
 
-/* Seller Portal Theme - Yellow Accent */
-[data-seller-theme="true"] {
-  /* Seller Primary Colors */
-  --seller-primary: #EEFF41;
-  --seller-primary-hover: #D9E838;
-  --seller-primary-dark: #C4D02F;
-  --seller-primary-light: rgba(238, 255, 65, 0.1);
+/* ============================================
+   RICH TEXT DISPLAY
+   For TipTap rendered content
+   ============================================ */
 
-  /* Override main theme colors for seller section */
-  --primary: #EEFF41;
-  --primary-hover: #D9E838;
-  --accent: #EEFF41;
-  --accent-foreground: #1a1a1a;
-  --ring: #EEFF41;
-}
-
-/* Rich Text Display Styles */
 .rich-text-display {
   color: inherit;
 }
@@ -678,12 +576,12 @@ html {
 }
 
 .rich-text-display blockquote {
-  border-right: 3px solid var(--accent, #666);
+  border-right: 3px solid var(--accent);
   border-left: none;
   padding-right: 1em;
   padding-left: 0;
   margin: 0.75em 0;
-  color: var(--muted-foreground, #888);
+  color: var(--muted-foreground);
   font-style: italic;
 }
 

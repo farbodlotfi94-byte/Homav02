@@ -51,23 +51,27 @@ User asks for "loading indicator" → Use state
 - **Mobile-first** - Responsive with `sm:`, `md:`, `lg:` breakpoints
 - **Accessibility** - Focus rings, proper contrast, semantic HTML
 
-### Color Palette (from CSS Variables)
+### Color Palette (from `src/styles/globals.css`)
+
+Design tokens use **OKLCH color space** for perceptual uniformity.
 
 ```css
 /* Primary Colors */
---primary: #0088FF          /* Blue - buttons, links */
---accent: #E31E24           /* HOMA Red - brand accent */
---accent-light: #F5E6D3     /* Beige/cream - subtle backgrounds */
+--primary: oklch(0.62 0.19 250)     /* Blue - buttons, links */
+--accent: oklch(0.53 0.22 27)       /* HOMA Red #E31E24 */
+--accent-light: oklch(0.93 0.04 70) /* Beige/cream #F5E6D3 */
 
 /* Semantic Colors */
---background: #F2F2F7       /* App background */
---card: #FFFFFF             /* Card backgrounds */
---muted: rgba(118,118,128,0.12)
---destructive: #FF383C      /* Errors, delete actions */
+--background: oklch(0.97 0.00 0)    /* #F2F2F7 - App background */
+--card: oklch(1.00 0.00 0)          /* #FFFFFF - Card backgrounds */
+--muted: oklch(0.55 0.00 0 / 0.12)  /* Gray transparent */
+--destructive: oklch(0.60 0.24 25)  /* #FF383C - Error red */
 
 /* Seller Portal Theme */
---seller-primary: #EEFF41   /* Yellow accent for seller dashboard */
+--seller-primary: #EEFF41           /* Yellow accent for seller dashboard */
 ```
+
+**Tailwind Configuration:** `src/styles/globals.css` contains the `@theme inline` block that maps CSS variables to Tailwind utilities.
 
 **Usage:**
 ```tsx
@@ -120,6 +124,42 @@ import { Upload, ChevronDown, Clock, X, Check } from "lucide-react";
 ```
 
 **Common icons used**: `Upload`, `ChevronDown`, `ChevronRight`, `Clock`, `X`, `Check`, `Menu`, `ArrowRight`, `Camera`, `Image`
+
+### Custom Utilities (from `globals.css`)
+
+```tsx
+// Glass effects
+className="glass"       // Yellow-tinted glass
+className="glass-dark"  // Dark glass
+className="glass-light" // Light glass
+
+// Typography shortcuts
+className="text-h1"     // Responsive H1 size
+className="text-h2"     // Responsive H2 size
+className="text-h3"     // Responsive H3 size
+className="text-caption" // Small caption text
+
+// Custom colors (all available as Tailwind classes)
+className="bg-accent"           // HOMA Red
+className="bg-accent-light"     // Beige/cream
+className="text-feedback-good"  // Dark green
+className="bg-old-flax"         // Yellow-green
+className="text-jet-black"      // Near black
+
+// Custom radius
+className="rounded-button"  // Pill shape (100px)
+className="rounded-input"   // Input radius (12px)
+
+// Custom shadows
+className="shadow-elevation-sm"  // Large soft shadow
+className="shadow-elevation-md"  // Medium elevation
+className="shadow-elevation-lg"  // Large elevation
+
+// Helpers
+className="scrollbar-hide"  // Hide scrollbar
+className="rtl"             // Force RTL
+className="ltr"             // Force LTR
+```
 
 ### shadcn/ui Components Available
 
@@ -267,8 +307,10 @@ npm run test:run # Run tests once
 | Edit API calls | `src/services/api.ts` |
 | Add auth logic | `src/services/userAuthService.ts` |
 | Add analytics | `src/utils/analytics.ts` |
-| Edit styling | `src/styles/globals.css` |
+| Edit design tokens | `src/styles/globals.css` |
 | Add animation | `src/styles/animations.css` |
+| Tailwind config | `src/styles/globals.css` (`@theme inline` block) |
+| CSS entry point | `src/index.css` |
 
 ### Common Code Templates
 
