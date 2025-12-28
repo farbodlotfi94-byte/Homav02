@@ -12,6 +12,7 @@ import {
   Download,
   Share2,
   RotateCcw,
+  RefreshCw,
   Store,
   Check,
   X,
@@ -22,6 +23,7 @@ import { useAnimationPreference } from "../hooks/useAnimationPreference";
 import { MatchScoreBadge } from "./MatchScoreBadge";
 import { MatchHighlightTags } from "./MatchHighlightTags";
 import { isMobileDevice } from "../utils/deviceDetection";
+import { rerunDiscoveryMatching } from "../utils/discoveryProcessor";
 import type { DiscoveryResult, ProductRecommendation, GroupedRecommendations } from "../types/discovery";
 
 interface DiscoveryResultsProps {
@@ -31,6 +33,7 @@ interface DiscoveryResultsProps {
   onProductClick: (product: ProductRecommendation) => void;
   onShare: () => void;
   onSave: () => void;
+  onRefresh?: () => void; // Refresh current session data (for rerun matching)
 }
 
 export function DiscoveryResults({
@@ -40,12 +43,36 @@ export function DiscoveryResults({
   onProductClick,
   onShare,
   onSave,
+  onRefresh,
 }: DiscoveryResultsProps) {
   const shouldAnimate = useAnimationPreference();
   const [isSaved, setIsSaved] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [isRerunning, setIsRerunning] = useState(false);
   const isMobile = isMobileDevice();
+
+  // Handler for rerunning matching (dev testing only)
+  const handleRerunMatching = async () => {
+    if (!result.sessionId) return;
+
+    setIsRerunning(true);
+    try {
+      const response = await rerunDiscoveryMatching(result.sessionId);
+      if (response.success) {
+        console.log('[DiscoveryResults] Rerun matching success:', {
+          itemsUpdated: response.itemsUpdated,
+          roomType: response.roomType,
+        });
+        // Refresh current session to show new results
+        onRefresh?.();
+      } else {
+        console.error('[DiscoveryResults] Rerun matching failed:', response.error);
+      }
+    } finally {
+      setIsRerunning(false);
+    }
+  };
 
   const handleSave = () => {
     onSave();
@@ -327,6 +354,27 @@ export function DiscoveryResults({
               امتحان مجدد
             </button>
           </div>
+
+          {/* Rerun Matching - Developer Testing (dev only) */}
+          {import.meta.env.DEV && (
+            <button
+              onClick={handleRerunMatching}
+              disabled={isRerunning}
+              className="w-full h-12 bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 rounded-[14px] flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRerunning ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  در حال تطبیق مجدد...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  تطبیق مجدد محصولات (تست)
+                </>
+              )}
+            </button>
+          )}
 
           {/* Back to shops */}
           <button

@@ -981,3 +981,85 @@ export async function pollDiscoveryVisualization(
     error: 'زمان پردازش تمام شد - لطفاً دوباره تلاش کنید',
   };
 }
+
+/**
+ * Rerun product matching for an existing session.
+ * Uses stored item descriptions to find new product matches.
+ * Useful for testing matching algorithm changes.
+ *
+ * POST /api/recommendations/sessions/{session_id}/rerun-matching/
+ */
+export async function rerunDiscoveryMatching(
+  sessionId: string
+): Promise<{
+  success: boolean;
+  itemsUpdated?: number;
+  items?: Array<{
+    itemId: number;
+    itemType: string;
+    matchedProducts: ProductRecommendation[];
+  }>;
+  roomType?: string;
+  error?: string;
+}> {
+  const endpoint = `/api/recommendations/sessions/${sessionId}/rerun-matching/`;
+
+  console.log('[Discovery] Rerunning matching for session:', sessionId);
+
+  try {
+    const response = await apiPost<{
+      session_id: string;
+      items_updated: number;
+      items: Array<{
+        item_id: number;
+        item_type: string;
+        matched_products: BackendMatchedProduct[];
+      }>;
+      room_type: string | null;
+    }>(endpoint, {});
+
+    console.log('[Discovery] Rerun matching response:', {
+      success: response.success,
+      itemsUpdated: response.data?.items_updated,
+    });
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.error || 'خطا در تطبیق مجدد',
+      };
+    }
+
+    // Map backend items to frontend format
+    const items = (response.data?.items || []).map((item) => ({
+      itemId: item.item_id,
+      itemType: item.item_type,
+      matchedProducts: item.matched_products.map((p) => ({
+        id: p.id,
+        name: p.name,
+        imageUrl: p.image_url || '',
+        matchScore: Math.round((p.match_score || 0) * 100),
+        price: p.price ?? undefined,
+        shopName: p.shop_name || '',
+        uniqueLink: p.unique_link,
+        category: p.category,
+        categoryDisplay: p.category_display,
+        available_sizes: p.available_sizes || [],
+        available_sizes_display: p.available_sizes_display || [],
+      })),
+    }));
+
+    return {
+      success: true,
+      itemsUpdated: response.data?.items_updated,
+      items,
+      roomType: response.data?.room_type || undefined,
+    };
+  } catch (error) {
+    console.error('[Discovery] Rerun matching exception:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'خطا در ارتباط با سرور',
+    };
+  }
+}

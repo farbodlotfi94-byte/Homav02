@@ -326,6 +326,7 @@ function DiscoverySessionPage({
         onProductClick={onProductClick}
         onShare={onShare}
         onSave={onSave}
+        onRefresh={() => sessionId && fetchSession(sessionId)}
       />
     );
   }
