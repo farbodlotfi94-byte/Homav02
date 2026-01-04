@@ -8,6 +8,7 @@ import type {
 } from "../types/product";
 import { apiGet } from "../services/api";
 import { API_CONFIG } from "../config/api";
+import { getImageUrl, IMAGE_SIZES } from "./imageUrl";
 
 // Product mapping for URL compatibility
 const productIdToUniqueLink: Record<string, string> = {};
@@ -21,17 +22,22 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
   // Store mapping for URL compatibility
   productIdToUniqueLink[productId] = backendProduct.unique_link;
 
-  // Construct image URL with validation
-  const baseUrl = API_CONFIG.BASE_URL || 'https://104.234.46.187:8888';
+  // Construct image URL with dynamic sizing and version for CDN cache busting
   const imagePath = backendProduct.image_path || '';
+  const imageVersion = backendProduct.image_version || 1;
+
+  // Use card size for thumbnails in product lists
   const thumbnailUrl = imagePath
-    ? `${baseUrl}${API_CONFIG.ENDPOINTS.IMAGE_SERVE(imagePath)}`
+    ? getImageUrl(imagePath, {
+        ...IMAGE_SIZES.CARD,
+        version: imageVersion
+      })
     : '';
 
   console.log('[transformBackendProduct] Image URL construction:', {
     productId,
-    baseUrl,
     imagePath,
+    imageVersion,
     thumbnailUrl
   });
 
@@ -61,6 +67,7 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
     shop_id: backendProduct.shop_id,
     is_predefined: backendProduct.is_predefined,
     image_path: backendProduct.image_path,
+    image_version: imageVersion,
     created_at: backendProduct.created_at
   };
 }

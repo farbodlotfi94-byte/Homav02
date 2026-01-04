@@ -41,6 +41,7 @@ export interface Product {
   shop_id: number | null;
   is_predefined: number; // 0 or 1
   image_path: string; // Path in MinIO storage
+  image_version?: number; // Version for CDN cache busting
   created_at: string; // ISO timestamp
 }
 
@@ -73,6 +74,7 @@ export interface BackendProduct {
   currency?: string;
   is_predefined: number;
   image_path: string;
+  image_version?: number; // Version for CDN cache busting
   unique_link: string;
   created_at: string;
   link?: string | null; // Product purchase/redirect URL
