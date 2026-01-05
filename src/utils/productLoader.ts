@@ -51,7 +51,7 @@ function transformBackendProduct(backendProduct: BackendProduct): Product {
     currency: backendProduct.currency || "ریال",
     seller: {
       name: backendProduct.shop_name || "فروشگاه",
-      username: backendProduct.shop_username, // Original username for API calls
+      slug: backendProduct.shop_slug, // Shop slug for API calls and URL routing
       verified: false
     },
     category: String(backendProduct.category), // Ensure category is always a string for comparison

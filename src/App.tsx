@@ -324,16 +324,16 @@ export default function App() {
             }
 
             // Verify shop name matches (case-insensitive)
-            // URLs use display name, but also accept username for backwards compatibility
+            // URLs use display name, but also accept slug for backwards compatibility
             const normalizedShopName = shopName.toLowerCase().trim();
             const productShopName = (productData.seller.name || '').toLowerCase().trim();
-            const productShopUsername = (productData.seller.username || '').toLowerCase().trim();
+            const productShopSlug = (productData.seller.slug || '').toLowerCase().trim();
 
-            // Match if URL shop name matches display name (primary) or username (fallback)
-            if (normalizedShopName !== productShopName && normalizedShopName !== productShopUsername) {
+            // Match if URL shop name matches display name (primary) or slug (fallback)
+            if (normalizedShopName !== productShopName && normalizedShopName !== productShopSlug) {
               console.log("[App] Shop name mismatch:", {
                 urlShop: shopName,
-                productShopUsername: productData.seller.username,
+                productShopSlug: productData.seller.slug,
                 productShopName: productData.seller.name
               });
               setErrorType("invalid_shop");

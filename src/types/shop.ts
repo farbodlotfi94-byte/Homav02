@@ -12,8 +12,8 @@ export interface Shop {
   id: number;
   /** Display name of the shop */
   shop_name: string;
-  /** URL-friendly username/slug */
-  username: string;
+  /** URL-friendly slug */
+  slug: string;
   /** URL to shop logo (null if not set) */
   logo_url: string | null;
   /** Shop website URL (null if not provided) */
@@ -46,6 +46,6 @@ export interface ShopListParams {
   page?: number;
   /** Number of items per page (default: 20, max: 100) */
   page_size?: number;
-  /** Search term for shop name or username */
+  /** Search term for shop name or slug */
   search?: string;
 }
